@@ -2,7 +2,9 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+ready_datasets
+.idea
+.vscode
 # C extensions
 *.so
 
