@@ -7,7 +7,7 @@ ready_datasets
 .vscode
 # C extensions
 *.so
-
+wandb
 # Distribution / packaging
 .Python
 build/
