@@ -1,1 +1,0 @@
-[#Branch1]	[#Branch2]	[#C]	[#N]	[/C]	[/N]	[/O]	[=Branch1]	[=Branch2]	[=C]	[=N+1]	[=N]	[=O]	[=Ring1]	[=Ring2]	[=S]	[Br]	[Branch1]	[Branch2]	[C@@H1]	[C@@]	[C@H1]	[C@]	[C]	[Cl]	[F]	[I]	[N+1]	[NH1]	[N]	[O-1]	[O]	[P]	[Ring1]	[Ring2]	[S]	[\C]	[\N]	[\O]	
