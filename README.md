@@ -1,5 +1,6 @@
 # Generowanie związków w oparciu o optymalny zestaw podstruktur
 ## Autorzy: Mateusz Iwan, Hubert Rybka, Anton Siomchen
+![abstract](https://github.com/asiomchen/mldd23_project1/assets/126616541/f1b73205-6046-49c1-a03b-a0cac37861f5)
 ## 1.  Wstępna lista źródeł danych, narzędzi, dodatkowych paczek Pythona
 ### 1.1. Źródła danych
 * [Creating the New from the Old: Combinatorial Libraries Generation with Machine-Learning-Based Compound Structure Optimization](https://pubs.acs.org/doi/10.1021/acs.jcim.6b00426)
