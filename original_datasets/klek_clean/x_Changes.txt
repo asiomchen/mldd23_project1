@@ -1,0 +1,94 @@
+# Balanced dataset
+Loaded data for 5ht1a protein
+The initial size of dataset: 5840
+The percent of rows with missing Ki values: 3.78 %
+New size of the dataset: 5619
+The initial size of dataset: 5619
+The percent of duplicated rows: 6.57 %
+New size of the dataset: 5250
+The percent of compounds classified as active is 50.04 %
+Cleaned file saved at ../original_datasets/klek_clean/5ht1a_klek_balanced.csv
+Loaded data for 5ht7 protein
+The initial size of dataset: 3262
+The percent of rows with missing Ki values: 3.86 %
+New size of the dataset: 3136
+The initial size of dataset: 3136
+The percent of duplicated rows: 5.52 %
+New size of the dataset: 2963
+The percent of compounds classified as active is 49.98 %
+Cleaned file saved at ../original_datasets/klek_clean/5ht7_klek_balanced.csv
+Loaded data for beta2 protein
+The initial size of dataset: 1660
+The percent of rows with missing Ki values: 51.51 %
+New size of the dataset: 805
+The initial size of dataset: 805
+The percent of duplicated rows: 2.86 %
+New size of the dataset: 782
+The percent of compounds classified as active is 50.00 %
+Cleaned file saved at ../original_datasets/klek_clean/beta2_klek_balanced.csv
+Loaded data for d2 protein
+The initial size of dataset: 11816
+The percent of rows with missing Ki values: 9.09 %
+New size of the dataset: 10742
+The initial size of dataset: 10742
+The percent of duplicated rows: 5.32 %
+New size of the dataset: 10170
+The percent of compounds classified as active is 50.03 %
+Cleaned file saved at ../original_datasets/klek_clean/d2_klek_balanced.csv
+Loaded data for h1 protein
+The initial size of dataset: 2591
+The percent of rows with missing Ki values: 32.88 %
+New size of the dataset: 1739
+The initial size of dataset: 1739
+The percent of duplicated rows: 2.76 %
+New size of the dataset: 1691
+The percent of compounds classified as active is 50.03 %
+Cleaned file saved at ../original_datasets/klek_clean/h1_klek_balanced.csv
+
+# 100 nM dataset
+
+Loaded data for 5ht1a protein
+The initial size of dataset: 5840
+The percent of rows with missing Ki values: 3.78 %
+New size of the dataset: 5619
+The initial size of dataset: 5619
+The percent of duplicated rows: 6.57 %
+New size of the dataset: 5250
+The percent of compounds classified as active is 57.96 %
+Cleaned file saved at ../original_datasets/klek_clean/5ht1a_klek_100nM.csv
+Loaded data for 5ht7 protein
+The initial size of dataset: 3262
+The percent of rows with missing Ki values: 3.86 %
+New size of the dataset: 3136
+The initial size of dataset: 3136
+The percent of duplicated rows: 5.52 %
+New size of the dataset: 2963
+The percent of compounds classified as active is 51.50 %
+Cleaned file saved at ../original_datasets/klek_clean/5ht7_klek_100nM.csv
+Loaded data for beta2 protein
+The initial size of dataset: 1660
+The percent of rows with missing Ki values: 51.51 %
+New size of the dataset: 805
+The initial size of dataset: 805
+The percent of duplicated rows: 2.86 %
+New size of the dataset: 782
+The percent of compounds classified as active is 42.33 %
+Cleaned file saved at ../original_datasets/klek_clean/beta2_klek_100nM.csv
+Loaded data for d2 protein
+The initial size of dataset: 11816
+The percent of rows with missing Ki values: 9.09 %
+New size of the dataset: 10742
+The initial size of dataset: 10742
+The percent of duplicated rows: 5.32 %
+New size of the dataset: 10170
+The percent of compounds classified as active is 36.51 %
+Cleaned file saved at ../original_datasets/klek_clean/d2_klek_100nM.csv
+Loaded data for h1 protein
+The initial size of dataset: 2591
+The percent of rows with missing Ki values: 32.88 %
+New size of the dataset: 1739
+The initial size of dataset: 1739
+The percent of duplicated rows: 2.76 %
+New size of the dataset: 1691
+The percent of compounds classified as active is 37.91 %
+Cleaned file saved at ../original_datasets/klek_clean/h1_klek_100nM.csv
