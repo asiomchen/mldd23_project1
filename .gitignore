@@ -129,7 +129,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-datasets/d2_KlekFP.csv
 GRU_data/augmented.csv
 GRU_data/combined_selfies.csv
 GRU_data/augmented.zip
