@@ -8,7 +8,7 @@
 ### 1.2 Python packages:
 * machine learning: pytorch
 * cheminformatics: smiles
-* other: numpy, pandas, matplotlib, tqdm, jupyter, ipython, re
+* other: numpy, pandas, matplotlib, tqdm, jupyter, ipython, wandb
 ## 2. Problems to solve:
 - Problem 1 - The structure of generated molecules must be chemically correct.
 - Problem 2 - Generated molecules should be obtainable through the means of simple organic synmthesis.
