@@ -5,6 +5,8 @@
 ### 1.1.  Data sources:
 * CHEMBL32
 * ZINC-250k
+
+**Datasets can be downloaded from our [dropbox](https://www.dropbox.com/scl/fo/5htt3e32i99riat1s96ug/h?dl=0&rlkey=z33p4jz4idacxl5jgyby4kv38)  and pleced in ./GRU_data directory. Extract from archives if necessary**
 ### 1.2 Python packages:
 * machine learning: pytorch
 * cheminformatics: smiles
