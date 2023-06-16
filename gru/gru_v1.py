@@ -55,6 +55,7 @@ class EncoderDecoder(nn.Module):
         self.decoder = DecoderNet(encoding_size, hidden_size, num_layers, output_size, dropout)
         self.encoding_size = encoding_size
         self.hidden_size = hidden_size
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         #pytorch.nn
         self.fc = nn.Linear(hidden_size, 42)
@@ -62,7 +63,7 @@ class EncoderDecoder(nn.Module):
         self.softmax2d = nn.Softmax(dim=2)
 
     def forward(self, x):
-        hidden = self.decoder.init_hidden(batch_size=x.shape[0]).to(device)
+        hidden = self.decoder.init_hidden(batch_size=x.shape[0]).to(self.device)
         encoded = self.encoder(x)
         x = encoded.unsqueeze(1)
         decoded = []

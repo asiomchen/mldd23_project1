@@ -1,17 +1,21 @@
 import torch
 import torch.nn as nn
+import numpy as np
 
 class ConsciousCrossEntropy(nn.Module):
-    def __init__(self, device):
+    def __init__(self):
         super(ConsciousCrossEntropy, self).__init__();
         self.batch_size = 256
         self.alphabet_len = 42
         self.seq_len = 128
         self.idx_ignore = 40 # index of token to ignore
-        self.ignore = self.prep_token_to_ignore()
-        self.device = device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.ignore = torch.zeros(self.alphabet_len).to(self.device)
+        self.ignore[self.idx_ignore] = 1
+        self.ignore = self.ignore.unsqueeze(0).repeat(128,1)
 
     def forward(self, target, predictions):
+        diff=0.2
         cross_entropy_loss = 0
         for y_true, y in zip(target, predictions):
             sequence_loss = 0
@@ -21,16 +25,13 @@ class ConsciousCrossEntropy(nn.Module):
             prob = torch.sum(product, dim=1)
             loss = -torch.log(prob)
             loss_masked = torch.mul(loss, mask)
-            sequence_loss = torch.sum(loss_masked)/(self.seq_len - nops)
+            weights = torch.tensor(np.linspace(1-diff, 1+diff, len(loss_masked))).to(self.device) #
+            loss_weighted = torch.mul(loss_masked, weights) #
+            sequence_loss = torch.sum(loss_weighted)/(self.seq_len - nops)
             cross_entropy_loss += sequence_loss
         loss_value = cross_entropy_loss/self.batch_size
         return loss_value
 
-    def prep_token_to_ignore(self):
-        ignore = torch.zeros(self.alphabet_len).to(self.device)
-        ignore[self.idx_ignore] = 1
-        ignore = ignore.unsqueeze(0).repeat(128,1)
-        return ignore
 
     def prep_mask(self, y_true):
         # look through target SELFIES sequence and prepare mask

@@ -3,12 +3,16 @@ import numpy as np
 import selfies as sf
 from rdkit import Chem
 
+from selfies_tools import SELFIESVectorizer, determine_alphabet
+
 class ExamplePrinter():
-    def __init__(self, test_loader, vectorizer, device, num_examples=10):
+    def __init__(self, test_loader, num_examples=5):
+        self.y_path = './GRU_data/combined_selfies.parquet'
+        self.alphabet = determine_alphabet(self.y_path) 
+        self.vectorizer = SELFIESVectorizer(self.alphabet, pad_to_len = 128)
         self.dataloader = test_loader
         self.num_examples = num_examples
-        self.vectorizer = vectorizer
-        self.device = device
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def __call__(self, model):
         model.eval()
@@ -30,7 +34,7 @@ class ExamplePrinter():
         y_selfies = []
         y_smiles = []
         for molecule in y_indices:
-            selfie = vectorizer.deidxize(molecule, no_special=True)
+            selfie = self.vectorizer.deidxize(molecule, no_special=True)
             y_selfies.append(selfie)
             y_smiles.append(sf.decoder(selfie))
         
