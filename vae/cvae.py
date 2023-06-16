@@ -47,7 +47,6 @@ class CVAEDecoder(nn.Module):
 
 class CVAE(nn.Module):
     def __init__(self, input_size, latent_size):
-        torch.set_default_dtype(torch.float64)
         super(CVAE, self).__init__()
         self.encoder = CVAEEncoder(input_size, latent_size)
         self.decoder = CVAEDecoder(latent_size, 128, input_size)
@@ -61,26 +60,7 @@ class CVAE(nn.Module):
         mu, logvar = self.encoder(x, y)
         z = self.reparameterize(mu, logvar)
         return self.decoder(z, y), mu, logvar
-    
-class VAEFeaturizer():
-    def __call__(self, df, threshold):
-        fingerprints = []
-        labels = []
-        
-        df = df[df['Ki']<=1e4]
-        df = df[df['Ki']>0.01]
-        labels = df['Ki']
-        
-        fp = []
-        for index, row in df.iterrows():
-            fp = row[1:]
-            fingerprints.append(fp)
-            
-        fingerprints = np.array(fingerprints)
-        labels = np.array(labels)
-        activity = labels < threshold
-        return fingerprints, activity
-    
+
 class VAELoss(nn.Module):
     def __init__(self):
         super(VAELoss, self).__init__()
