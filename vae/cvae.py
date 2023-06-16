@@ -63,7 +63,7 @@ class CVAE(nn.Module):
         return self.decoder(z, y), mu, logvar
     
 class VAEFeaturizer():
-    def __call__(self, df):
+    def __call__(self, df, threshold):
         fingerprints = []
         labels = []
         
@@ -78,7 +78,8 @@ class VAEFeaturizer():
             
         fingerprints = np.array(fingerprints)
         labels = np.array(labels)
-        return fingerprints, labels
+        activity = labels < threshold
+        return fingerprints, activity
     
 class VAELoss(nn.Module):
     def __init__(self):
