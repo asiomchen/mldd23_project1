@@ -88,3 +88,12 @@ class VAELoss(nn.Module):
         BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return BCE + KLD
+        
+def sample_CVAE(model, n_samples, device, active=True):
+    if active:
+        y = 1
+    else:
+        y = 0
+    z = torch.randn(n_samples, model.decoder.fc1.in_features-1).to(device)
+    y = torch.tensor([y]*n_samples).to(device)
+    return model.decoder(z, y).detach().cpu().numpy()
