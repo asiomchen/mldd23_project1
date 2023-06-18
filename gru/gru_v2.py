@@ -67,7 +67,7 @@ class EncoderDecoder(nn.Module):
         self.relu = nn.ReLU()
         self.softmax2d = nn.Softmax(dim=2)
 
-    def forward(self, x):
+    def forward(self, x, y):
         hidden = self.decoder.init_hidden(batch_size=x.shape[0]).to(self.device)
         encoded = self.encoder(x) # shape [batch_size, encoding_size]
         
@@ -82,7 +82,7 @@ class EncoderDecoder(nn.Module):
             decoded.append(out)
             random_float = random.random()
             if self.teacher_forcing and random_float < self.teacher_ratio:
-                out = decoded[n]
+                out = y.unsqueeze(1)[:,:,n]
             x = torch.cat([encoded.unsqueeze(1), out], dim=2)
         out_cat = torch.cat(decoded, dim=1)
         out_cat = self.softmax2d(out_cat)
