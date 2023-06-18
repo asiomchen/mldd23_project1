@@ -47,7 +47,6 @@ class ExamplePrinter():
             print('-'*60)
         
         selected = random.sample(y_smiles, self.num_examples)
-        print(selected)
         
         return selected
             
