@@ -81,7 +81,7 @@ class EncoderDecoder(nn.Module):
             decoded.append(out)
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
-                out = y.unsqueeze(1)[:,:,n]
+                out = y[:,n,:].unsqueeze(1)
             x = torch.cat([encoded.unsqueeze(1), out], dim=2)
         out_cat = torch.cat(decoded, dim=1)
         out_cat = self.softmax2d(out_cat)
