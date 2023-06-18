@@ -2,11 +2,12 @@ import torch
 import numpy as np
 import selfies as sf
 from rdkit import Chem
+import random
 
 from selfies_tools import SELFIESVectorizer, determine_alphabet
 
 class ExamplePrinter():
-    def __init__(self, test_loader, num_examples=5):
+    def __init__(self, test_loader, num_examples=3):
         self.y_path = './GRU_data/combined_selfies.parquet'
         self.alphabet = determine_alphabet(self.y_path) 
         self.vectorizer = SELFIESVectorizer(self.alphabet, pad_to_len = 128)
@@ -45,11 +46,8 @@ class ExamplePrinter():
             print(y_selfies[j])
             print('-'*60)
         
-        pred_mols = [Chem.MolFromSmiles(x) for x in pred_smiles][:self.num_examples]
-        y_mols = [Chem.MolFromSmiles(x) for x in y_smiles][:self.num_examples]
+        selected = random.sample(y_smiles, self.num_examples)
+        print(selected)
         
-        imgs = []
-        for m1, m2 in zip(y_mols, pred_mols):
-            img = Chem.Draw.MolsToImage([m1, m2], subImgSize=(200, 200))
-            imgs.append(img)
-        return imgs
+        return selected
+            
