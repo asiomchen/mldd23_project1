@@ -51,11 +51,10 @@ class DecoderNet(nn.Module):
     
 class EncoderDecoder(nn.Module):
     def __init__(self, fp_size=4860, encoding_size=256, hidden_size=256, num_layers=2, output_size=42, dropout=0.2,
-                teacher_forcing=True, teacher_ratio=0.3, random_seed=42):
+                teacher_ratio=0.3, random_seed=42):
         super(EncoderDecoder, self).__init__()
         self.encoding_size = encoding_size
         self.hidden_size = encoding_size + 42
-        self.teacher_forcing = teacher_forcing
         self.teacher_ratio = teacher_ratio
         self.encoder = EncoderNet(fp_size, encoding_size)
         self.decoder = DecoderNet(self.hidden_size, self.hidden_size, num_layers, output_size, dropout)
@@ -67,7 +66,7 @@ class EncoderDecoder(nn.Module):
         self.relu = nn.ReLU()
         self.softmax2d = nn.Softmax(dim=2)
 
-    def forward(self, x, y):
+    def forward(self, x, y, teacher_forcing):
         hidden = self.decoder.init_hidden(batch_size=x.shape[0]).to(self.device)
         encoded = self.encoder(x) # shape [batch_size, encoding_size]
         
@@ -81,7 +80,7 @@ class EncoderDecoder(nn.Module):
             out = self.relu(self.fc(out)) # [batch_size, 1, hidden_size] -> [batch_size, 1, 42]
             decoded.append(out)
             random_float = random.random()
-            if self.teacher_forcing and random_float < self.teacher_ratio:
+            if teacher_forcing and random_float < self.teacher_ratio:
                 out = y.unsqueeze(1)[:,:,n]
             x = torch.cat([encoded.unsqueeze(1), out], dim=2)
         out_cat = torch.cat(decoded, dim=1)

@@ -19,7 +19,7 @@ class ExamplePrinter():
         model.eval()
         x, y = next(iter(self.dataloader))
         x = x.to(self.device)
-        preds = model(x)
+        preds = model(x, y, teacher_forcing=False)
         preds_indices = torch.argmax(preds.cpu(), dim=2)
         preds_indices = preds_indices.numpy()
         y_indices = torch.argmax(y.cpu(), dim=2)
