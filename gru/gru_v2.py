@@ -50,7 +50,7 @@ class DecoderNet(nn.Module):
         return h0
     
 class EncoderDecoder(nn.Module):
-    def __init__(self, fp_size=4860, encoding_size=256, num_layers=2, output_size=42, dropout=0.2,
+    def __init__(self, fp_size=4860, encoding_size=256, hidden_size=256, num_layers=2, output_size=42, dropout=0.2,
                 teacher_forcing=True, teacher_ratio=0.3, random_seed=42):
         super(EncoderDecoder, self).__init__()
         self.encoding_size = encoding_size
