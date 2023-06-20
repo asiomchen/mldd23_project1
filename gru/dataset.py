@@ -52,7 +52,7 @@ class GRUDataset_v2(Dataset):
     def __getitem__(self, idx):
         raw_smile = self.smiles[idx]
         randomized_smile = self.randomize_smiles(raw_smile)
-        raw_selfie = sf.encoder(randomized_smile)
+        raw_selfie = sf.encoder(randomized_smile, strict=False)
         vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
