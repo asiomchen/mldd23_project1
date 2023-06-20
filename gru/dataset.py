@@ -51,9 +51,7 @@ class GRUDataset_v2(Dataset):
         return len(self.fps)
     def __getitem__(self, idx):
         raw_smile = self.smiles[idx]
-        print(raw_smile)
         randomized_smile = self.randomize_smiles(raw_smile)
-        print(randomized_smile)
         raw_selfie = sf.encoder(randomized_smile)
         vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
