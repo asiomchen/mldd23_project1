@@ -50,10 +50,14 @@ class GRUDataset_v2(Dataset):
     def __len__(self):
         return len(self.fps)
     def __getitem__(self, idx):
-        raw_smile = self.smiles[idx]
-        randomized_smile = self.randomize_smiles(raw_smile)
-        raw_selfie = sf.encoder(randomized_smile, strict=False)
-        vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
+        try:    
+            raw_smile = self.smiles[idx]
+            randomized_smile = self.randomize_smiles(raw_smile)
+            raw_selfie = sf.encoder(randomized_smile, strict=False)
+            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
+        except:
+            print('Exception at:', idx)
+            vectorized_selfie = self.vectorizer.vectorize('[nop]')
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)
