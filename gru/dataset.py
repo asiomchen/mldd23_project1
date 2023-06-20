@@ -73,7 +73,7 @@ class GRUDataset_v2(Dataset):
     @staticmethod
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
-        return fps
+        return fps.values
     @staticmethod
     def prepare_y(selfies):
         return selfies.values
