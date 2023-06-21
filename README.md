@@ -5,6 +5,8 @@
 ### 1.1.  Data sources:
 * CHEMBL32
 * ZINC-250k
+
+Datasets are available on [dropbox](https://www.dropbox.com/sh/7sop2qzz4n38o06/AAA1QXeD3cXO__02RnmsVV-Aa?dl=0) in .parquet format
 ### 1.2 Python packages:
 * machine learning: pytorch
 * cheminformatics: smiles
