@@ -135,3 +135,4 @@ GRU_data/augmented.zip
 GRU_data/combined_klek.parquet
 GRU_data/combined_selfies.parquet
 results_visualisation.ipynb
+GRU_data/combned_dataset.parquet
