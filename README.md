@@ -4,6 +4,7 @@
 ##  1. Data sources and tools used
 ### 1.1.  Data sources:
 * CHEMBL32
+  ~1M subset of compounds with molecular mass in range of 200-450 Da, with no RO5 violations.
 * ZINC-250k
 
 Datasets are available on [dropbox](https://www.dropbox.com/sh/7sop2qzz4n38o06/AAA1QXeD3cXO__02RnmsVV-Aa?dl=0) in .parquet format
