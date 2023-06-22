@@ -4,11 +4,11 @@ import selfies as sf
 from rdkit import Chem
 import random
 
-from selfies_tools import SELFIESVectorizer, determine_alphabet
+from vectorizer import SELFIESVectorizer, determine_alphabet
 
 class ExamplePrinter():
-    def __init__(self, test_loader, num_examples=3):
-        self.y_path = './GRU_data/combined_selfies.parquet'
+    def __init__(self, data_path, test_loader, num_examples=3):
+        self.y_path = data_path
         self.alphabet = determine_alphabet(self.y_path) 
         self.vectorizer = SELFIESVectorizer(self.alphabet, pad_to_len = 128)
         self.dataloader = test_loader

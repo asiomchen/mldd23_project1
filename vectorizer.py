@@ -63,10 +63,5 @@ class SELFIESVectorizer:
         return re.findall(pattern, selfie)
     
 def determine_alphabet(y_path):
-    data = pd.read_parquet(y_path)
-    alphabet = sf.get_alphabet_from_selfies(data.selfies)
-    alphabet.add("[start]")
-    alphabet.add("[end]")
-    alphabet.add("[nop]") # [nop] is a special padding symbol
-    alphabet = list(sorted(alphabet))
+    alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
     return alphabet
