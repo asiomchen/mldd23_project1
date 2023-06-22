@@ -42,7 +42,7 @@ class GRUDataset(Dataset):
 
 class GRUDataset_v2(Dataset):
     def __init__(self, data_path, vectorizer):
-        self.smiles = pd.read_parquet(data_path)['SMILES']
+        self.smiles = pd.read_parquet(data_path)['smiles']
         self.fps = pd.read_parquet(data_path)['fps']
         self.fps = self.prepare_X(self.fps)
         self.smiles = self.prepare_y(self.smiles)
