@@ -498,8 +498,8 @@ class FPAnalyser:
     def save_frequency(self):
         for protein in self.proteins:
             self.save_df = pd.concat([self.df[f"{protein}_percentage"], self.df["KEYS"], self.df["SMARTS"]], axis=1)
-            self.save_df = self.save_df.sort_values(by=f"{protein}_percentage", ascending=False)
-            save_path = f"./fp_frequency_100nM/{protein}_frequency.csv"
+            #self.save_df = self.save_df.sort_values(by=f"{protein}_percentage", ascending=False)
+            save_path = f"./fp_frequency_100nM/{protein}_frequency_not_sorted.csv"
             self.save_df.to_csv(save_path, sep=',', header=True, index=False)
 
     def plot_frequencies(self, save=False):
