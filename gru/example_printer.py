@@ -7,7 +7,7 @@ import random
 from vectorizer import SELFIESVectorizer, determine_alphabet
 
 class ExamplePrinter():
-    def __init__(alphabet, test_loader, num_examples=3):
+    def __init__(alphabet, test_loader, num_examples):
         self.alphabet = alphabet
         self.vectorizer = SELFIESVectorizer(self.alphabet, pad_to_len = 128)
         self.dataloader = test_loader
