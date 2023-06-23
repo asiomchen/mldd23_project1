@@ -30,15 +30,21 @@ class ExamplePrinter():
         for molecule in preds_indices:
             selfie = self.vectorizer.deidxize(molecule, no_special=True)
             pred_selfies.append(selfie)
-            pred_smiles.append(sf.decoder(selfie))
+            try:
+                pred_smiles.append(sf.decoder(selfie))
+            except DecoderError:
+                pred_smiles.append("c1ccccc1") #benzeny są dummy
             
         y_selfies = []
         y_smiles = []
         for molecule in y_indices:
             selfie = self.vectorizer.deidxize(molecule, no_special=True)
             y_selfies.append(selfie)
-            y_smiles.append(sf.decoder(selfie))
-        
+            try:
+                y_smiles.append(sf.decoder(selfie))
+            except DecoderError:
+                pred_smiles.append("c1ccccc1") #benzeny są dummy
+            
         for j in range(self.num_examples):
             print('Predicted SELFIE:')
             print(pred_selfies[j], '\n')
