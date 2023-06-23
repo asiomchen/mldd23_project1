@@ -153,3 +153,4 @@ GRU_data/old_datasets/chembl_selfies.csv
 GRU_data/old_datasets/combined_klek.parquet
 GRU_data/old_datasets/combined_selfies.parquet
 GRU_data/old_datasets/combined_smiles_fp.parquet
+GRU_data/test_dataset.parquet
