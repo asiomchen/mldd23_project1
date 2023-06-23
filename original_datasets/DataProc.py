@@ -350,17 +350,17 @@ class DataAnalyser:
     def add_properties(self):
         self.df = pd.concat([self.df, self.df[self.smiles_col].apply(properties_from_smiles)], axis=1)
 
-    def plot_distribution(self, column, save=False):
+    def plot_distribution(self, column, save=False, av=False):
         if self.dtype in ['klek_balanced', 'klek_100nM']:
             self.df['pKi'] = self.df['Ki'].apply(np.log10)
             class_0_mean = np.mean(self.df[self.df['Class'] == 0][column])
-            class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
+            #class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
             class_0_std = np.mean(self.df[self.df['Class'] == 0][column])
-            class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
-            self.df = self.df[np.logical_and(self.df[column] > (class_0_mean - 2 * class_0_std),
-                                             self.df[column] < (class_0_mean + 2 * class_0_std))]
-            self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
-                                             self.df[column] < (class_1_mean + 2 * class_1_std))]
+            #class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
+            self.df = self.df[np.logical_and(self.df[column] > (class_0_mean - 3 * class_0_std),
+                                             self.df[column] < (class_0_mean + 3 * class_0_std))]
+            #self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
+                                             #self.df[column] < (class_1_mean + 2 * class_1_std))]
         sns.set_style('white')
         sns.set_context('talk')
         if column in self.cont_properties:
@@ -374,16 +374,56 @@ class DataAnalyser:
             plt.ylabel("Count")
         else:
             print(f"Column {column} not found")
-        if self.dtype in ['klek_balanced', 'klek_100nM']:
+        if self.dtype in ['klek_balanced', 'klek_100nM'] and av:
             ax.axvline(class_0_mean, 0, 1, color='blue')
-            ax.axvline(class_1_mean, 0, 1, color='orange')
+            #ax.axvline(class_1_mean, 0, 1, color='orange')
         if save:
             if self.dtype == 'artificial':
                 save_path = f"./artificial/{self.protein}_artificial_{column}.png"
             else:
-                save_path = f"./figures/{self.protein}/{self.protein}_{column}.png"
+                save_path = f"./figures/{self.protein}_{self.dtype}/{self.protein}_{column}.png"
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
-
+            plt.clf()
+            
+    def plot_distribution_no_legend(self, column, save=False, av=False):
+        if self.dtype in ['klek_balanced', 'klek_100nM']:
+            self.df['pKi'] = self.df['Ki'].apply(np.log10)
+            class_0_mean = np.mean(self.df[self.df['Class'] == 0][column])
+            #class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
+            class_0_std = np.mean(self.df[self.df['Class'] == 0][column])
+            #class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
+            self.df = self.df[np.logical_and(self.df[column] > (class_0_mean - 3 * class_0_std),
+                                             self.df[column] < (class_0_mean + 3 * class_0_std))]
+            #self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
+                                             #self.df[column] < (class_1_mean + 2 * class_1_std))]
+        sns.set_style('white')
+        sns.set_context('talk')
+        if column in self.cont_properties:
+            ax = sns.histplot(data=self.df, x=column, kde=True)  # hue="Class"
+            #plt.title(f"Distribution of {column} for generated ligands of {self.protein.upper()}")
+            plt.ylabel("")
+            plt.xlabel("")
+            ax.set(xlabel=None)
+        elif column in self.disc_properties:
+            ax = sns.countplot(data=self.df, x=column)  # hue="Class"
+            #plt.title(f"{column} for generated ligands of {self.protein.upper()}")
+            plt.xticks(ticks=plt.xticks()[0], labels=[int(x) for x in plt.xticks()[0]])
+            plt.ylabel("")
+            plt.xlabel("")
+            ax.set(xlabel=None)
+        else:
+            print(f"Column {column} not found")
+        if self.dtype in ['klek_balanced', 'klek_100nM'] and av:
+            ax.axvline(class_0_mean, 0, 1, color='blue')
+            #ax.axvline(class_1_mean, 0, 1, color='orange')
+        if save:
+            if self.dtype == 'artificial':
+                save_path = f"./artificial/{self.protein}_artificial_{column}.png"
+            else:
+                save_path = f"./figures/{self.protein}_{self.dtype}/{self.protein}_{column}_no_legend.png"
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.clf()
+            
     def TSNE_all(self, title="", save_path="", save=False):
         data_paths = [f"./klek_clean/{x}_{self.dtype}.csv" for x in self.proteins_]
         df_list = []
@@ -459,7 +499,7 @@ class FPAnalyser:
         for protein in self.proteins:
             self.save_df = pd.concat([self.df[f"{protein}_percentage"], self.df["KEYS"], self.df["SMARTS"]], axis=1)
             self.save_df = self.save_df.sort_values(by=f"{protein}_percentage", ascending=False)
-            save_path = f"./fp_frequency/{protein}_frequency.csv"
+            save_path = f"./fp_frequency_100nM/{protein}_frequency.csv"
             self.save_df.to_csv(save_path, sep=',', header=True, index=False)
 
     def plot_frequencies(self, save=False):
@@ -479,6 +519,28 @@ class FPAnalyser:
             plt.xlabel("P.p. difference between active and inactive")
             plt.title(f"{protein}".upper())
             if save:
-                save_path = f"./fp_frequency/{protein}_frequency.png"
+                save_path = f"./fp_frequency_100nM/{protein}_frequency.png"
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.show()
+            
+    def plot_abs_frequencies(self, save=False):
+        self.plot_df = self.df.iloc[:, [0, 6, -1, -2, -3, -4, -5]]
+        for protein in self.proteins:
+            df = self.plot_df.loc[:, ['KEYS', 'SMARTS', f"{protein}_percentage"]]
+            #df = df[np.logical_or(df[f'{protein}_percentage'] > 3, df[f'{protein}_percentage'] < -3)]
+            df[f'{protein}_percentage_abs'] = df[f'{protein}_percentage'].apply(np.absolute)
+            df = df.sort_values(by=f"{protein}_percentage_abs", ascending=False)
+            selected_df = df.iloc[:10, :]
+            print(selected_df.head())
+            sns.set_style('white')
+            sns.set_context('talk')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.barplot(data=selected_df, y='KEYS', x=f"{protein}_percentage", orient='h', ax=ax)
+            ax.bar_label(ax.containers[-1], fmt='%.2f', label_type='center')
+            plt.ylabel("")
+            plt.xlabel("P.p. difference between active and inactive")
+            plt.title(f"{protein}".upper())
+            if save:
+                save_path = f"./fp_frequency_100nM/{protein}_frequency_abs.png"
                 plt.savefig(save_path, dpi=300, bbox_inches='tight')
             plt.show()
