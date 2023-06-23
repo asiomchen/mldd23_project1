@@ -3,14 +3,15 @@ import numpy as np
 import selfies as sf
 from rdkit import Chem
 import random
+import pandas as pd
 
 from vectorizer import SELFIESVectorizer, determine_alphabet
 
 class ExamplePrinter():
-    def __init__(alphabet, test_loader, num_examples):
-        self.alphabet = alphabet
+    def __init__(self, dataloader, num_examples):
+        self.alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
         self.vectorizer = SELFIESVectorizer(self.alphabet, pad_to_len = 128)
-        self.dataloader = test_loader
+        self.dataloader = dataloader
         self.num_examples = num_examples
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
