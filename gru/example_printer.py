@@ -32,7 +32,7 @@ class ExamplePrinter():
             pred_selfies.append(selfie)
             try:
                 pred_smiles.append(sf.decoder(selfie))
-            except DecoderError:
+            except:
                 pred_smiles.append("c1ccccc1") #benzeny są dummy
             
         y_selfies = []
@@ -42,7 +42,7 @@ class ExamplePrinter():
             y_selfies.append(selfie)
             try:
                 y_smiles.append(sf.decoder(selfie))
-            except DecoderError:
+            except:
                 pred_smiles.append("c1ccccc1") #benzeny są dummy
             
         for j in range(self.num_examples):
