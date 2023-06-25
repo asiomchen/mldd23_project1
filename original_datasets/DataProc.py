@@ -354,34 +354,34 @@ class DataAnalyser:
         if self.dtype in ['klek_balanced', 'klek_100nM']:
             self.df['pKi'] = self.df['Ki'].apply(np.log10)
             class_0_mean = np.mean(self.df[self.df['Class'] == 0][column])
-            #class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
+            class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
             class_0_std = np.mean(self.df[self.df['Class'] == 0][column])
-            #class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
+            class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
             self.df = self.df[np.logical_and(self.df[column] > (class_0_mean - 3 * class_0_std),
                                              self.df[column] < (class_0_mean + 3 * class_0_std))]
-            #self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
-                                             #self.df[column] < (class_1_mean + 2 * class_1_std))]
+            self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
+                                             self.df[column] < (class_1_mean + 2 * class_1_std))]
         sns.set_style('white')
         sns.set_context('talk')
         if column in self.cont_properties:
-            ax = sns.histplot(data=self.df, x=column, kde=True)  # hue="Class"
-            plt.title(f"Distribution of {column} for generated ligands of {self.protein.upper()}")
+            ax = sns.histplot(data=self.df, x=column, kde=True, hue='Class')  # hue="Class"
+            plt.title(f"Distribution of {column} for known ligands of {self.protein.upper()}")
             plt.ylabel("Count")
         elif column in self.disc_properties:
-            ax = sns.countplot(data=self.df, x=column)  # hue="Class"
-            plt.title(f"{column} for generated ligands of {self.protein.upper()}")
+            ax = sns.countplot(data=self.df, x=column, hue='Class')  # hue="Class"
+            plt.title(f"{column} for known ligands of {self.protein.upper()}")
             plt.xticks(ticks=plt.xticks()[0], labels=[int(x) for x in plt.xticks()[0]])
             plt.ylabel("Count")
         else:
             print(f"Column {column} not found")
         if self.dtype in ['klek_balanced', 'klek_100nM'] and av:
             ax.axvline(class_0_mean, 0, 1, color='blue')
-            #ax.axvline(class_1_mean, 0, 1, color='orange')
+            ax.axvline(class_1_mean, 0, 1, color='orange')
         if save:
             if self.dtype == 'artificial':
                 save_path = f"./artificial/{self.protein}_artificial_{column}.png"
             else:
-                save_path = f"./figures/{self.protein}_{self.dtype}/{self.protein}_{column}.png"
+                save_path = f"./figures_{self.dtype}/{self.protein}_{self.dtype}/{self.protein}_{column}.png"
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             plt.clf()
             
@@ -389,23 +389,23 @@ class DataAnalyser:
         if self.dtype in ['klek_balanced', 'klek_100nM']:
             self.df['pKi'] = self.df['Ki'].apply(np.log10)
             class_0_mean = np.mean(self.df[self.df['Class'] == 0][column])
-            #class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
+            class_1_mean = np.mean(self.df[self.df['Class'] == 1][column])
             class_0_std = np.mean(self.df[self.df['Class'] == 0][column])
-            #class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
+            class_1_std = np.mean(self.df[self.df['Class'] == 1][column])
             self.df = self.df[np.logical_and(self.df[column] > (class_0_mean - 3 * class_0_std),
                                              self.df[column] < (class_0_mean + 3 * class_0_std))]
-            #self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
-                                             #self.df[column] < (class_1_mean + 2 * class_1_std))]
+            self.df = self.df[np.logical_and(self.df[column] > (class_1_mean - 2 * class_1_std),
+                                             self.df[column] < (class_1_mean + 2 * class_1_std))]
         sns.set_style('white')
         sns.set_context('talk')
         if column in self.cont_properties:
-            ax = sns.histplot(data=self.df, x=column, kde=True)  # hue="Class"
+            ax = sns.histplot(data=self.df, x=column, kde=True, hue='Class')  # hue="Class"
             #plt.title(f"Distribution of {column} for generated ligands of {self.protein.upper()}")
             plt.ylabel("")
             plt.xlabel("")
             ax.set(xlabel=None)
         elif column in self.disc_properties:
-            ax = sns.countplot(data=self.df, x=column)  # hue="Class"
+            ax = sns.countplot(data=self.df, x=column, hue='Class')  # hue="Class"
             #plt.title(f"{column} for generated ligands of {self.protein.upper()}")
             plt.xticks(ticks=plt.xticks()[0], labels=[int(x) for x in plt.xticks()[0]])
             plt.ylabel("")
@@ -415,12 +415,12 @@ class DataAnalyser:
             print(f"Column {column} not found")
         if self.dtype in ['klek_balanced', 'klek_100nM'] and av:
             ax.axvline(class_0_mean, 0, 1, color='blue')
-            #ax.axvline(class_1_mean, 0, 1, color='orange')
+            ax.axvline(class_1_mean, 0, 1, color='orange')
         if save:
             if self.dtype == 'artificial':
                 save_path = f"./artificial/{self.protein}_artificial_{column}.png"
             else:
-                save_path = f"./figures/{self.protein}_{self.dtype}/{self.protein}_{column}_no_legend.png"
+                save_path = f"./figures_{self.dtype}/{self.protein}_{self.dtype}/{self.protein}_{column}_no_legend.png"
             plt.savefig(save_path, dpi=300, bbox_inches='tight')
             plt.clf()
             
