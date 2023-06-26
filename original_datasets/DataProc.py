@@ -485,6 +485,7 @@ class FPAnalyser:
 
     def calculate_difference(self):
         for protein in self.proteins:
+            print(self.df.head())
             col_act = f"{protein}_active"
             col_inact = f"{protein}_inactive"
             self.df[f"{protein}_difference"] = self.df[col_act] - self.df[col_inact]
@@ -544,3 +545,117 @@ class FPAnalyser:
                 save_path = f"./fp_frequency_100nM/{protein}_frequency_abs.png"
                 plt.savefig(save_path, dpi=300, bbox_inches='tight')
             plt.show()
+            
+class FPImbalancedAnalyser:
+    """
+    Class for analyzing frequency differences of bits in different proteins.
+
+    Parameters
+    ----------
+    df_active : pandas.DataFrame
+        DataFrame containing active counts.
+    df_inactive : pandas.DataFrame
+        DataFrame containing inactive counts.
+
+    Attributes
+    ----------
+    df : pandas.DataFrame
+        Merged DataFrame of active and inactive counts.
+    proteins : list
+        List of proteins.
+    sizes : dict
+        Dictionary containing sizes of each protein dataset.
+
+    Methods
+    -------
+    calculate_difference()
+        Calculates the difference between active and inactive counts for each protein.
+    calculate_percentage()
+        Calculates the percentage difference for each protein.
+    save_frequency()
+        Saves the frequency DataFrame for each protein as a CSV file.
+    plot_frequencies(save=False)
+        Plots the frequency differences for each protein.
+    """
+
+    def __init__(self):
+        self.df_active = pd.read_csv(f"./counts_active.csv", sep=',')
+        self.df_inactive = pd.read_csv(f"./counts_inactive.csv", sep=',')
+        self.proteins = ['5ht1a', '5ht7', 'beta2', 'd2', 'h1']
+        self.sizes = {
+            '5ht1a': 5250,
+            '5ht7': 2963,
+            'beta2': 782,
+            'd2': 10170,
+            'h1': 1691,
+            '5ht1a_active': 3043,
+            '5ht7_active': 1526,
+            'beta2_active': 331,
+            'd2_active': 3713,
+            'h1_active': 641,
+            '5ht1a_inactive': 2207,
+            '5ht7_inactive': 1437,
+            'beta2_inactive': 451,
+            'd2_inactive': 6457,
+            'h1_inactive': 1050,
+        }
+
+    def calcualte_percentage_difference(self):
+        for protein in self.proteins:
+            self.df_active[f'{protein}_percentage'] = self.df_active[protein] / self.sizes[f'{protein}_active'] * 100
+            self.df_inactive[f'{protein}_percentage'] = self.df_inactive[protein] / self.sizes[f'{protein}_inactive'] * 100
+        self.df = self.df_active.merge(self.df_inactive, on=['KEYS', 'SMARTS'], how='inner', suffixes=('_active', '_inactive'))
+        for protein in self.proteins:
+            self.df[f"{protein}_percentage"] = self.df[f"{protein}_percentage_active"] - self.df[f"{protein}_percentage_inactive"]
+        print(self.df.head())
+
+    def save_frequency(self):
+        for protein in self.proteins:
+            self.save_df = pd.concat([self.df[f"{protein}_percentage"], self.df["KEYS"], self.df["SMARTS"]], axis=1)
+            #self.save_df = self.save_df.sort_values(by=f"{protein}_percentage", ascending=False)
+            save_path = f"./fp_frequency_100nM/{protein}_frequency_imbalanced.csv"
+            self.save_df.to_csv(save_path, sep=',', header=True, index=False)
+
+    def plot_frequencies(self, save=False):
+        self.plot_df = self.df.iloc[:, [0, 6, -1, -2, -3, -4, -5]]
+        for protein in self.proteins:
+            df = self.plot_df.loc[:, ['KEYS', 'SMARTS', f"{protein}_percentage"]]
+            df = df[np.logical_or(df[f'{protein}_percentage'] > 3, df[f'{protein}_percentage'] < -3)]
+            df = df.sort_values(by=f"{protein}_percentage", ascending=False)
+            selected_df = df.iloc[[0, 1, 2, 3, 4, -5, -4, -3, -2, -1], :]
+            print(selected_df)
+            sns.set_style('white')
+            sns.set_context('talk')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.barplot(data=selected_df, y='KEYS', x=f"{protein}_percentage", orient='h', ax=ax)
+            ax.bar_label(ax.containers[-1], fmt='%.2f', label_type='center')
+            plt.ylabel("")
+            plt.xlabel("P.p. difference between active and inactive")
+            plt.title(f"{protein}".upper())
+            if save:
+                save_path = f"./fp_frequency_100nM/{protein}_frequency.png"
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.show()
+            
+    def plot_abs_frequencies(self, save=False):
+        self.plot_df = self.df.iloc[:, [0, 6, -1, -2, -3, -4, -5]]
+        for protein in self.proteins:
+            df = self.plot_df.loc[:, ['KEYS', 'SMARTS', f"{protein}_percentage"]]
+            #df = df[np.logical_or(df[f'{protein}_percentage'] > 3, df[f'{protein}_percentage'] < -3)]
+            df[f'{protein}_percentage_abs'] = df[f'{protein}_percentage'].apply(np.absolute)
+            df = df.sort_values(by=f"{protein}_percentage_abs", ascending=False)
+            selected_df = df.iloc[:10, :]
+            print(selected_df.head())
+            sns.set_style('white')
+            sns.set_context('talk')
+            fig, ax = plt.subplots(figsize=(8, 6))
+            sns.barplot(data=selected_df, y='KEYS', x=f"{protein}_percentage", orient='h', ax=ax)
+            ax.bar_label(ax.containers[-1], fmt='%.2f', label_type='center')
+            plt.ylabel("")
+            plt.xlabel("P.p. difference between active and inactive")
+            plt.title(f"{protein}".upper())
+            if save:
+                save_path = f"./fp_frequency_100nM/{protein}_frequency_abs.png"
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.show()
+
