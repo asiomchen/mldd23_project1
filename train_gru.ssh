@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --job-name=experiment
+#SBATCH --qos=normal
+#SBATCH --gres=gpu:1
+#SBATCH --mem=5G
+#SBATCH --partition=dgx
+
+nvidia-smi -L
+
+conda activate $HOME/envs/mldd23
+cd $HOME/project-dir
+python -u train_gru.py
