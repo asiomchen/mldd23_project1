@@ -8,8 +8,8 @@
 
 nvidia-smi -L
 
-wandb login 18463128757ca947acdea58348412cc9a098efd4
-
+conda init bash
 conda activate mldd
+wandb login 18463128757ca947acdea58348412cc9a098efd4
 python -u train_gru.py > output.txt
 echo done
