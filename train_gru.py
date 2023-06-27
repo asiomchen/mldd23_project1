@@ -50,9 +50,9 @@ val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
 # Set hyperparameters
 encoding_size = 512
 hidden_size = 512
-num_layers = 1
+num_layers = 3
 learn_rate = 0.0005
-dropout = 0 # dropout must be equal 0 if num_layers = 1
+dropout = 0.2 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
 
 # Init model
@@ -68,7 +68,7 @@ def train(model, train_loader, val_loader, vectorizer):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    EPOCHS = 5
+    EPOCHS = 20
 
     # Define dataframe for training progess
     epochs_range = range(1,EPOCHS+1)
