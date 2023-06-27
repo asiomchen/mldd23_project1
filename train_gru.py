@@ -1,19 +1,18 @@
 # import packages
-from gru import example_printer
+from gru.example_printer import ExamplePrinter
 from gru.dataset import GRUDataset
 from gru.gru_v3 import EncoderNet, DecoderNet, EncoderDecoder
-from vectorizer import SELFIESVectorizer, determine_alphabet
 from gru.cce import CCE, ConsciousCrossEntropy
+from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import os
 import torch
 import wandb
 import pandas as pd
 import random
-
-# weights and biases
-!wandb login 18463128757ca947acdea58348412cc9a098efd4
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
@@ -26,7 +25,9 @@ dataset = pd.read_parquet(data_path)
 
 train_size = 0.9
 
+print("Executing scaffold split...")
 train_df, val_df = scaffold_split(dataset, train_size)
+print("Scaffold split complete")
 
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
@@ -35,13 +36,14 @@ print("Dataset size:", len(dataset))
 print("Train size:", len(train_dataset))
 print("Val size:", len(val_dataset))
 
-from torch.utils.data import DataLoader
 batch_size = 512
 train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
 val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True)
 
 run_name = 'v3_server_test'
 
+if not os.path.isdir(f'./models/{run_name}'):
+    os.mkdir(f'./models/{run_name}')
 train_df.to_parquet(f'./models/{run_name}/train_dataset.parquet')
 val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
 
@@ -62,23 +64,19 @@ model = EncoderDecoder(
     dropout=dropout,
     teacher_ratio = teacher_ratio).to(device)
 
-import matplotlib.pyplot as plt
+def train(model, train_loader, val_loader, vectorizer):
 
-def train(model, train_loader, val_loader, vectorizer, device):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     EPOCHS = 5
 
-    # Define dataframe for training progess display
+    # Define dataframe for training progess
     epochs_range = range(1,EPOCHS+1)
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     metrics['epoch'] = epochs_range
     
     # Init example printer
-    printer = example_printer.ExamplePrinter(data_path, val_loader, num_examples=25)
-
-    # Define pyplot for plotting metrics
-    fig, ax = plt.subplots(ncols=2, figsize=(7, 3), layout="constrained")
-    dh = display(fig, display_id=True)
+    printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -97,7 +95,7 @@ def train(model, train_loader, val_loader, vectorizer, device):
     config['Dropout'] = model.decoder.dropout
     config['Batch size'] = batch_size
     config['teacher_ratio'] = teacher_ratio
-    wandb.init(project="encoded-token-concat", config=config)
+    wandb.init(project="gmum-servers", config=config)
 
     print("Starting Training of GRU")
     print(f"Device: {device}")
@@ -135,8 +133,7 @@ def train(model, train_loader, val_loader, vectorizer, device):
         
         new_samples = printer(model)
         samples.append(new_samples)
-        
-    plt.close()
+
     wandb.finish()
     return model, samples
 
@@ -153,4 +150,4 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-model, samples = train(model, train_loader, val_loader, vectorizer, device)
+model, samples = train(model, train_loader, val_loader, vectorizer)

@@ -1,12 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=experiment
-#SBATCH --qos=normal
-#SBATCH --gres=gpu:1
-#SBATCH --mem=5G
-#SBATCH --partition=dgx
-
+#SBATCH --job-name=server_test_230627
+#SBATCH --qos=test
+#SBATCH --gpus=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=2G
 nvidia-smi -L
+
+!wandb login 18463128757ca947acdea58348412cc9a098efd4
 
 conda activate $HOME/envs/mldd23
 cd $HOME/project-dir
-python -u train_gru.py
+python -u train_gru.py > output.txt
