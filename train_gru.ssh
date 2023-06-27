@@ -10,6 +10,6 @@ nvidia-smi -L
 
 wandb login 18463128757ca947acdea58348412cc9a098efd4
 
-conda activate $HOME/envs/mldd23
-cd $HOME/project-dir
+conda activate mldd
 python -u train_gru.py > output.txt
+echo done
