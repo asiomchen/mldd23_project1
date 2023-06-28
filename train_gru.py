@@ -14,6 +14,8 @@ import wandb
 import pandas as pd
 import random
 
+wandb.login(key='505ce3ad45fdf9309c3d8ec1d9764262ae6929c1')
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 
