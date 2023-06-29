@@ -6,6 +6,7 @@ from gru.cce import CCE, ConsciousCrossEntropy
 from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
 from torch.utils.data import DataLoader
+import time
 
 import os
 import torch
@@ -112,6 +113,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
 
     # Start training loop
     for epoch in epochs_range:
+        start_time = time.time()
         print(f'Epoch: {epoch}')
         epoch_loss = 0
         model.train()
@@ -141,6 +143,9 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
         new_samples = printer(model)
         samples.append(new_samples)
+        end_time = time.time()
+        loop_time = (end_time - start_time)/60 # in minutes
+        print(f'Executed in {loop time} minutes')
 
     wandb.finish()
     return model, samples
