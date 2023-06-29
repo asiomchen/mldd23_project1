@@ -38,7 +38,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
 vectorizer = SELFIESVectorizer(alphabet, pad_to_len=128)
-data_path = './GRU_data/combned_dataset.parquet'
+data_path = './GRU_data/combined_dataset.parquet'
 dataset = pd.read_parquet(data_path)
 
 # create a directory for this model if not there
