@@ -145,7 +145,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         samples.append(new_samples)
         end_time = time.time()
         loop_time = (end_time - start_time)/60 # in minutes
-        print(f'Executed in {loop time} minutes')
+        print(f'Executed in {loop_time} minutes')
 
     wandb.finish()
     return model, samples
