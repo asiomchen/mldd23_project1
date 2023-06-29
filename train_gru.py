@@ -44,12 +44,12 @@ dataset = pd.read_parquet(data_path)
 
 if not os.path.isdir(f'./models/train_dataset.parquet'):
     train_df, val_df = scaffold_split(dataset, train_size)
-    train_df.to_parquet()
+    train_df.to_parquet(f'./models/{run_name}/train_dataset.parquet')
     val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_csv(f'./models/{run_name}/train_dataset.parquet')
-    val_df = pd.read_csv(f'./models/{run_name}/val_dataset.parquet')
+    train_df = pd.read_parquet(f'./models/{run_name}/train_dataset.parquet')
+    val_df = pd.read_parquet(f'./models/{run_name}/val_dataset.parquet')
     
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
