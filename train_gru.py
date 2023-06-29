@@ -6,7 +6,9 @@ from gru.cce import CCE, ConsciousCrossEntropy
 from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
 from torch.utils.data import DataLoader
+import torch.nn as nn
 import time
+
 
 import os
 import torch
