@@ -48,7 +48,7 @@ if not os.path.isdir(f'./models/{run_name}'):
 
 # if train_dataset not generated, perform scaffold split
 
-if not os.path.isdir(f'./models/train_dataset.parquet'):
+if not os.path.isdir(f'./models/{run_name}/train_dataset.parquet'):
     train_df, val_df = scaffold_split(dataset, train_size)
     train_df.to_parquet(f'./models/{run_name}/train_dataset.parquet')
     val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
