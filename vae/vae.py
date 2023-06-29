@@ -5,7 +5,7 @@ import numpy as np
 
 class VAEEncoder(nn.Module):
     def __init__(self, input_size, output_size):
-        super(CVAEEncoder, self).__init__()
+        super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 64)
         self.fc3 = nn.Linear(64, 16)
@@ -24,7 +24,7 @@ class VAEEncoder(nn.Module):
 
 class VAEDecoder(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
-        super(CVAEDecoder, self).__init__()
+        super(VAEDecoder, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size)
         self.fc2 = nn.Linear(hidden_size, 64)
         self.fc3 = nn.Linear(64, 128)
@@ -41,9 +41,9 @@ class VAEDecoder(nn.Module):
 
 class VAE(nn.Module):
     def __init__(self, input_size, latent_size):
-        super(CVAE, self).__init__()
-        self.encoder = CVAEEncoder(input_size, latent_size)
-        self.decoder = CVAEDecoder(latent_size, 128, input_size)
+        super(VAE, self).__init__()
+        self.encoder = VAEEncoder(input_size, latent_size)
+        self.decoder = VAEDecoder(latent_size, 128, input_size)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)

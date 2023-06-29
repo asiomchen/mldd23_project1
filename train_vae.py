@@ -2,8 +2,8 @@ from vae import vae, vae_dataset
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-from tqdm.notebook import tqdm
+import os
+import time
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f'Device: {device}')
@@ -35,11 +35,11 @@ if not os.path.isdir(f'./models/{run_name}'):
     os.mkdir(f'./models/{run_name}')
 
 import torch.utils.data as data
-train_dataset, valid_dataset = data.random_split(dataset, [test_size, 1-test_size])
+train_dataset, val_dataset = data.random_split(dataset, [test_size, 1-test_size])
 
-from torch.utils.data import Dataloader
-train_loader = Dataloader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=4)
-val_loader = Dataloader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=4)
+from torch.utils.data import DataLoader
+train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=4)
+val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=4)
 
 # init model
 
@@ -65,6 +65,7 @@ def train_VAE(model, train_loader, learning_rate, epochs, plot_loss=False):
     for epoch in range(1, epochs+1):
         print(f'Epoch: {epoch}')
         epoch_loss = 0
+        start_time = time.time()
         
         for fp in train_loader:
             fp = fp.to(device)
@@ -101,7 +102,11 @@ def train_VAE(model, train_loader, learning_rate, epochs, plot_loss=False):
             ax.set_ylabel('Loss')
             ax.set_yscale('log')
             dh.update(fig)
-            
+         
+        end_time = time.time()
+        loop_time = (end_time - start_time)/60 # in minutes
+        print(f'Executed in {loop_time} minutes')
+         
     return model, losses
 
 def evaluate(model, val_loader):
@@ -117,5 +122,5 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-cvae, losses = train_CVAE(model, train_loader, learning_rate, 
-                          epochs=500, device=device, plot_loss=False)
+cvae, losses = train_VAE(model, train_loader, learning_rate, 
+                          epochs=10, plot_loss=False)
