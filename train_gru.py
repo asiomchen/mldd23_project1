@@ -41,6 +41,11 @@ vectorizer = SELFIESVectorizer(alphabet, pad_to_len=128)
 data_path = './GRU_data/combned_dataset.parquet'
 dataset = pd.read_parquet(data_path)
 
+# create a directory for this model if not there
+
+if not os.path.isdir(f'./models/{run_name}'):
+    os.mkdir(f'./models/{run_name}')
+
 # if train_dataset not generated, perform scaffold split
 
 if not os.path.isdir(f'./models/train_dataset.parquet'):
@@ -61,9 +66,6 @@ print("Val size:", len(val_dataset))
 
 train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
 val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True)
-
-if not os.path.isdir(f'./models/{run_name}'):
-    os.mkdir(f'./models/{run_name}')
 
 # Init model
 model = EncoderDecoder(
