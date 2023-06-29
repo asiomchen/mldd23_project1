@@ -19,12 +19,10 @@ import random
 #-------------------------------------------------------
 
 run_name = '10_epochs'
-
 train_size = 0.8
-
 batch_size = 64
-
 EPOCHS = 10
+NUM_WORKERS = 8 #for dataloader
 
 # Set hyperparameters
 encoding_size = 512
@@ -66,8 +64,8 @@ print("Dataset size:", len(dataset))
 print("Train size:", len(train_dataset))
 print("Val size:", len(val_dataset))
 
-train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
-val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True)
+train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
+val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
 
 # Init model
 model = EncoderDecoder(
