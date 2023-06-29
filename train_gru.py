@@ -20,9 +20,9 @@ import random
 
 run_name = '10_epochs'
 train_size = 0.8
-batch_size = 64
+batch_size = 256
 EPOCHS = 10
-NUM_WORKERS = 8 #for dataloader
+NUM_WORKERS = 4 #for dataloader
 
 # Set hyperparameters
 encoding_size = 512
