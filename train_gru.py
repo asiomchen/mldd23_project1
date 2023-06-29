@@ -98,7 +98,6 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     # Define dataframe for logging progess
     epochs_range = range(1,EPOCHS+1)
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
-    metrics['epoch'] = epochs_range
 
     # Init example printer
     printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
