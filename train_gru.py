@@ -13,37 +13,15 @@ import wandb
 import pandas as pd
 import random
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(device)
+#-------------------------------------------------------
 
-alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
-vectorizer = SELFIESVectorizer(alphabet, pad_to_len=128)
-
-data_path = './GRU_data/combned_dataset.parquet'
-dataset = pd.read_parquet(data_path)
+run_name = '10_epochs'
 
 train_size = 0.8
 
-train_df, val_df = scaffold_split(dataset, train_size)
-print("Scaffold split complete")
-
-train_dataset = GRUDataset(train_df, vectorizer)
-val_dataset = GRUDataset(val_df, vectorizer)
-
-print("Dataset size:", len(dataset))
-print("Train size:", len(train_dataset))
-print("Val size:", len(val_dataset))
-
 batch_size = 64
-train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
-val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True)
 
-run_name = '100_epochs'
-
-if not os.path.isdir(f'./models/{run_name}'):
-    os.mkdir(f'./models/{run_name}')
-train_df.to_parquet(f'./models/{run_name}/train_dataset.parquet')
-val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
+EPOCHS = 10
 
 # Set hyperparameters
 encoding_size = 512
@@ -52,6 +30,39 @@ num_layers = 1
 learn_rate = 0.0005
 dropout = 0 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
+
+#--------------------------------------------------------
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(device)
+alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
+vectorizer = SELFIESVectorizer(alphabet, pad_to_len=128)
+data_path = './GRU_data/combned_dataset.parquet'
+dataset = pd.read_parquet(data_path)
+
+# if train_dataset not generated, perform scaffold split
+
+if not os.path.isdir(f'./models/train_dataset.parquet'):
+    train_df, val_df = scaffold_split(dataset, train_size)
+    train_df.to_parquet()
+    val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
+    print("Scaffold split complete")
+else:
+    train_df = pd.read_csv(f'./models/{run_name}/train_dataset.parquet')
+    val_df = pd.read_csv(f'./models/{run_name}/val_dataset.parquet')
+    
+train_dataset = GRUDataset(train_df, vectorizer)
+val_dataset = GRUDataset(val_df, vectorizer)
+
+print("Dataset size:", len(dataset))
+print("Train size:", len(train_dataset))
+print("Val size:", len(val_dataset))
+
+train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True)
+val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True)
+
+if not os.path.isdir(f'./models/{run_name}'):
+    os.mkdir(f'./models/{run_name}')
 
 # Init model
 model = EncoderDecoder(
@@ -79,13 +90,11 @@ model = EncoderDecoder(
 
 model = nn.DataParallel(model).to(device)
 
-def train(model, train_loader, val_loader, vectorizer):
+def train(model, train_loader, val_loader, vectorizer, epochs):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    EPOCHS = 100
-
-    # Define dataframe for training progess
+    # Define dataframe for logging progess
     epochs_range = range(1,EPOCHS+1)
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     metrics['epoch'] = epochs_range
@@ -122,11 +131,11 @@ def train(model, train_loader, val_loader, vectorizer):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
-        #wandb.log(metrics_dict)
+        wandb.log(metrics_dict)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 10 == 0):
+        if (epoch % 1 == 0):
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(),save_path)
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
@@ -149,4 +158,4 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-model, samples = train(model, train_loader, val_loader, vectorizer)
+model, samples = train(model, train_loader, val_loader, vectorizer, EPOCHS)
