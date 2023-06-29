@@ -10,7 +10,7 @@ import time
 
 import os
 import torch
-import wandb
+#import wandb
 import pandas as pd
 import random
 
@@ -87,7 +87,7 @@ config['Number of layers'] = num_layers
 config['Dropout'] = model.decoder.dropout
 config['Batch size'] = batch_size
 config['teacher_ratio'] = teacher_ratio
-wandb.init(project="gmum-servers", config=config, dir='./tmp')
+#wandb.init(project="gmum-servers", config=config, dir='./tmp')
 
 model = nn.DataParallel(model).to(device)
 
@@ -133,13 +133,14 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
-        wandb.log(metrics_dict)
+        #wandb.log(metrics_dict)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
         if (epoch % 1 == 0):
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(),save_path)
+        
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
         new_samples = printer(model)
         samples.append(new_samples)
@@ -147,7 +148,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         loop_time = (end_time - start_time)/60 # in minutes
         print(f'Executed in {loop_time} minutes')
 
-    wandb.finish()
+    #wandb.finish()
     return model, samples
 
 def evaluate(model, val_loader):
