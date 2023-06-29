@@ -74,19 +74,19 @@ model = EncoderDecoder(
     teacher_ratio = teacher_ratio)
 
  # wandb config and init
-    config = dict()
-    config['learning rate'] = learn_rate
-    config['encoding size'] = model.encoding_size
-    config['criterion'] = criterion
-    config['optimizer'] = optimizer
-    config['num epochs'] = EPOCHS
-    config['Trainable parameters'] = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    config['hidden size'] = model.hidden_size
-    config['Number of layers'] = num_layers
-    config['Dropout'] = model.decoder.dropout
-    config['Batch size'] = batch_size
-    config['teacher_ratio'] = teacher_ratio
-    wandb.init(project="gmum-servers", config=config, dir='./tmp')
+config = dict()
+config['learning rate'] = learn_rate
+config['encoding size'] = model.encoding_size
+config['criterion'] = criterion
+config['optimizer'] = optimizer
+config['num epochs'] = EPOCHS
+config['Trainable parameters'] = sum(p.numel() for p in model.parameters() if p.requires_grad)
+config['hidden size'] = model.hidden_size
+config['Number of layers'] = num_layers
+config['Dropout'] = model.decoder.dropout
+config['Batch size'] = batch_size
+config['teacher_ratio'] = teacher_ratio
+wandb.init(project="gmum-servers", config=config, dir='./tmp')
 
 model = nn.DataParallel(model).to(device)
 
