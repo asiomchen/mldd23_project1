@@ -18,11 +18,11 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'workers_sweep'
+run_name = 'small_batch'
 train_size = 0.8
-batch_size = 256
+batch_size = 32
 EPOCHS = 10
-NUM_WORKERS = 2
+NUM_WORKERS = 6
 
 # Set hyperparameters
 encoding_size = 512
