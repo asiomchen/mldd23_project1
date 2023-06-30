@@ -48,7 +48,7 @@ model = vae.VAE(input_size=input_size, latent_size=latent_size).to(device)
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt
 
-def train_VAE(model, train_loader, learning_rate, epochs, plot_loss=False):
+def train_VAE(model, train_loader, val_loader, learning_rate, epochs, plot_loss=False):
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     criterion = vae.VAELoss()
@@ -114,7 +114,7 @@ def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     criterion = vae.VAELoss()
     epoch_loss = 0
-    for fp in eval_loader:
+    for fp in val_loader:
         fp = fp.to(device)
         encoded, mu, logvar = model(fp).to(device)
         loss = criterion(encoded, fp, mu, logvar)
@@ -122,5 +122,5 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-cvae, losses = train_VAE(model, train_loader, learning_rate, 
+cvae, losses = train_VAE(model, train_loader, val_loader, learning_rate, 
                           epochs=10, plot_loss=False)
