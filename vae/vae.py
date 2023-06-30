@@ -6,11 +6,11 @@ import numpy as np
 class VAEEncoder(nn.Module):
     def __init__(self, input_size, output_size):
         super(VAEEncoder, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, 16)
-        self.fc41 = nn.Linear(16, output_size)
-        self.fc42 = nn.Linear(16, output_size)
+        self.fc1 = nn.Linear(input_size, 2048)
+        self.fc2 = nn.Linear(2048, 1024)
+        self.fc3 = nn.Linear(1024, 512)
+        self.fc41 = nn.Linear(512, output_size)
+        self.fc42 = nn.Linear(512, output_size)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
@@ -23,12 +23,12 @@ class VAEEncoder(nn.Module):
         return mu, logvar
 
 class VAEDecoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, output_size):
         super(VAEDecoder, self).__init__()
-        self.fc1 = nn.Linear(input_size, hidden_size)
-        self.fc2 = nn.Linear(hidden_size, 64)
-        self.fc3 = nn.Linear(64, 128)
-        self.fc4 = nn.Linear(128, output_size)
+        self.fc1 = nn.Linear(input_size, 512)
+        self.fc2 = nn.Linear(512, 1024)
+        self.fc3 = nn.Linear(1024, 2048)
+        self.fc4 = nn.Linear(2048, output_size)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
@@ -43,7 +43,7 @@ class VAE(nn.Module):
     def __init__(self, input_size, latent_size):
         super(VAE, self).__init__()
         self.encoder = VAEEncoder(input_size, latent_size)
-        self.decoder = VAEDecoder(latent_size, 128, input_size)
+        self.decoder = VAEDecoder(latent_size, input_size)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)

@@ -1,8 +1,8 @@
 # import packages
 from gru.example_printer import ExamplePrinter
 from gru.dataset import GRUDataset
-from gru.gru_v3 import EncoderNet, DecoderNet, EncoderDecoder
-from gru.cce import CCE, ConsciousCrossEntropy
+from gru.vae_and_gru import VAEEncoder, DecoderNet, EncoderDecoder
+from gru.cce import CCE
 from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
 from torch.utils.data import DataLoader
@@ -18,10 +18,10 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'small_batch'
+run_name = 'vae_and_gru'
 train_size = 0.8
 batch_size = 32
-EPOCHS = 10
+EPOCHS = 50
 NUM_WORKERS = 6
 
 # Set hyperparameters
@@ -88,8 +88,6 @@ config['Dropout'] = model.decoder.dropout
 config['Batch size'] = batch_size
 config['teacher_ratio'] = teacher_ratio
 #wandb.init(project="gmum-servers", config=config, dir='./tmp')
-
-model = nn.DataParallel(model).to(device)
 
 def train(model, train_loader, val_loader, vectorizer, epochs):
 
