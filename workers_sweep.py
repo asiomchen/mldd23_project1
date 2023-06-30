@@ -22,7 +22,6 @@ run_name = 'workers_sweep'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 10
-NUM_WORKERS = 2
 
 # Set hyperparameters
 encoding_size = 512
@@ -64,9 +63,6 @@ print("Dataset size:", len(dataset))
 print("Train size:", len(train_dataset))
 print("Val size:", len(val_dataset))
 
-train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
-val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
-
 # Init model
 model = EncoderDecoder(
     fp_size=4860,
@@ -91,13 +87,13 @@ config['teacher_ratio'] = teacher_ratio
 
 model = nn.DataParallel(model).to(device)
 
-def train(model, train_loader, val_loader, vectorizer, epochs):
+def train(model, train_dataset, val_dataset, vectorizer, epochs):
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     # Define dataframe for logging progess
     epochs_range = range(1,EPOCHS+1)
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
+    metrics = pd.DataFrame(columns=['workers', 'time', 'train_loss', 'val_loss']);
     
     # Init example printer
     printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
@@ -112,8 +108,14 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
 
     # Start training loop
     for epoch in epochs_range:
+        
+        NUM_WORKERS = epoch
+        
+        train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
+        val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
+        
         start_time = time.time()
-        print(f'Epoch: {epoch}')
+        print(f'NUM_WORKERS: {NUM_WORKERS}')
         epoch_loss = 0
         model.train()
         for batch_idx, (X,y) in enumerate(train_loader):
@@ -129,22 +131,21 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
-        metrics_dict = {'epoch': epoch,
+        
+        end_time = time.time()
+        loop_time = (end_time - start_time)/60 # in minutes
+        
+        metrics_dict = {'workers' : NUM_WORKERS,
+                        'time': loop_time,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
         #wandb.log(metrics_dict)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 10 == 0):
-            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
-            torch.save(model.state_dict(),save_path)
-        
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
         new_samples = printer(model)
         samples.append(new_samples)
-        end_time = time.time()
-        loop_time = (end_time - start_time)/60 # in minutes
         print(f'Executed in {loop_time} minutes')
 
     #wandb.finish()
@@ -163,4 +164,4 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-model, samples = train(model, train_loader, val_loader, vectorizer, EPOCHS)
+model, samples = train(model, train_dataset, val_dataset, vectorizer, EPOCHS)
