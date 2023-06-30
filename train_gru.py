@@ -18,15 +18,15 @@ import random
 
 #-------------------------------------------------------
 
-run_name = '10_epochs'
+run_name = '10_epochs_2_workers'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 10
-NUM_WORKERS = 4 #for dataloader
+NUM_WORKERS = 2 #for dataloader
 
 # Set hyperparameters
-encoding_size = 512
-hidden_size = 512
+encoding_size = 256
+hidden_size = 256
 num_layers = 1
 learn_rate = 0.0005
 dropout = 0 # dropout must be equal 0 if num_layers = 1
@@ -136,7 +136,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 1 == 0):
+        if (epoch % 10 == 0):
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(),save_path)
         
