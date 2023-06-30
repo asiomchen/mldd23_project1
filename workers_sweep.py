@@ -94,9 +94,6 @@ def train(model, train_dataset, val_dataset, vectorizer, epochs):
     # Define dataframe for logging progess
     epochs_range = range(1,EPOCHS+1)
     metrics = pd.DataFrame(columns=['workers', 'time', 'train_loss', 'val_loss']);
-    
-    # Init example printer
-    printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -144,8 +141,6 @@ def train(model, train_dataset, val_dataset, vectorizer, epochs):
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
-        new_samples = printer(model)
-        samples.append(new_samples)
         print(f'Executed in {loop_time} minutes')
 
     #wandb.finish()
