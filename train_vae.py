@@ -10,7 +10,7 @@ print(f'Device: {device}')
 
 #-----------------------------------------------------------------
 
-latent_size = 256
+latent_size = 512
 input_size = 4860
 learning_rate = 0.0001
 
@@ -116,7 +116,7 @@ def evaluate(model, val_loader):
     epoch_loss = 0
     for fp in val_loader:
         fp = fp.to(device)
-        encoded, mu, logvar = model(fp).to(device)
+        encoded, mu, logvar = model(fp)
         loss = criterion(encoded, fp, mu, logvar)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
