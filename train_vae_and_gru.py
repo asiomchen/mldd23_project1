@@ -1,7 +1,7 @@
 # import packages
 from gru.example_printer import ExamplePrinter
 from gru.dataset import GRUDataset
-from gru.vae_and_gru import VAEEncoder, DecoderNet, EncoderDecoder
+from gru.vae_gru import VAEEncoder, DecoderNet, EncoderDecoder
 from gru.cce import CCE
 from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
@@ -18,9 +18,9 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'vae_and_gru'
+run_name = 'vae_gru'
 train_size = 0.8
-batch_size = 32
+batch_size = 256
 EPOCHS = 50
 NUM_WORKERS = 6
 
@@ -64,8 +64,10 @@ print("Dataset size:", len(dataset))
 print("Train size:", len(train_dataset))
 print("Val size:", len(val_dataset))
 
-train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
-val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=NUM_WORKERS)
+train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, 
+                          drop_last=True, num_workers=NUM_WORKERS)
+val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, 
+                        drop_last=True, num_workers=NUM_WORKERS)
 
 # Init model
 model = EncoderDecoder(
@@ -74,9 +76,11 @@ model = EncoderDecoder(
     hidden_size=hidden_size,
     num_layers=num_layers,
     dropout=dropout,
-    teacher_ratio = teacher_ratio)
+    teacher_ratio = teacher_ratio).to(device)
 
- # wandb config and init
+model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
+
+# wandb config and init
 config = dict()
 config['learning rate'] = learn_rate
 config['encoding size'] = model.encoding_size
@@ -118,7 +122,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output = model(X, y, teacher_forcing=True).to(device)
+            output = model(X, y, teacher_forcing=True)
             loss = criterion(y, output)
             loss.backward()
             optimizer.step()
@@ -138,7 +142,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(),save_path)
         
-        metrics.to_csv(f"./models/{run_name}/metrics.csv")
+        metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
         new_samples = printer(model)
         samples.append(new_samples)
         end_time = time.time()

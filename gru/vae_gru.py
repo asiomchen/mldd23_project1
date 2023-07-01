@@ -73,7 +73,7 @@ class EncoderDecoder(nn.Module):
     def forward(self, x, y, teacher_forcing):
         hidden = self.decoder.init_hidden(batch_size=x.shape[0]).to(self.device)
         mu, logvar = self.encoder(x)
-        encoded = self.reparametrize(mu, logvar)
+        encoded = self.reparameterize(mu, logvar)
         x = encoded.unsqueeze(1)
         decoded = []
         for n in range(128):
