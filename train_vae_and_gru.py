@@ -21,7 +21,7 @@ import random
 run_name = 'vae_gru'
 train_size = 0.8
 batch_size = 256
-EPOCHS = 50
+EPOCHS = 200
 NUM_WORKERS = 6
 
 # Set hyperparameters
@@ -138,7 +138,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 10 == 0):
+        if (epoch % 25 == 0):
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(),save_path)
         
