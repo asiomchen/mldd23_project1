@@ -23,7 +23,7 @@ run_name = 'vae_gru'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 200
-NUM_WORKERS = 6
+NUM_WORKERS = 3
 
 # Set hyperparameters
 encoding_size = 512
@@ -137,9 +137,9 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
         #wandb.log(metrics_dict)
-	
-	sheduler.step(val_loss)
-	
+
+        sheduler.step(val_loss)
+        
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
         if (epoch % 25 == 0):
