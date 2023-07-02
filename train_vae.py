@@ -77,7 +77,6 @@ def train_VAE(model, train_loader, val_loader, learning_rate, epochs, plot_loss=
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-        sheduler.step(loss)
         
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
@@ -85,6 +84,8 @@ def train_VAE(model, train_loader, val_loader, learning_rate, epochs, plot_loss=
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
+        
+        sheduler.step(avg_loss)
         
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict

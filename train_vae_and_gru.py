@@ -6,6 +6,7 @@ from gru.cce import CCE
 from vectorizer import SELFIESVectorizer, determine_alphabet
 from split import scaffold_split
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn as nn
 import time
 
@@ -28,7 +29,7 @@ NUM_WORKERS = 6
 encoding_size = 512
 hidden_size = 512
 num_layers = 1
-learn_rate = 0.0005
+learn_rate = 0.0002
 dropout = 0 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
 
@@ -103,10 +104,11 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     
     # Init example printer
     printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
-
+    
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
     criterion = CCE()
+    sheduler = ReduceLROnPlateau(optimizer, 'min', patience=10, verbose=True)
 
     print("Starting Training of GRU")
     print(f"Device: {device}")
@@ -135,7 +137,9 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
         #wandb.log(metrics_dict)
-
+	
+	sheduler.step(val_loss)
+	
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
         if (epoch % 25 == 0):
