@@ -19,7 +19,7 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'vae_gru'
+run_name = 'ring_control'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 200
@@ -163,7 +163,8 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output = model(X, y, teacher_forcing=False).to(device)
+        output = model(X, y, teacher_forcing=False)
+        epoch_loss += loss.item().to(device)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)

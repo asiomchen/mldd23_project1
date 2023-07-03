@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 import rdkit.Chem as Chem
-
+   
 class GRUDataset(Dataset):
     def __init__(self, df, vectorizer):
         self.smiles = df['smiles']
@@ -24,8 +24,10 @@ class GRUDataset(Dataset):
             raw_selfie = sf.encoder(randomized_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         except:
-            print('Exception at:', idx)
-            vectorized_selfie = self.vectorizer.vectorize('[nop]')
+            print('Exception occured when vectorizing selfie of idx', idx)
+            raw_smile = self.smiles[idx]
+            raw_selfie = sf.encoder(raw_smile, strict=False)
+            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)
