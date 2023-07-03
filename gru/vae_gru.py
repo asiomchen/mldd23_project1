@@ -76,33 +76,16 @@ class EncoderDecoder(nn.Module):
         mu, logvar = self.encoder(x)
         encoded = self.reparameterize(mu, logvar)
         x = encoded.unsqueeze(1)
-        mask = torch.ones(batch_size, 1, 42).to(self.device)
         outputs = []
-        valid_token_idxs = [7, 17, 18, 33, 34] # [Ring1], [Ring2], [Branch1], [=Branch1], [Branch2]
         
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
             out = self.relu(self.fc1(out)) # shape (batch_size, 42)
-            print(f'Out shape: {out.shape}')
-            print(f'Out squeeze(1) shape: {out.squeeze(1).shape}')
             out = torch.mul(out, mask)
             outputs.append(out)
             random_float = random.random()
-            
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:,n,:].unsqueeze(1)
-            
-            # prepare mask for ring size control 
-            batch_token_idxs = torch.argmax(out.squeeze(1), dim=1)
-            print(batch_token_idxs)
-            mask = torch.ones(batch_size, 42).to(self.device)
-            for i, token_idx in enumerate(batch_token_idxs):
-                if token_idx == 33: # if [Ring1] token is present -> mask out all invalid ring size tokens at next iter
-                    for n in range(42):
-                        if n not in valid_token_idxs:
-                            mask[i, n] = 0
-            mask = mask.unsqueeze(1)
-            
             x = self.relu(self.fc2(out))
             
         out_cat = torch.cat(outputs, dim=1)
