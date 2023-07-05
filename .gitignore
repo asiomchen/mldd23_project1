@@ -154,3 +154,6 @@ GRU_data/old_datasets/combined_klek.parquet
 GRU_data/old_datasets/combined_selfies.parquet
 GRU_data/old_datasets/combined_smiles_fp.parquet
 GRU_data/test_dataset.parquet
+GRU_data/combined_dataset.parquet
+models/vae_gru/train_dataset.parquet
+*.parquet
