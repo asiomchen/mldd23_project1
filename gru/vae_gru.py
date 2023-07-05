@@ -81,7 +81,6 @@ class EncoderDecoder(nn.Module):
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
             out = self.relu(self.fc1(out)) # shape (batch_size, 42)
-            out = torch.mul(out, mask)
             outputs.append(out)
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
