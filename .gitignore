@@ -157,3 +157,13 @@ GRU_data/test_dataset.parquet
 GRU_data/combined_dataset.parquet
 models/vae_gru/train_dataset.parquet
 *.parquet
+models/CVAE_full_epoch_100.pt
+models/CVAE_full_epoch_55.pt
+models/vae_gru/epoch_100.pt
+models/vae_gru/epoch_150.pt
+models/vae_gru/epoch_25.pt
+models/vae_gru/epoch_50.pt
+models/vae_gru/epoch_75.pt
+models/vae_gru_scheduler/epoch_125.pt
+models/vae_gru_scheduler/epoch_25.pt
+models/vae_gru_scheduler/epoch_50.pt
