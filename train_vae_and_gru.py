@@ -19,7 +19,7 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'ring_control'
+run_name = '3_layers'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 200
@@ -28,9 +28,9 @@ NUM_WORKERS = 3
 # Set hyperparameters
 encoding_size = 512
 hidden_size = 512
-num_layers = 1
+num_layers = 3
 learn_rate = 0.0002
-dropout = 0 # dropout must be equal 0 if num_layers = 1
+dropout = 0.2 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
 
 #--------------------------------------------------------
