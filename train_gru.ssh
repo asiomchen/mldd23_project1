@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --job-name=10_epochs
+#SBATCH --job-name=scheduler_vae_gru
 #SBATCH --partition=student
-#SBATCH --qos=quick
+#SBATCH --qos=big
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=6
+#SBATCH --cpus-per-task=3
 #SBATCH --mem-per-cpu=32G
 
 nvidia-smi -L
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u train_gru.py > console.out
+python -u train_vae_and_gru.py > console.out
 echo done
