@@ -165,8 +165,6 @@ def evaluate(model, val_loader):
         y = y.to(device)
         output = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
-        epoch_loss += loss.item().to(device)
-        loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
