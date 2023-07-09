@@ -88,7 +88,7 @@ class EncoderDecoder(nn.Module):
             x = self.relu(self.fc2(out))
             
         out_cat = torch.cat(outputs, dim=1)
-        out_cat = self.softmax2d(out_cat)
+        #out_cat = self.softmax2d(out_cat)
         return out_cat # shape [batch_size, selfie_len, alphabet_len]
     
     def reparameterize(self, mu, logvar):

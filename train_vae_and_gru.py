@@ -19,7 +19,7 @@ import random
 
 #-------------------------------------------------------
 
-run_name = '3_layers'
+run_name = 'fixed_cce_3_layers'
 train_size = 0.8
 batch_size = 256
 EPOCHS = 200
@@ -29,7 +29,7 @@ NUM_WORKERS = 3
 encoding_size = 512
 hidden_size = 512
 num_layers = 3
-learn_rate = 0.0002
+learn_rate = 0.0001
 dropout = 0.2 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
 
@@ -49,14 +49,14 @@ if not os.path.isdir(f'./models/{run_name}'):
 
 # if train_dataset not generated, perform scaffold split
 
-if not os.path.isfile(f'./models/{run_name}/train_dataset.parquet'):
+if not os.path.isfile(f'./GRU_data/train_dataset.parquet'):
     train_df, val_df = scaffold_split(dataset, train_size)
-    train_df.to_parquet(f'./models/{run_name}/train_dataset.parquet')
-    val_df.to_parquet(f'./models/{run_name}/val_dataset.parquet')
+    train_df.to_parquet(f'./GRU_data/train_dataset.parquet')
+    val_df.to_parquet(f'./GRU_data/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_parquet(f'./models/{run_name}/train_dataset.parquet')
-    val_df = pd.read_parquet(f'./models/{run_name}/val_dataset.parquet')
+    train_df = pd.read_parquet(f'./GRU_data/train_dataset.parquet')
+    val_df = pd.read_parquet(f'./GRU_data/val_dataset.parquet')
     
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
@@ -147,6 +147,9 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
             torch.save(model.state_dict(),save_path)
         
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
+        with open(f"./models/{run_name}/metrics.csv", 'a') as file:
+            for key, value in config.items(): 
+                f.write('%s:%s\n' % (key, value))
         new_samples = printer(model)
         samples.append(new_samples)
         end_time = time.time()
