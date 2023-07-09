@@ -144,9 +144,9 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
             torch.save(model.state_dict(),save_path)
         
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-        with open(f"./models/{run_name}/metrics.csv", 'a') as file:
+        with open(f"./models/{run_name}/hyperparameters.csv", 'w') as file:
             for key, value in config.items(): 
-                f.write('%s:%s\n' % (key, value))
+                file.write('%s:%s\n' % (key, value))
         new_samples = printer(model)
         samples.append(new_samples)
         end_time = time.time()
