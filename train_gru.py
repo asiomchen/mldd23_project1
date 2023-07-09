@@ -164,6 +164,7 @@ def evaluate(model, val_loader):
         X = X.to(device)
         y = y.to(device)
         output = model(X, y, teacher_forcing=False)
+        loss = criterion(y, output)
         epoch_loss += loss.item().to(device)
         loss = criterion(y, output)
         epoch_loss += loss.item()
