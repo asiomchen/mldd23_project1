@@ -1,21 +1,19 @@
 # import packages
-from gru.example_printer import ExamplePrinter
-from gru.dataset import GRUDataset
-from gru.vae_gru import VAEEncoder, DecoderNet, EncoderDecoder
-from gru.cce import CCE
-from vectorizer import SELFIESVectorizer, determine_alphabet
-from split import scaffold_split
+from lib.gru.example_printer import ExamplePrinter
+from lib.gru.dataset import GRUDataset
+from lib.gru.vae_gru import VAEEncoder, DecoderNet, EncoderDecoder
+from lib.gru.cce import CCE
+from lib.utils.vectorizer import SELFIESVectorizer
+from lib.utils.split import scaffold_split
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+import torch
 import torch.nn as nn
 import time
-
-
 import os
-import torch
-#import wandb
 import pandas as pd
 import random
+#import wandb
 
 #-------------------------------------------------------
 
@@ -37,8 +35,7 @@ teacher_ratio = 0.5
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
-alphabet = pd.read_csv('./GRU_data/alphabet.txt', header=None).values.flatten()
-vectorizer = SELFIESVectorizer(alphabet, pad_to_len=128)
+vectorizer = SELFIESVectorizer(pad_to_len=128)
 data_path = './GRU_data/combined_dataset.parquet'
 dataset = pd.read_parquet(data_path)
 
@@ -103,7 +100,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     
     # Init example printer
-    printer = ExamplePrinter('./models/{run_name}/val_dataset.parquet', val_loader, num_examples=25)
+    printer = ExamplePrinter('./GRU_data/val_dataset.parquet', val_loader, num_examples=25)
     
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -157,7 +154,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         print(f'Executed in {loop_time} minutes')
 
     #wandb.finish()
-    return model, samples
+    return model
 
 def evaluate(model, val_loader):
     model.eval()
@@ -173,4 +170,4 @@ def evaluate(model, val_loader):
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
-model, samples = train(model, train_loader, val_loader, vectorizer, EPOCHS)
+model = train(model, train_loader, val_loader, vectorizer, EPOCHS)
