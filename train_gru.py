@@ -6,6 +6,7 @@ from src.gru.cce import CCE
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
+from src.utils.qed import mean_batch_QED
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
 import torch.nn as nn
@@ -129,7 +130,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
-        val_loss = evaluate(model, val_loader)
+        val_loss = evaluate(model, val_loader, epoch)
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
@@ -156,9 +157,10 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     #wandb.finish()
     return model
 
-def evaluate(model, val_loader):
+def evaluate(model, val_loader, epoch):
     model.eval()
     criterion = CCE()
+    score = 0
     epoch_loss = 0
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
@@ -166,7 +168,15 @@ def evaluate(model, val_loader):
         output = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
+    if (epoch % 1 == 0):
+        qed_start = time.time()
+        score += mean_batch_QED(output)
+        qed_stop = time.time()
+        qed_exec_time = qed_stop - qed_start
+        print(f'QED executed in {qed_exec_time} s)
     avg_loss = epoch_loss / len(val_loader)
+    if (epoch % 1 == 0):
+        print(f'Mean QED = {score/len(val_loader)}')
     return avg_loss
 
 model = train(model, train_loader, val_loader, vectorizer, EPOCHS)
