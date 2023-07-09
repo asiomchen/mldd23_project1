@@ -1,10 +1,10 @@
 # import packages
-from lib.gru.example_printer import ExamplePrinter
-from lib.gru.dataset import GRUDataset
-from lib.gru.vae_gru import VAEEncoder, DecoderNet, EncoderDecoder
-from lib.gru.cce import CCE
-from lib.utils.vectorizer import SELFIESVectorizer
-from lib.utils.split import scaffold_split
+from src.gru.example_printer import ExamplePrinter
+from src.gru.dataset import GRUDataset
+from src.gru.vae_gru import VAEEncoder, DecoderNet, EncoderDecoder
+from src.gru.cce import CCE
+from src.utils.vectorizer import SELFIESVectorizer
+from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
@@ -36,7 +36,7 @@ teacher_ratio = 0.5
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(device)
 vectorizer = SELFIESVectorizer(pad_to_len=128)
-data_path = './GRU_data/combined_dataset.parquet'
+data_path = 'data/GRU_data/combined_dataset.parquet'
 dataset = pd.read_parquet(data_path)
 
 # create a directory for this model if not there
@@ -46,14 +46,14 @@ if not os.path.isdir(f'./models/{run_name}'):
 
 # if train_dataset not generated, perform scaffold split
 
-if not os.path.isfile(f'./GRU_data/train_dataset.parquet'):
+if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
     train_df, val_df = scaffold_split(dataset, train_size)
-    train_df.to_parquet(f'./GRU_data/train_dataset.parquet')
-    val_df.to_parquet(f'./GRU_data/val_dataset.parquet')
+    train_df.to_parquet(f'data/GRU_data/train_dataset.parquet')
+    val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_parquet(f'./GRU_data/train_dataset.parquet')
-    val_df = pd.read_parquet(f'./GRU_data/val_dataset.parquet')
+    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
+    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
     
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
@@ -100,7 +100,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     
     # Init example printer
-    printer = ExamplePrinter('./GRU_data/val_dataset.parquet', val_loader, num_examples=25)
+    printer = ExamplePrinter('data/GRU_data/val_dataset.parquet', val_loader, num_examples=25)
     
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)

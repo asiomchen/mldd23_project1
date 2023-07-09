@@ -1,4 +1,4 @@
-from vae import vae, vae_dataset
+from src.vae import vae, vae_dataset
 import numpy as np
 import pandas as pd
 import torch
