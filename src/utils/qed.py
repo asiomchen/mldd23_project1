@@ -3,7 +3,7 @@ import rdkit.Chem as Chem
 from rdkit.Chem.QED import qed
 import selfies as sf
 
-def mean_batch_QED(batch):
+def mean_batch_QED(batch, vectorizer)
     total_QED = 0
     batch_size = batch.shape[0]
     for seq in batch:

@@ -170,7 +170,7 @@ def evaluate(model, val_loader, epoch):
         epoch_loss += loss.item()
     if (epoch % 1 == 0):
         qed_start = time.time()
-        score += mean_batch_QED(output)
+        score += mean_batch_QED(output, vectorizer)
         qed_stop = time.time()
         qed_exec_time = qed_stop - qed_start
         print(f'QED executed in {qed_exec_time} s)
