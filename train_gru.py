@@ -18,16 +18,16 @@ import random
 
 #-------------------------------------------------------
 
-run_name = 'fixed_cce_3_layers'
+run_name = '2_layers'
 train_size = 0.8
-batch_size = 256
+batch_size = 64
 EPOCHS = 200
 NUM_WORKERS = 3
 
 # Set hyperparameters
 encoding_size = 512
 hidden_size = 512
-num_layers = 3
+num_layers = 2
 learn_rate = 0.0001
 dropout = 0.2 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
@@ -53,8 +53,8 @@ if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
     val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
-    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
+    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')[:1000]
+    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')[:1000]
     
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
@@ -169,15 +169,11 @@ def evaluate(model, val_loader, epoch):
         output = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
-    if (epoch % 1 == 0):
-        qed_start = time.time()
+    if batch_idx == 0:
+        output = output.cpu().detach().numpy()
         score += mean_batch_QED(output, vectorizer)
-        qed_stop = time.time()
-        qed_exec_time += qed_stop - qed_start
+        print(f'Mean QED = {score}')
     avg_loss = epoch_loss / len(val_loader)
-    if (epoch % 1 == 0):
-        print(f'QED executed in {qed_exec_time} s)
-        print(f'Mean QED = {score/len(val_loader)}')
     return avg_loss
 
 model = train(model, train_loader, val_loader, vectorizer, EPOCHS)
