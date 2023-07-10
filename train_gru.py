@@ -169,10 +169,10 @@ def evaluate(model, val_loader, epoch):
         output = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
-    if batch_idx == 0:
-        output = output.cpu().detach().numpy()
-        score += mean_batch_QED(output, vectorizer)
-        print(f'Mean QED = {score}')
+        if batch_idx == 0:
+            output = output.cpu().detach().numpy()
+            score += mean_batch_QED(output, vectorizer)
+            print(f'Mean QED = {score}')
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
