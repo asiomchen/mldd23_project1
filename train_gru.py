@@ -53,8 +53,8 @@ if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
     val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')[:1000]
-    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')[:1000]
+    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
+    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
     
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
