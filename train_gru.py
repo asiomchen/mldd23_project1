@@ -161,6 +161,7 @@ def evaluate(model, val_loader, epoch):
     model.eval()
     criterion = CCE()
     score = 0
+    qed_exec_time = 0
     epoch_loss = 0
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
@@ -172,10 +173,10 @@ def evaluate(model, val_loader, epoch):
         qed_start = time.time()
         score += mean_batch_QED(output, vectorizer)
         qed_stop = time.time()
-        qed_exec_time = qed_stop - qed_start
-        print(f'QED executed in {qed_exec_time} s)
+        qed_exec_time += qed_stop - qed_start
     avg_loss = epoch_loss / len(val_loader)
     if (epoch % 1 == 0):
+        print(f'QED executed in {qed_exec_time} s)
         print(f'Mean QED = {score/len(val_loader)}')
     return avg_loss
 
