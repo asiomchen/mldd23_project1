@@ -167,3 +167,4 @@ models/vae_gru/epoch_75.pt
 models/vae_gru_scheduler/epoch_125.pt
 models/vae_gru_scheduler/epoch_25.pt
 models/vae_gru_scheduler/epoch_50.pt
+*.png
