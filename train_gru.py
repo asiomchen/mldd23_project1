@@ -100,12 +100,12 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     
     # Define loss function and optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+    optimizer = torch.optim.SparseAdam(model.parameters(), lr=learn_rate)
+    #optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
     criterion = CCE()
 
     print("Starting Training of GRU")
     print(f"Device: {device}")
-    samples = []
 
     # Start training loop
     for epoch in epochs_range:
@@ -141,8 +141,6 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
         with open(f"./models/{run_name}/hyperparameters.csv", 'w') as file:
             for key, value in config.items(): 
                 file.write('%s:%s\n' % (key, value))
-        new_samples = printer(model)
-        samples.append(new_samples)
         end_time = time.time()
         loop_time = (end_time - start_time)/60 # in minutes
         print(f'Executed in {loop_time} minutes')
