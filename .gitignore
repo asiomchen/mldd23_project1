@@ -129,6 +129,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+models
 GRU_data/augmented.csv
 GRU_data/combined_selfies.csv
 GRU_data/augmented.zip
