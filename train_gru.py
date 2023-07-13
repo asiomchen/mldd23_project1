@@ -5,7 +5,6 @@ from src.gru.cce import CCE
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
-from src.utils.qed import mean_batch_QED
 import torch
 import torch.nn as nn
 import time
@@ -160,9 +159,6 @@ def evaluate(model, val_loader, epoch):
         loss = criterion(y, output)
         epoch_loss += loss.item()
         if batch_idx == 0:
-            output = output.cpu().detach().numpy()
-            score += mean_batch_QED(output, vectorizer)
-            print(f'Mean QED = {score}')
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
