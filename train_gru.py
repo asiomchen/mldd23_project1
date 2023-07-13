@@ -18,7 +18,7 @@ import random
 
 run_name = '230712_3_layers'
 train_size = 0.8
-batch_size = 256
+batch_size = 64
 EPOCHS = 200
 NUM_WORKERS = 3
 
@@ -75,7 +75,7 @@ model = EncoderDecoder(
     dropout=dropout,
     teacher_ratio = teacher_ratio).to(device)
 
-model.load_state_dict(torch.load('models/3_layers_continue/epoch_50.pt'))
+model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
 model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
 
 # wandb config and init
@@ -100,8 +100,7 @@ def train(model, train_loader, val_loader, vectorizer, epochs):
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
     
     # Define loss function and optimizer
-    optimizer = torch.optim.SparseAdam(model.parameters(), lr=learn_rate)
-    #optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
     criterion = CCE()
 
     print("Starting Training of GRU")
