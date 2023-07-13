@@ -63,7 +63,7 @@ class GRUDataset(Dataset):
         ans = list(range(m.GetNumAtoms()))
         np.random.shuffle(ans)
         nm = Chem.RenumberAtoms(m,ans)
-        return Chem.MolToSmiles(nm, canonical=False, isomericSmiles=False)
+        return Chem.MolToSmiles(nm, canonical=True, isomericSmiles=False)
     
     @staticmethod
     def prepare_X(fps):

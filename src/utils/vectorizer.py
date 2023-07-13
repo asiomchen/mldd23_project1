@@ -30,7 +30,7 @@ class SELFIESVectorizer:
     
     def devectorize(self, ohe, remove_special=False):
         
-        #D evectorize a numpy array of shape (len(smiles), len(charset)) to a list of SELFIES strings
+        # Devectorize a numpy array of shape (len(smiles), len(charset)) to a list of SELFIES strings
         
         selfie_str = ''
         for j in range(ohe.shape[0]):
