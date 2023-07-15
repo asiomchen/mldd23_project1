@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.vae_gru import EncoderDecoder
+from src.gru.generator import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -68,11 +68,9 @@ model = EncoderDecoder(
     hidden_size=hidden_size,
     num_layers=num_layers,
     dropout=dropout,
-    teacher_ratio=teacher_ratio).to(device)
+    teacher_ratio=teacher_ratio,
+).to(device)
 
-model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
+#model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
 model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
-
-# wandb.init(project="gmum-servers", config=config, dir='./tmp')
-
 model = train(config, model, train_loader, val_loader)

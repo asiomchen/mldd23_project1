@@ -32,7 +32,7 @@ def train(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output = model(X, y, teacher_forcing=True)
+            output = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
             loss.backward()
             optimizer.step()
@@ -68,7 +68,7 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output = model(X, y, teacher_forcing=False)
+        output = model(X, y, teacher_forcing=False, reinforcement=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)

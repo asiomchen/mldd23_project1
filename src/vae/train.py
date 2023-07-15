@@ -6,7 +6,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 
-
 def train_VAE(config, model, train_loader, val_loader, plot_loss=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
