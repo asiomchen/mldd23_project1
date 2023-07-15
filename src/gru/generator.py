@@ -191,6 +191,7 @@ class EncoderDecoder(nn.Module):
             total_reward (torch.tensor):total reward for use in reinforcement learning
         """
         vectorizer = SELFIESVectorizer(pad_to_len=128)
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         out_cat = out_cat.detach().cpu().numpy()
 
         # reinforcement learning    
@@ -202,6 +203,7 @@ class EncoderDecoder(nn.Module):
 
         sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
         valid = False
+        sf.set_semantic_constraints("hypervalent")
         # check if able to decode all, else reroll
         while not valid:
             for idx in sample_idxs:
@@ -211,7 +213,9 @@ class EncoderDecoder(nn.Module):
                     valid = True
                 except:
                     sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
-
+                    valid = False
+                    print('Exception caught, rerolling')
+                    break
         for idx in sample_idxs:
             # get reward
             trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
@@ -231,7 +235,7 @@ class EncoderDecoder(nn.Module):
             for p in range(len(trajectory) - 1):
                 token = trajectory_input[p]
                 token_idx = torch.argmax(token.detach().cpu()).item()
-                print(token_idx)
+                token = token.float().to(device)
                 while token_idx != 40 and token_idx != 39:  # until encounters [nop] or [end]
                     representation = self.relu(self.fc2(token)).unsqueeze(0)  # [1, 512]
                     representation, hidden = self.decoder(representation, hidden)
@@ -239,8 +243,8 @@ class EncoderDecoder(nn.Module):
                     next_token = self.relu(self.fc1(representation))  # [42]
 
                     log_probs = F.log_softmax(next_token, dim=0)  # [42]
-                    top_i = trajectory_input[p + 1]
-                    rl_loss -= (log_probs[0, top_i] * discounted_reward)
+                    top_i = trajectory_input[p + 1].long()
+                    rl_loss -= (log_probs[top_i] * discounted_reward)
                     discounted_reward = discounted_reward * gamma
 
         rl_loss = rl_loss / n_samples

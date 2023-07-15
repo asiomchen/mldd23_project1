@@ -1,6 +1,6 @@
 # import packages
 from src.gru.dataset import GRUDataset
-from src.gru.rl_vae_gru import EncoderDecoder
+from src.gru.generator import EncoderDecoder
 from src.gru.cce import CCE
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
@@ -48,8 +48,8 @@ if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
     val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
     print("Scaffold split complete")
 else:
-    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')[:1000]
-    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')[:1000]
+    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
+    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
 
 train_dataset = GRUDataset(train_df, vectorizer)
 val_dataset = GRUDataset(val_df, vectorizer)
@@ -80,7 +80,7 @@ def train(config, model, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     run_name = config['RL']['run_name']
-    learn_rate = int(config['RL']['learn_rate'])
+    learn_rate = float(config['RL']['learn_rate'])
     epochs = int(config['RL']['epochs'])
 
     # Define dataframe for logging progress
