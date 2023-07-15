@@ -17,3 +17,41 @@ class CCE(nn.Module):
         weights = (mask.T / mask.sum(axis=1)).T[mask]
         loss = torch.nn.functional.cross_entropy(predictions[mask], one_hot[mask], reduction='none')
         return (weights * loss).sum() / batch_size
+
+    import numpy as np
+
+    class CCE_old(nn.Module):
+        def __init__(self):
+            super(CCE, self).__init__();
+            self.alphabet_len = 42
+            self.seq_len = 128
+            self.idx_ignore = 40  # index of token to ignore
+            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.ignore = torch.zeros(self.alphabet_len).to(self.device)
+            self.ignore[self.idx_ignore] = 1
+            self.ignore = self.ignore.unsqueeze(0).repeat(128, 1)
+
+        def forward(self, target, predictions):
+            # target.shape [batch_size, seq_len, token_idx]
+            batch_size = predictions.shape[0]
+            cross_entropy_loss = 0
+            for y_true, y in zip(target, predictions):
+                sequence_loss = 0
+                mask = self.prep_mask(y_true)
+                nops = torch.sum(mask)
+                prob = torch.sum(y_true * y, dim=1)
+                loss = -torch.log(prob)
+                sequence_loss = torch.sum(loss * mask) / (self.seq_len - nops)
+                cross_entropy_loss += sequence_loss
+            loss_value = cross_entropy_loss / batch_size
+            return loss_value
+
+        def prep_mask(self, y_true):
+            '''look through target SELFIES sequence and prepare mask
+            as a tensor of size [128] with 0s on [nop] symbol
+            and 1s for all the other tokens'''
+            v1 = torch.zeros(self.alphabet_len).to(self.device)
+            v1[self.idx_ignore] = 1
+            m1 = v1.unsqueeze(0).repeat(y_true.shape[0], 1)
+            output = ~torch.sum(y_true * m1, dim=1).bool()
+            return output.float()
