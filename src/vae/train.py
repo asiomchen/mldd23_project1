@@ -1,7 +1,7 @@
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-import IPython.display as display
+from IPython.display import display
 import torch
-import src.vae as vae
+import src.vae.vae as vae
 import pandas as pd
 import matplotlib.pyplot as plt
 import time
@@ -10,9 +10,9 @@ import time
 def train_VAE(config, model, train_loader, val_loader, plot_loss=False):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    epochs = int(config['GRU']['epochs'])
-    run_name = config['GRU']['run_name']
-    learning_rate = float(config['GRU']['learn_rate'])
+    epochs = int(config['VAE']['epochs'])
+    run_name = config['VAE']['run_name']
+    learning_rate = float(config['VAE']['learning_rate'])
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)

@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import pandas as pd
-import numpy as np
 
 class VAEEncoder(nn.Module):
     def __init__(self, input_size, output_size):

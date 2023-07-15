@@ -13,14 +13,14 @@ config = configparser.ConfigParser()
 config.read('vae_config.ini')
 run_name = config['VAE']['run_name']
 batch_size = int(config['VAE']['batch_size'])
-input_size = int(config['VAE']['fp_size'])
-latent_size = int(config['VAE']['encoding_size'])
-learning_rate = float(config['VAE']['learn_rate'])
+input_size = int(config['VAE']['input_size'])
+latent_size = int(config['VAE']['latent_size'])
+learning_rate = float(config['VAE']['learning_rate'])
 epochs = float(config['VAE']['epochs'])
 
 test_size = 0.8
 
-full_path = './GRU_data/combined_dataset.parquet'
+full_path = './data/GRU_data/combined_dataset.parquet'
 
 # load data
 
@@ -38,4 +38,7 @@ val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_
 # init model
 
 model = vae.VAE(input_size=input_size, latent_size=latent_size).to(device)
+
+# train model
+
 vae = train_VAE(config, model, train_loader, val_loader, plot_loss=False)
