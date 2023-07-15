@@ -8,9 +8,8 @@ def sparse2dense(sparse):
             dense.append(idx)
     return np.array(dense)
     
-def dense2sparse(dense):
-    fp_len = 4860 # klekota&roth
-    sparse = np.zeros(fp_len)
+def dense2sparse(dense, fp_len=4860):
+    sparse = np.zeros(fp_len, dtype=np.int8)
     for value in dense:
         sparse[value] = 1
     return sparse

@@ -1,4 +1,3 @@
-import torch
 import rdkit.Chem as Chem
 from rdkit.Chem.QED import qed
 import selfies as sf

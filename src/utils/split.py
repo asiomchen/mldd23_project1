@@ -1,7 +1,3 @@
-import torch
-import random
-import numpy as np
-from tqdm import tqdm
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
 # scaffold split
@@ -12,8 +8,6 @@ def get_scaffold(smiles, include_chirality=False):
     return scaffold
 
 def scaffold_split(df, frac_train):
-    
-    frac_valid = 1 - frac_train
 
     print('grouping compounds by murcko scaffold...')
     # create dict of the form {scaffold_i: [idx1, idx....]}

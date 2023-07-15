@@ -1,12 +1,9 @@
-from torch.utils.data import Dataset, DataLoader
 import pandas as pd
 import numpy as np
-import torch
-import selfies as sf
 import re
 
 class SELFIESVectorizer:
-    
+
     def __init__(self, pad_to_len=None):
         self.alphabet = self.read_alphabet()
         self.char2idx = {s: i for i, s in enumerate(self.alphabet)}
@@ -57,13 +54,15 @@ class SELFIESVectorizer:
             return "".join(selfie)
         else:    
             return "".join([self.idx2char[i] for i in idx])
-    
-    def split_selfi(self, selfie):
+
+    @staticmethod
+    def split_selfi(selfie):
         pattern = r'(\[[^\[\]]*\])'
         return re.findall(pattern, selfie)
         
         # Read alphabet of permitted SELFIES tokens from file
-        
-    def read_alphabet(self):
+
+    @staticmethod
+    def read_alphabet():
         alphabet = pd.read_csv('data/GRU_data/alphabet.txt', header=None).values.flatten()
         return alphabet

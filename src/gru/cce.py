@@ -2,11 +2,10 @@
 
 import torch
 import torch.nn as nn
-import numpy as np
 
 class CCE(nn.Module):
     def __init__(self, ignore_index=40):
-        super(CCE, self).__init__();
+        super(CCE, self).__init__()
         self.idx_ignore = ignore_index # index of token to ignore
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

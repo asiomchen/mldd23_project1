@@ -15,7 +15,7 @@ class EncoderNet(nn.Module):
         out = self.relu(self.fc2(out))
         out = self.relu(self.fc3(out))
         out = self.relu(self.fc4(out))
-        #out.shape = [batch_size, 256]
+        # out.shape = [batch_size, 256]
         return out
 
 class DecoderNet(nn.Module):
@@ -39,10 +39,10 @@ class DecoderNet(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x, h):
-        #x.shape = [batch_size, selfie_len, encoding_size] = [64, 128, 256]
+        # x.shape = [batch_size, selfie_len, encoding_size] = [64, 128, 256]
         out, h = self.gru(x, h)
-        #out.shape = [batch_size, selfie_len, hidden_size] = [64, 128, 256]
-        #h.shape = [num_layers, batch_size, hidden_size] = [1, 64, 256]
+        # out.shape = [batch_size, selfie_len, hidden_size] = [64, 128, 256]
+        # h.shape = [num_layers, batch_size, hidden_size] = [1, 64, 256]
         return out, h
 
     def init_hidden(self, batch_size):

@@ -1,6 +1,11 @@
 import torch
 import torch.nn as nn
 import random
+from src.utils.vectorizer import SELFIESVectorizer
+import torch.nn.functional as F
+import rdkit.Chem as Chem
+import rdkit.Chem.QED
+import selfies as sf
 
 class VAEEncoder(nn.Module):
     def __init__(self, input_size, output_size):
@@ -48,8 +53,11 @@ class DecoderNet(nn.Module):
         #h.shape = [num_layers, batch_size, hidden_size] = [1, 64, 256]
         return out, h
 
-    def init_hidden(self, batch_size):
-        h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+    def init_hidden(self, batch_size, batched=True):
+        if batched:
+            h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
+        else:
+            h0 = torch.zeros(self.num_layers, self.hidden_size)
         return h0
     
 class EncoderDecoder(nn.Module):
@@ -70,13 +78,15 @@ class EncoderDecoder(nn.Module):
         self.relu = nn.ReLU()
         self.softmax2d = nn.Softmax(dim=2)
 
-    def forward(self, x, y, teacher_forcing):
+    def forward(self, x, y, teacher_forcing, reinforcement=False):
         batch_size = x.shape[0]
         hidden = self.decoder.init_hidden(batch_size).to(self.device)
         mu, logvar = self.encoder(x)
         encoded = self.reparameterize(mu, logvar)
         x = encoded.unsqueeze(1)
         outputs = []
+        
+        # generating sequence
         
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
@@ -86,12 +96,79 @@ class EncoderDecoder(nn.Module):
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:,n,:].unsqueeze(1)
             x = self.relu(self.fc2(out))
-            
         out_cat = torch.cat(outputs, dim=1)
         #out_cat = self.softmax2d(out_cat)
-        return out_cat # shape [batch_size, selfie_len, alphabet_len]
+        
+        if reinforcement:
+            rl_loss, total_reward = self.reinforce(out_cat)
+            return out_cat, rl_loss, total_reward
+        else:
+            return out_cat # out_cat.shape [batch_size, selfie_len, alphabet_len]
     
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std).add_(mu)
+    
+    def reinforce(self, out_cat, n_samples=10):
+        
+        vectorizer = SELFIESVectorizer(pad_to_len=128)
+        out_cat = out_cat.detach().cpu().numpy()
+        
+        # reinforcement learning    
+        rl_loss = 0
+        total_reward = 0
+        gamma = 0.97
+        batch_size = out_cat.shape[0]
+        total_reward = 0
+        
+        succesful = False
+        # check if able to decode all, else reroll
+        while succesful == False:
+            sample_idxs = [random.randint(0, batch_size-1) for x in range(n_samples)]
+            for idx in sample_idxs:
+                try:
+                    seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                    _ = sf.decoder(seq)
+                    succesful = True
+                except:
+                    pass
+        
+        for idx in sample_idxs:
+            # get reward
+            trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
+            trajectory = sf.decoder(trajectory)
+            reward = self.get_reward(trajectory)
+            
+            # convert string of characters into tensor of shape [selfie_len, alphabet_len]
+            trajectory_input = vectorizer.vectorize(trajectory)
+            trajectory_input = torch.tensor(trajectory_input)
+            discounted_reward = reward
+            total_reward += reward
+            
+            # init hidden layer
+            hidden = self.decoder.init_hidden(batch_size, batched=False).to(self.device)
+            
+            # 'follow' the trajectory
+            for p in range(len(trajectory)-1):
+                token = trajectory_input[p].detach().cpu()
+                argmax = torch.argmax(token).item()
+                print(argmax)
+                token = token.float().to(self.device)
+                while (argmax != 40 and argmax != 39): # until encounters [nop] or [end]
+                    representation = self.relu(self.fc2(token)).unsqueeze(0)
+                    representation, hidden = self.decoder(representation, hidden)
+                    representation = representation.squeeze(0)
+                    next_token = self.relu(self.fc1(representation))
+                    log_probs = F.log_softmax(next_token, dim=1)
+                    top_i = trajectory_input[p+1]
+                    rl_loss -= (log_probs[0, top_i]*discounted_reward)
+                    discounted_reward = discounted_reward * gamma
+        rl_loss = rl_loss / n_samples
+        total_reward = total_reward / n_samples
+        return rl_loss, total_reward
+    
+    def get_reward(self, smiles):
+        mol = Chem.MolFromSmiles(smiles)
+        reward = Chem.QED.qed(mol)
+        return reward

@@ -2,11 +2,7 @@
 
 import torch
 import selfies as sf
-import torch.nn as nn
-import torch.utils.data as data_utils
-import torch.functional as F
 import numpy as np
-import pandas as pd
 from torch.utils.data import Dataset
 import rdkit.Chem as Chem
 
