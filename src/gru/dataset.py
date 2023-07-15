@@ -35,6 +35,7 @@ class GRUDataset(Dataset):
             X (torch.Tensor): reconstructed fingerprint
             y (torch.Tensor): vectorized SELFIES
         """
+        sf.set_semantic_constraints("hypervalent")
         try:
             raw_smile = self.smiles[idx]
             randomized_smile = self.randomize_smiles(raw_smile)
