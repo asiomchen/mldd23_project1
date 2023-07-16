@@ -10,7 +10,6 @@ import torch
 import pandas as pd
 import argparse
 from src.utils.data import closest_in_train
-
 vectorizer = SELFIESVectorizer(pad_to_len=128)
 torch.cuda.empty_cache()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -29,24 +28,7 @@ dropout = 0.2 # dropout must be equal 0 if num_layers = 1
 teacher_ratio = 0.5
 
 batch_size = 100
-
-name = args.Target
-
 #-------------------------------------------------------------------------#
-
-model = EncoderDecoder(
-    fp_size=4860,
-    encoding_size=encoding_size,
-    hidden_size=hidden_size,
-    num_layers=num_layers,
-    dropout=dropout,
-    teacher_ratio = teacher_ratio).to(device)
-
-model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
-print(f'Loaded model from {model_path}')
-
-df = pd.read_parquet(data_path)
-
 def get_predictions(model, df):
     dataset = PredictionDataset(df, vectorizer)
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
@@ -81,6 +63,21 @@ def filter_out_nondruglike(predictions, threshold):
             filtered_qeds.append(value)
     return filtered_mols, filtered_qeds
 
+#-------------------------------------------------------------------------#
+name = args.Target
+
+model = EncoderDecoder(
+    fp_size=4860,
+    encoding_size=encoding_size,
+    hidden_size=hidden_size,
+    num_layers=num_layers,
+    dropout=dropout,
+    teacher_ratio = teacher_ratio).to(device)
+
+model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+print(f'Loaded model from {model_path}')
+
+df = pd.read_parquet(data_path)
 print('Getting predictions...')
 predictions = get_predictions(model, df)
 print('Filtering out non-druglike molecules...')
