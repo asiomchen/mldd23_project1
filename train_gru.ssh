@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=scheduler_vae_gru
+#SBATCH --job-name=230712_sparse_adam
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1

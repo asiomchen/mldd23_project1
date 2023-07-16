@@ -1,8 +1,6 @@
 from src.utils.vectorizer import SELFIESVectorizer
 import torch
-import numpy as np
 import selfies as sf
-from rdkit import Chem
 
 class ExamplePrinter():
     def __init__(self, data_path, test_loader, num_examples=12):

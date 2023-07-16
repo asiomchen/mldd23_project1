@@ -39,7 +39,7 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Unit test / coverage reports
+# Unit fixed_cce_cont / coverage reports
 htmlcov/
 .tox/
 .nox/
@@ -129,6 +129,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+models
 GRU_data/augmented.csv
 GRU_data/combined_selfies.csv
 GRU_data/augmented.zip
@@ -167,3 +169,4 @@ models/vae_gru/epoch_75.pt
 models/vae_gru_scheduler/epoch_125.pt
 models/vae_gru_scheduler/epoch_25.pt
 models/vae_gru_scheduler/epoch_50.pt
+*.png
