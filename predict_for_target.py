@@ -4,6 +4,7 @@ from src.utils.vectorizer import SELFIESVectorizer
 import selfies as sf
 from torch.utils.data import DataLoader
 import rdkit.Chem as Chem
+import rdkit.Chem.Draw as Draw
 from rdkit.Chem import QED
 import os
 import torch
@@ -102,7 +103,11 @@ if not os.path.isdir(f'imgs/{name}'):
     os.mkdir(f'imgs/{name}')
 
 # save data as csv
-data_to_save = pd.DataFrame({'smiles': predictions_druglike, 'fp': fps, 'qed': qeds, 'tanimoto': tanimoto_scores})
+data_to_save = pd.DataFrame({'smiles': [Chem.MolToSmiles(m) for m in predictions_druglike],
+                             'fp': fps,
+                             'qed': qeds,
+                             'tanimoto': tanimoto_scores
+                             })
 data_to_save.to_csv(f'imgs/{name}/{name}.csv', index=False)
 print(f'Saved data to imgs/{name}/{name}.csv')
 
@@ -113,7 +118,7 @@ while i < 1000:
     qed4 = ['{:.2f}'.format(x) for x in qed4]
     tan4 = tanimoto_scores[i:(i + 4)]
     tan4 = ['{:.2f}'.format(x) for x in tan4]
-    img = Chem.Draw.MolsToGridImage(mol4, molsPerRow=2, subImgSize=(400, 400),
+    img = Draw.MolsToGridImage(mol4, molsPerRow=2, subImgSize=(400, 400),
                                     legends=[f'QED: {qed}, Tan: {tan}' for qed, tan in zip(qed4, tan4)],
                                     returnPNG=False
                                     )
