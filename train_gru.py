@@ -37,8 +37,11 @@ def main():
     dataset = pd.read_parquet(data_path)
 
     # create a directory for this model if not there
-    if not os.path.isdir(f'./models/{run_name}'):
-        os.mkdir(f'./models/{run_name}')
+    if not os.path.isdir(f'models/{run_name}'):
+        os.mkdir(f'models/{run_name}')
+
+    with open(f'models/{run_name}/hyperparameters.ini', 'w') as configfile:
+        config.write(configfile)
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):

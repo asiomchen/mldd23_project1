@@ -56,9 +56,6 @@ def train_gru(config, model, train_loader, val_loader):
             torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-        with open(f"./models/{run_name}/hyperparameters.csv", 'w') as file:
-            for key, value in config.items():
-                file.write('%s:%s\n' % (key, value))
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
