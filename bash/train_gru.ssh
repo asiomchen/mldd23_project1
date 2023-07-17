@@ -10,5 +10,5 @@ nvidia-smi -L
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u ../train_gru.py > ../log_gru.out
+python -u ../train_gru.py > log_gru.out
 echo done

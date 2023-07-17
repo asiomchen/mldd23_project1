@@ -10,5 +10,5 @@ nvidia-smi -L
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u ../train_vae.py > ../log_vae.out
+python -u ../train_vae.py > log_vae.out
 echo done
