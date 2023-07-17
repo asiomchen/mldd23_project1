@@ -3,8 +3,11 @@ import pandas as pd
 import time
 from src.gru.cce import CCE
 
-def train(config, model, train_loader, val_loader):
 
+def train_gru(config, model, train_loader, val_loader):
+    """
+    Training loopr fo GRU model
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     epochs = int(config['GRU']['epochs'])
@@ -48,7 +51,7 @@ def train(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 25 == 0):
+        if epoch % 25 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(), save_path)
 
@@ -59,6 +62,7 @@ def train(config, model, train_loader, val_loader):
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
+
 
 def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
