@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=prediction1
+#SBATCH --job-name=prediction3
 #SBATCH --partition=student
 #SBATCH --qos=normal
 #SBATCH --cpus-per-task=1
@@ -8,5 +8,5 @@
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u ../predict_for_target.py -t 5ht7 > console1.out
+python -u ./predict_for_target.py -t d2 > console3.out
 echo done
