@@ -205,9 +205,8 @@ class EncoderDecoder(nn.Module):
         sf.set_semantic_constraints("hypervalent")
 
         # check if able to decode each, else reroll
-
+        valid = False
         for n in range(n_samples):
-            valid = False
             while not valid:
                 try:
                     output = sample_idxs[n]
