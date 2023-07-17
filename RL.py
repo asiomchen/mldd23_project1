@@ -73,8 +73,8 @@ model = EncoderDecoder(
     dropout=dropout,
     teacher_ratio=teacher_ratio).to(device)
 
-model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
 
+model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
 
 def train(config, model, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -113,6 +113,7 @@ def train(config, model, train_loader, val_loader):
             epoch_total_reward += total_reward
 
             (loss + rl_loss).backward() #TODO: check values of loss and rl_loss
+            print(f'loss: {loss}, rl_loss: {rl_loss}, total_reward: {total_reward}')
             optimizer.step()
 
         epoch_rl_loss = epoch_rl_loss/len(train_loader)
