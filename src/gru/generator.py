@@ -201,21 +201,24 @@ class EncoderDecoder(nn.Module):
         batch_size = out_cat.shape[0]
         total_reward = 0
 
-        sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
-        valid = False
+        sample_idxs = [random.randint(0, batch_size) for x in range(n_samples)]
         sf.set_semantic_constraints("hypervalent")
-        # check if able to decode all, else reroll
-        while not valid:
-            for idx in sample_idxs:
+
+        # check if able to decode each, else reroll
+
+        for n in range(n_samples):
+            valid = False
+            while not valid:
                 try:
-                    seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                    output = sample_idxs[n]
+                    seq = vectorizer.devectorize(out_cat[n], remove_special=True)
                     _ = sf.decoder(seq)
                     valid = True
                 except:
-                    sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
-                    valid = False
                     print('Exception caught, rerolling')
-                    break
+                    sample_idxs[n] = random.randint(0, batch_size)
+                    valid = False
+
         for idx in sample_idxs:
             # get reward
             trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
