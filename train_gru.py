@@ -27,12 +27,12 @@ def main():
     config.read('gru_config.ini')
     run_name = config['GRU']['run_name']
     batch_size = int(config['GRU']['batch_size'])
-    fp_size = int(config['GRU']['fp_size'])
     encoding_size = int(config['GRU']['encoding_size'])
     hidden_size = int(config['GRU']['hidden_size'])
     num_layers = int(config['GRU']['num_layers'])
     dropout = float(config['GRU']['dropout'])
     teacher_ratio = float(config['GRU']['teacher_ratio'])
+    encoder_path = str(config['GRU']['encoder_path'])
 
     dataset = pd.read_parquet(data_path)
 
@@ -74,7 +74,7 @@ def main():
 
     #  Load model parameters
     #model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
-    model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
+    model.encoder.load_state_dict(torch.load(encoder_path))
     model = train_gru(config, model, train_loader, val_loader)
     return None
 
