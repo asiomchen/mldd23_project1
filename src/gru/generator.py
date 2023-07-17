@@ -202,7 +202,6 @@ class EncoderDecoder(nn.Module):
         total_reward = 0
 
         sample_idxs = [random.randint(0, batch_size) for x in range(n_samples)]
-        sf.set_semantic_constraints("hypervalent")
 
         # check if able to decode each, else reroll
         valid = False
