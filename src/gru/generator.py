@@ -163,7 +163,7 @@ class EncoderDecoder(nn.Module):
             rl_loss, total_reward = self.reinforce(out_cat)
             return out_cat, rl_loss, total_reward
         else:
-            return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return out_cat, 0, 0  # out_cat.shape [batch_size, selfie_len, alphabet_len]
 
 
     def reinforce(self, out_cat, n_samples=10):
@@ -180,9 +180,8 @@ class EncoderDecoder(nn.Module):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         out_cat = out_cat.detach().cpu().numpy()
 
-        # reinforcement learning    
+        # reinforcement learning
         rl_loss = 0
-        total_reward = 0
         gamma = 0.97
         batch_size = out_cat.shape[0]
         total_reward = 0

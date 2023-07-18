@@ -35,11 +35,12 @@ def train_gru(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output = model(X, y, teacher_forcing=True, reinforcement=False)
+            output, _, _ = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
+            print(batch_idx, 'done')
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
@@ -69,7 +70,7 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output = model(X, y, teacher_forcing=False, reinforcement=False)
+        output, _, _ = model(X, y, teacher_forcing=False, reinforcement=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)

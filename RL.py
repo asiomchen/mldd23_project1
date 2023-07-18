@@ -31,7 +31,7 @@ def main():
     hidden_size = int(config['RL']['hidden_size'])
     num_layers = int(config['RL']['num_layers'])
     dropout = float(config['RL']['dropout'])
-    fp_len = int(config['GRU']['fp_len'])
+    fp_len = int(config['RL']['fp_len'])
     teacher_ratio = float(config['RL']['teacher_ratio'])
     data_path = str(config['RL']['data_path'])
     encoder_path = str(config['RL']['encoder_path'])
@@ -108,11 +108,11 @@ def train(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
+            output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
-            epoch_rl_loss += rl_loss.item()
-            epoch_total_reward += total_reward.item()
+            epoch_rl_loss += rl_loss
+            epoch_total_reward += total_reward
 
             (loss + rl_loss).backward()  # TODO: check values of loss and rl_loss
             print(f'loss: {loss}, rl_loss: {rl_loss}, total_reward: {total_reward}')
@@ -154,7 +154,7 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output = model(X, y, teacher_forcing=False)
+        output, _, _ = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
