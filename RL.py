@@ -71,7 +71,8 @@ def main():
         dropout=dropout,
         teacher_ratio=teacher_ratio).to(device)
 
-    model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
+    #model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
+    model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
     _ = train(config, model, train_loader, val_loader)
 
     return None
