@@ -79,7 +79,7 @@ def main():
     #  Load model parameters
     #model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
     model.encoder.load_state_dict(torch.load(encoder_path))
-    model = train_gru(config, model, train_loader, val_loader)
+    _ = train_gru(config, model, train_loader, val_loader)
     return None
 
 

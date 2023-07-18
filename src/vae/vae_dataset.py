@@ -18,7 +18,7 @@ class VAEDataset(Dataset):
         raw_X = self.fps.iloc[idx]
         X_prepared = self.prepare_X(raw_X).values[0]
         X = np.array(X_prepared, dtype=int)
-        X_reconstructed = self.reconstruct_fp(X, self.fp_len)
+        X_reconstructed = self.reconstruct_fp(X)
         return torch.from_numpy(X_reconstructed).float()
 
     def reconstruct_fp(self, fp):
