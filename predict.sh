@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=prediction
 #SBATCH --partition=student
-#SBATCH --qos=normal
+#SBATCH --qos=quick
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=32G
 

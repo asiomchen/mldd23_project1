@@ -18,7 +18,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
-    data_path = 'data/GRU_data/combined_dataset.parquet'
 
     NUM_WORKERS = 3
     train_size = 0.8
@@ -33,6 +32,7 @@ def main():
     dropout = float(config['GRU']['dropout'])
     teacher_ratio = float(config['GRU']['teacher_ratio'])
     encoder_path = str(config['GRU']['encoder_path'])
+    data_path = str(config['GRU']['data_path'])
 
     dataset = pd.read_parquet(data_path)
 
@@ -44,14 +44,14 @@ def main():
         config.write(configfile)
 
     # if train_dataset not generated, perform scaffold split
-    if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
+    if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
         train_df, val_df = scaffold_split(dataset, train_size)
-        train_df.to_parquet(f'data/GRU_data/train_dataset.parquet')
-        val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
+        train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
         print("Scaffold split complete")
     else:
-        train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
-        val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
+        train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
 
     train_dataset = GRUDataset(train_df, vectorizer)
     val_dataset = GRUDataset(val_df, vectorizer)

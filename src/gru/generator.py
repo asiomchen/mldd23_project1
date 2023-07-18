@@ -165,20 +165,6 @@ class EncoderDecoder(nn.Module):
         else:
             return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]
 
-    @staticmethod
-    def reparameterize(mu, logvar):
-        """
-        Reparametrization trick for sampling from VAE latent space.
-        Args:
-            mu (torch.tensor): mean
-            logvar: (torch.tensor): log variance
-        Returns:
-            z (torch.tensor): latent vector
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        z = eps.mul(std).add_(mu)
-        return z
 
     def reinforce(self, out_cat, n_samples=10):
         """
@@ -252,6 +238,21 @@ class EncoderDecoder(nn.Module):
         total_reward = total_reward / n_samples
         return rl_loss, total_reward
 
+    @staticmethod
+    def reparameterize(mu, logvar):
+        """
+        Reparametrization trick for sampling from VAE latent space.
+        Args:
+            mu (torch.tensor): mean
+            logvar: (torch.tensor): log variance
+        Returns:
+            z (torch.tensor): latent vector
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        z = eps.mul(std).add_(mu)
+        return z
+    
     @staticmethod
     def get_reward(smiles):
         """

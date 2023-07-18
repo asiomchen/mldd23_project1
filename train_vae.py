@@ -21,9 +21,9 @@ def main():
     batch_size = int(config['VAE']['batch_size'])
     input_size = int(config['VAE']['input_size'])
     latent_size = int(config['VAE']['latent_size'])
+    full_path = str(config['VAE']['data_path'])
 
     test_size = 0.8
-    full_path = './data/GRU_data/combined_dataset.parquet'
 
     # load data
     dataset = VAEDataset(full_path)

@@ -11,6 +11,7 @@ import torch
 import pandas as pd
 import argparse
 from src.utils.data import closest_in_train
+import configparser
 
 
 def main():
@@ -18,18 +19,17 @@ def main():
     torch.cuda.empty_cache()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--Target", type=str, help="Target name")
+    parser.add_argument("-t", "--Target", type=str, help="Target name (5ht1a, 5ht7, beta2, d2, h1)", default='5ht1a')
     args = parser.parse_args()
-    # --------------------------------------------------------------------------#
 
-    model_path = 'models/fixed_cce_3_layers/epoch_175.pt'
-    data_path = 'data/GRU_data/5ht1a_fp.parquet'
-
-    encoding_size = 512
-    hidden_size = 512
-    num_layers = 3
-    dropout = 0.2  # dropout must be equal 0 if num_layers = 1
-    teacher_ratio = 0.5
+    config = configparser.ConfigParser()
+    config.read('pred_config.ini')
+    batch_size = int(config['PRED']['batch_size'])
+    encoding_size = int(config['PRED']['encoding_size'])
+    hidden_size = int(config['PRED']['hidden_size'])
+    num_layers = int(config['PRED']['num_layers'])
+    dropout = float(config['PRED']['dropout'])
+    model_path = str(config['PRED']['model_path'])
 
     name = args.Target
 
@@ -39,14 +39,15 @@ def main():
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
-        teacher_ratio=teacher_ratio).to(device)
+        teacher_ratio=0).to(device)
 
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}')
 
+    data_path = f'data/pred_data/{name}_fp.parquet'
     df = pd.read_parquet(data_path)
     print('Getting predictions...')
-    predictions = get_predictions(model, df, vectorizer)
+    predictions = get_predictions(model, df, vectorizer, batch_size=batch_size)
     print('Filtering out non-druglike molecules...')
     predictions_druglike, qeds, fps = filter_out_nondruglike(predictions, 0.7, df)
 
@@ -84,9 +85,8 @@ def main():
     print(f'Saved images to imgs/{name}/')
 
 
-def get_predictions(model, df, vectorizer):
+def get_predictions(model, df, vectorizer, batch_size=100):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    batch_size = len(df)
     dataset = PredictionDataset(df, vectorizer)
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
     preds_smiles = []

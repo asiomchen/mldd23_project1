@@ -33,21 +33,22 @@ def main():
     num_layers = int(config['RL']['num_layers'])
     dropout = float(config['RL']['dropout'])
     teacher_ratio = float(config['RL']['teacher_ratio'])
-    n_samples = int(config['RL']['n_samples'])
+    data_path = str(config['RL']['data_path'])
+    encoder_path = str(config['RL']['encoder_path'])
 
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
         os.mkdir(f'./models/{run_name}')
 
     # if train_dataset not generated, perform scaffold split
-    if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
+    if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
         train_df, val_df = scaffold_split(dataset, train_size)
-        train_df.to_parquet(f'data/GRU_data/train_dataset.parquet')
-        val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
+        train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
         print("Scaffold split complete")
     else:
-        train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
-        val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
+        train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
 
     train_dataset = GRUDataset(train_df, vectorizer)
     val_dataset = GRUDataset(val_df, vectorizer)
@@ -71,8 +72,8 @@ def main():
         dropout=dropout,
         teacher_ratio=teacher_ratio).to(device)
 
-    #model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
-    model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
+    model.encoder.load_state_dict(torch.load(encoder_path))
+    #model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
     _ = train(config, model, train_loader, val_loader)
 
     return None
