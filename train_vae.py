@@ -42,7 +42,7 @@ def main():
     model = VAE(input_size=input_size, latent_size=latent_size).to(device)
 
     # train model
-    vae = train_vae(config, model, train_loader, val_loader, plot_loss=False)
+    vae = train_vae(config, model, train_loader, val_loader)
 
     return None
 
