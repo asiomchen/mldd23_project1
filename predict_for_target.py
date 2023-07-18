@@ -25,6 +25,7 @@ def main():
     config = configparser.ConfigParser()
     config.read('pred_config.ini')
     batch_size = int(config['PRED']['batch_size'])
+    fp_len = int(config['PRED']['fp_len'])
     encoding_size = int(config['PRED']['encoding_size'])
     hidden_size = int(config['PRED']['hidden_size'])
     num_layers = int(config['PRED']['num_layers'])
@@ -47,7 +48,7 @@ def main():
     data_path = f'data/pred_data/{name}_fp.parquet'
     df = pd.read_parquet(data_path)
     print('Getting predictions...')
-    predictions = get_predictions(model, df, vectorizer, batch_size=batch_size)
+    predictions = get_predictions(model, df, vectorizer, fp_len=fp_len, batch_size=batch_size)
     print('Filtering out non-druglike molecules...')
     predictions_druglike, qeds, fps = filter_out_nondruglike(predictions, 0.7, df)
 
@@ -85,9 +86,9 @@ def main():
     print(f'Saved images to imgs/{name}/')
 
 
-def get_predictions(model, df, vectorizer, batch_size=100):
+def get_predictions(model, df, vectorizer, fp_len, batch_size=100):
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    dataset = PredictionDataset(df, vectorizer)
+    dataset = PredictionDataset(df, fp_len=fp_len)
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
     preds_smiles = []
     with torch.no_grad():

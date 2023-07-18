@@ -13,7 +13,6 @@ import configparser
 
 
 def main():
-
     NUM_WORKERS = 3
     train_size = 0.8
 
@@ -32,6 +31,7 @@ def main():
     hidden_size = int(config['RL']['hidden_size'])
     num_layers = int(config['RL']['num_layers'])
     dropout = float(config['RL']['dropout'])
+    fp_len = int(config['GRU']['fp_len'])
     teacher_ratio = float(config['RL']['teacher_ratio'])
     data_path = str(config['RL']['data_path'])
     encoder_path = str(config['RL']['encoder_path'])
@@ -50,8 +50,8 @@ def main():
         train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
         val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
 
-    train_dataset = GRUDataset(train_df, vectorizer)
-    val_dataset = GRUDataset(val_df, vectorizer)
+    train_dataset = GRUDataset(train_df, vectorizer, fp_len)
+    val_dataset = GRUDataset(val_df, vectorizer, fp_len)
 
     print("Dataset size:", len(dataset))
     print("Train size:", len(train_dataset))
@@ -61,7 +61,6 @@ def main():
                               drop_last=True, num_workers=NUM_WORKERS)
     val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size,
                             drop_last=True, num_workers=NUM_WORKERS)
-    rl_loader = DataLoader(train_dataset, shuffle=True, batch_size=1, num_workers=NUM_WORKERS)
 
     # Init model
     model = EncoderDecoder(
@@ -73,7 +72,7 @@ def main():
         teacher_ratio=teacher_ratio).to(device)
 
     model.encoder.load_state_dict(torch.load(encoder_path))
-    #model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
+    # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
     _ = train(config, model, train_loader, val_loader)
 
     return None
@@ -115,12 +114,12 @@ def train(config, model, train_loader, val_loader):
             epoch_rl_loss += rl_loss.item()
             epoch_total_reward += total_reward.item()
 
-            (loss + rl_loss).backward() #TODO: check values of loss and rl_loss
+            (loss + rl_loss).backward()  # TODO: check values of loss and rl_loss
             print(f'loss: {loss}, rl_loss: {rl_loss}, total_reward: {total_reward}')
             optimizer.step()
 
-        epoch_rl_loss = epoch_rl_loss/len(train_loader)
-        epoch_total_reward = epoch_total_reward/len(train_loader)
+        epoch_rl_loss = epoch_rl_loss / len(train_loader)
+        epoch_total_reward = epoch_total_reward / len(train_loader)
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'val_loss': val_loss,

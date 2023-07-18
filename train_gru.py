@@ -31,6 +31,7 @@ def main():
     num_layers = int(config['GRU']['num_layers'])
     dropout = float(config['GRU']['dropout'])
     teacher_ratio = float(config['GRU']['teacher_ratio'])
+    fp_len = int(config['GRU']['fp_len'])
     encoder_path = str(config['GRU']['encoder_path'])
     data_path = str(config['GRU']['data_path'])
 
@@ -53,8 +54,8 @@ def main():
         train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
         val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
 
-    train_dataset = GRUDataset(train_df, vectorizer)
-    val_dataset = GRUDataset(val_df, vectorizer)
+    train_dataset = GRUDataset(train_df, vectorizer, fp_len)
+    val_dataset = GRUDataset(val_df, vectorizer, fp_len)
 
     print("Dataset size:", len(dataset))
     print("Train size:", len(train_dataset))

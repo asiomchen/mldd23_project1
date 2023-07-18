@@ -26,7 +26,7 @@ def main():
     test_size = 0.8
 
     # load data
-    dataset = VAEDataset(full_path)
+    dataset = VAEDataset(full_path, fp_len=input_size)
 
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
