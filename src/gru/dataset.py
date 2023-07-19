@@ -37,14 +37,13 @@ class GRUDataset(Dataset):
             X (torch.Tensor): reconstructed fingerprint
             y (torch.Tensor): vectorized SELFIES
         """
-        sf.set_semantic_constraints("hypervalent")
         try:
             raw_smile = self.smiles[idx]
             randomized_smile = self.randomize_smiles(raw_smile)
             raw_selfie = sf.encoder(randomized_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         except:
-            print('Exception occured when vectorizing selfie of idx', idx)
+            print('Exception occurred when vectorizing selfie of idx', idx)
             raw_smile = self.smiles[idx]
             raw_selfie = sf.encoder(raw_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
@@ -119,4 +118,3 @@ class PredictionDataset(Dataset):
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
         return fps.values
-

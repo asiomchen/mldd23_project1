@@ -12,6 +12,7 @@ import pandas as pd
 import argparse
 from src.utils.data import closest_in_train
 import configparser
+import concurrent.futures as futures
 
 
 def main():
@@ -31,6 +32,7 @@ def main():
     num_layers = int(config['PRED']['num_layers'])
     dropout = float(config['PRED']['dropout'])
     model_path = str(config['PRED']['model_path'])
+    num_workers = int(config['PRED']['num_workers'])
 
     name = args.Target
 
@@ -52,11 +54,9 @@ def main():
     print('Filtering out non-druglike molecules...')
     predictions_druglike, qeds, fps = filter_out_nondruglike(predictions, 0.7, df)
 
-    print(f'Calculating tanimoto scores for {len(predictions_druglike)} molecules...')
-    tanimoto_scores = []
-    for mol in predictions_druglike:
-        tanimoto = closest_in_train(mol)
-        tanimoto_scores.append(tanimoto)
+    with (futures.ProcessPoolExecutor(max_workers=num_workers)) as executor:
+        results = executor.map(closest_in_train, predictions_druglike)
+        tanimoto_scores = list(results)
 
     if not os.path.isdir(f'imgs/{name}'):
         os.mkdir(f'imgs/{name}')

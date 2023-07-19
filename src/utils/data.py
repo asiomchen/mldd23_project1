@@ -3,6 +3,7 @@ import rdkit.Chem as Chem
 import rdkit.DataStructs as DataStructs
 import src.utils.finger
 
+
 def closest_in_train(mol, returnSmiles=False):
     """
     Returns the highest tanimoto score between given molecule
@@ -30,12 +31,13 @@ def closest_in_train(mol, returnSmiles=False):
         tan = DataStructs.TanimotoSimilarity(query_fp, ebv)
         if tan > high_tan:
             high_tan, high_idx = tan, idx
-    
+
     if returnSmiles:
         high_smiles = get_smiles_from_train(high_idx)
         return high_tan, high_smiles
     else:
         return high_tan
+
 
 def get_smiles_from_train(idx):
     """

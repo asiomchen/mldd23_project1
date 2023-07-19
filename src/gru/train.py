@@ -11,10 +11,10 @@ def train_gru(config, model, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     epochs = int(config['GRU']['epochs'])
-    run_name = config['GRU']['run_name']
+    run_name = str(config['GRU']['run_name'])
     learn_rate = float(config['GRU']['learn_rate'])
 
-    # Define dataframe for logging progess
+    # Define dataframe for logging progress
     epochs_range = range(1, epochs + 1)
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
@@ -27,20 +27,19 @@ def train_gru(config, model, train_loader, val_loader):
 
     # Start training loop
     for epoch in epochs_range:
+        model.train()
         start_time = time.time()
         print(f'Epoch: {epoch}')
         epoch_loss = 0
-        model.train()
-        for batch_idx, (X, y) in enumerate(train_loader):
+        for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
-            optimizer.zero_grad()
-            output, _, _ = model(X, y, teacher_forcing=True, reinforcement=False)
+            output = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
+            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
-            print(batch_idx, 'done')
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
@@ -68,9 +67,7 @@ def evaluate(model, val_loader):
     criterion = CCE()
     epoch_loss = 0
     for batch_idx, (X, y) in enumerate(val_loader):
-        X = X.to(device)
-        y = y.to(device)
-        output, _, _ = model(X, y, teacher_forcing=False, reinforcement=False)
+        output = model(X, y, teacher_forcing=False, reinforcement=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)

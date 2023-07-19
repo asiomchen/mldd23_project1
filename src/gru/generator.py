@@ -54,8 +54,6 @@ class DecoderNet(nn.Module):
             num_layers (int):GRU number of layers
             output_size (int):GRU output size (alphabet size)
             dropout (float):GRU dropout
-            reinforcement (bool):enable loss calculation for use
-                                 in reinforcement learning
         """
         # GRU parameters
         self.input_size = input_size
@@ -93,7 +91,7 @@ class DecoderNet(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=0, output_size=42, dropout=0,
+    def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
                  teacher_ratio=0.5, random_seed=42):
         """
         Encoder-Decoder class based on VAE and GRU.
@@ -132,8 +130,7 @@ class EncoderDecoder(nn.Module):
             reinforcement: (bool):enable loss calculation for use in reinforcement learning
 
         Returns:
-            out_cat (torch.tensor):batched vectorized SELFIES tensor
-                                   of size [batch_size, seq_len, alphabet_size]
+            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
 
         If reinforcement is enabled, the following tensors are also returned:
             rl_loss (torch.tensor):loss for use in reinforcement learning
@@ -150,20 +147,19 @@ class EncoderDecoder(nn.Module):
 
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
+            out = self.relu(self.fc1(out)) # shape (batch_size, 42)
             outputs.append(out)
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:, n, :].unsqueeze(1)
             x = self.relu(self.fc2(out))
         out_cat = torch.cat(outputs, dim=1)
-        # out_cat = self.softmax2d(out_cat)
 
         if reinforcement:
             rl_loss, total_reward = self.reinforce(out_cat)
             return out_cat, rl_loss, total_reward
         else:
-            return out_cat, 0, 0  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return out_cat # out_cat.shape [batch_size, selfie_len, alphabet_len]
 
 
     def reinforce(self, out_cat, n_samples=10):
@@ -249,8 +245,7 @@ class EncoderDecoder(nn.Module):
         """
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
-        z = eps.mul(std).add_(mu)
-        return z
+        return eps.mul(std).add_(mu)
     
     @staticmethod
     def get_reward(smiles):

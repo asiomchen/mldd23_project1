@@ -30,7 +30,3 @@ class VAEDataset(Dataset):
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
         return fps
-
-    @staticmethod
-    def prepare_y(activity):
-        return np.array(activity.values)
