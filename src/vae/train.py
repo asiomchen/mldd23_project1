@@ -20,7 +20,7 @@ def train_vae(config, model, train_loader, val_loader):
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
+    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
     for epoch in range(1, epochs + 1):
         print(f'Epoch: {epoch}')
