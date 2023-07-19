@@ -38,7 +38,7 @@ class VAEEncoder(nn.Module):
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
         mu = self.fc41(h3)
-        logvar = self.fc41(h3)
+        logvar = self.fc42(h3)
         return mu, logvar
 
 
