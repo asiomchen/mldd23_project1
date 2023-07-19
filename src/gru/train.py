@@ -34,9 +34,9 @@ def train_gru(config, model, train_loader, val_loader):
         for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
+            optimizer.zero_grad()
             output = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
