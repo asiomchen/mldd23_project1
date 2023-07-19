@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=3_layers
+#SBATCH --job-name=GRU_128
 #SBATCH --partition=student
-#SBATCH --qos=big
+#SBATCH --qos=normal
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem-per-cpu=32G

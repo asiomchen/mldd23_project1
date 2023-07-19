@@ -71,7 +71,7 @@ def main():
         dropout=dropout,
         teacher_ratio=teacher_ratio).to(device)
 
-    model.encoder.load_state_dict(torch.load(encoder_path))
+    #model.encoder.load_state_dict(torch.load(encoder_path))
     # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
     _ = train(config, model, train_loader, val_loader)
 
@@ -108,7 +108,7 @@ def train(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=False)
+            output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
             loss = criterion(y, output)
             epoch_loss += loss.item()
             epoch_rl_loss += rl_loss

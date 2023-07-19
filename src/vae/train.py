@@ -22,6 +22,8 @@ def train_vae(config, model, train_loader, val_loader):
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
+
+
     for epoch in range(1, epochs + 1):
         print(f'Epoch: {epoch}')
         epoch_loss = 0
@@ -47,13 +49,12 @@ def train_vae(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        save_path = f"./models/{run_name}/epoch_{epoch}.pt"
-        torch.save(model.state_dict(), save_path)
+
+        if epoch % 25 == 0:
+            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
+            torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
-
-        if epoch % 50 == 0:
-            torch.save(model.state_dict(), f'./models/CVAE_full_epoch_{epoch}.pt')
 
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
