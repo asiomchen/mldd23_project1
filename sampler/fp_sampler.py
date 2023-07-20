@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import argparse
 
+# parse arguments
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument('-p', '--protein', type=str, required=True, help='selects protein to use')
@@ -12,16 +14,13 @@ parser.add_argument('-m', '--magnitude', type=int, default=1, help='increases pr
 parser.add_argument('-r', '--random', type=bool, default=False, help='adds random noise to fingerprints')
 parser.add_argument('-a', '--av_bits', type=int, default=60, help='average number of active bits in fingerprint')
 
-
 args = parser.parse_args()
-
 protein = args.protein
 dtype = args.dtype
 number = args.number
 magnitude = args.magnitude
 random = args.random
 av_bits = args.av_bits
-
 
 class FpSampler:
     def __init__(self, protein, dtype='100nM', magnitude=1, add_random=False):
@@ -94,8 +93,12 @@ class FpSampler:
         print(f"Generated {n} vectors with mean length of {np.mean(length):.3f} and SD of {np.std(length):.3f}")
         return fps
 
+def main():
+    sampler = FpSampler(protein=protein, magnitude=magnitude, add_random=random)
+    samples = sampler.generate_fingerprints(av_bits=av_bits, n=number)
+    samples_df = pd.DataFrame({'fps': samples})
+    samples_df.to_parquet(f'./{protein}_{dtype}_samples.parquet')
+    return None
 
-sampler = FpSampler(protein=protein, magnitude=magnitude, add_random=random)
-samples = sampler.generate_fingerprints(av_bits=av_bits, n=number)
-samples_df = pd.DataFrame({'fps': samples})
-samples_df.to_parquet(f'./{protein}_{dtype}_samples.parquet')
+if __name__ == '__main__':
+    main()
