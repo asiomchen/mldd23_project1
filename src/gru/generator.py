@@ -67,8 +67,6 @@ class DecoderNet(nn.Module):
         # pytorch.nn
         self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
                           dropout=dropout, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.relu = nn.ReLU()
 
     def forward(self, x, h):
         """
@@ -182,26 +180,19 @@ class EncoderDecoder(nn.Module):
         batch_size = out_cat.shape[0]
         total_reward = 0
 
-        sample_idxs = [random.randint(0, batch_size) for x in range(n_samples)]
-
-        # check if able to decode each, else reroll
-        valid = False
-        for n in range(n_samples):
-            while not valid:
-                try:
-                    output = sample_idxs[n]
-                    seq = vectorizer.devectorize(out_cat[n], remove_special=True)
-                    _ = sf.decoder(seq)
-                    valid = True
-                except:
-                    print('Exception caught, rerolling')
-                    sample_idxs[n] = random.randint(0, batch_size)
-                    valid = False
+        sample_idxs = [random.randint(0, batch_size-1) for x in range(n_samples)]
 
         for idx in sample_idxs:
             # get reward
-            trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
-            trajectory = sf.decoder(trajectory)
+            try:
+                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                trajectory = sf.decoder(seq)
+            except sf.DecoderError:
+                sf.set_semantic_constraints("hypervalent")
+                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                trajectory = sf.decoder(seq)
+                sf.set_semantic_constraints("default")
+
             reward = self.get_reward(trajectory)
 
             # convert string of characters into tensor of shape [selfie_len, alphabet_len]
@@ -214,20 +205,20 @@ class EncoderDecoder(nn.Module):
             hidden = self.decoder.init_hidden(batch_size, batched=False).to(self.device)
 
             # 'follow' the trajectory
-            for p in range(len(trajectory) - 1):
+            for p in range(len(trajectory_input) - 1):
                 token = trajectory_input[p]
                 token_idx = torch.argmax(token.detach().cpu()).item()
+                if token_idx in (39, 40):  # finish loss calculation if encounters [nop] or [end]
+                    break
                 token = token.float().to(device)
-                while token_idx != 40 and token_idx != 39:  # until encounters [nop] or [end]
-                    representation = self.relu(self.fc2(token)).unsqueeze(0)  # [1, 512]
-                    representation, hidden = self.decoder(representation, hidden)
-                    representation = representation.squeeze(0)  # [512]
-                    next_token = self.relu(self.fc1(representation))  # [42]
-
-                    log_probs = F.log_softmax(next_token, dim=0)  # [42]
-                    top_i = trajectory_input[p + 1].long()
-                    rl_loss -= (log_probs[top_i] * discounted_reward)
-                    discounted_reward = discounted_reward * gamma
+                representation = self.relu(self.fc2(token)).unsqueeze(0)  # [1, 512]
+                representation, hidden = self.decoder(representation, hidden)
+                representation = representation.squeeze(0)  # [512]
+                next_token = self.relu(self.fc1(representation))  # [42]
+                log_probs = F.log_softmax(next_token, dim=0)  # [42]
+                top_i = torch.argmax(trajectory_input[p+1])
+                rl_loss -= (log_probs[top_i] * discounted_reward)
+                discounted_reward = discounted_reward * gamma
 
         rl_loss = rl_loss / n_samples
         total_reward = total_reward / n_samples
