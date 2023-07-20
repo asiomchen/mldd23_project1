@@ -6,8 +6,9 @@ import numpy as np
 from torch.utils.data import Dataset
 import rdkit.Chem as Chem
 
+
 class GRUDataset(Dataset):
-    def __init__(self, df, vectorizer):
+    def __init__(self, df, vectorizer, fp_len):
         """
         Dataset class for handling GRU training data.
         Args:
@@ -22,6 +23,7 @@ class GRUDataset(Dataset):
         self.fps = self.prepare_X(self.fps)
         self.smiles = self.prepare_y(self.smiles)
         self.vectorizer = vectorizer
+        self.fp_len = fp_len
 
     def __len__(self):
         return len(self.fps)
@@ -35,14 +37,13 @@ class GRUDataset(Dataset):
             X (torch.Tensor): reconstructed fingerprint
             y (torch.Tensor): vectorized SELFIES
         """
-        sf.set_semantic_constraints("hypervalent")
         try:
             raw_smile = self.smiles[idx]
             randomized_smile = self.randomize_smiles(raw_smile)
             raw_selfie = sf.encoder(randomized_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         except:
-            print('Exception occured when vectorizing selfie of idx', idx)
+            print('Exception occurred when vectorizing selfie of idx', idx)
             raw_smile = self.smiles[idx]
             raw_selfie = sf.encoder(raw_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
@@ -65,6 +66,11 @@ class GRUDataset(Dataset):
         nm = Chem.RenumberAtoms(m, ans)
         return Chem.MolToSmiles(nm, canonical=True, isomericSmiles=False)
 
+    def reconstruct_fp(self, fp):
+        fp_rec = np.zeros(self.fp_len)
+        fp_rec[fp] = 1
+        return fp_rec
+
     @staticmethod
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
@@ -74,23 +80,18 @@ class GRUDataset(Dataset):
     def prepare_y(selfies):
         return selfies.values
 
-    @staticmethod
-    def reconstruct_fp(fp, length=4860):
-        fp_rec = np.zeros(length)
-        fp_rec[fp] = 1
-        return fp_rec
 
 class PredictionDataset(Dataset):
-    def __init__(self, df, vectorizer):
+    def __init__(self, df, fp_len):
         """
         Dataset class for handling GRU evaluation data.
         Args:
             df (pd.DataFrame): dataframe containing  fingerprints,
                                must contain ['fps'] column
-            vectorizer: SELFIES vectorizer instantiated from vectorizer.py
         """
         self.fps = df['fps']
         self.fps = self.prepare_X(self.fps)
+        self.fp_len = fp_len
 
     def __len__(self):
         return len(self.fps)
@@ -108,13 +109,12 @@ class PredictionDataset(Dataset):
         X_reconstructed = self.reconstruct_fp(X)
         return torch.from_numpy(X_reconstructed).float()
 
+    def reconstruct_fp(self, fp):
+        fp_rec = np.zeros(self.fp_len)
+        fp_rec[fp] = 1
+        return fp_rec
+
     @staticmethod
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
         return fps.values
-
-    @staticmethod
-    def reconstruct_fp(fp, length=4860):
-        fp_rec = np.zeros(length)
-        fp_rec[fp] = 1
-        return fp_rec

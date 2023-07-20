@@ -38,7 +38,7 @@ class VAEEncoder(nn.Module):
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
         mu = self.fc41(h3)
-        logvar = self.fc41(h3)
+        logvar = self.fc42(h3)
         return mu, logvar
 
 
@@ -54,8 +54,6 @@ class DecoderNet(nn.Module):
             num_layers (int):GRU number of layers
             output_size (int):GRU output size (alphabet size)
             dropout (float):GRU dropout
-            reinforcement (bool):enable loss calculation for use
-                                 in reinforcement learning
         """
         # GRU parameters
         self.input_size = input_size
@@ -69,8 +67,6 @@ class DecoderNet(nn.Module):
         # pytorch.nn
         self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
                           dropout=dropout, batch_first=True)
-        self.fc = nn.Linear(hidden_size, output_size)
-        self.relu = nn.ReLU()
 
     def forward(self, x, h):
         """
@@ -93,7 +89,7 @@ class DecoderNet(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=0, output_size=42, dropout=0,
+    def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
                  teacher_ratio=0.5, random_seed=42):
         """
         Encoder-Decoder class based on VAE and GRU.
@@ -132,8 +128,7 @@ class EncoderDecoder(nn.Module):
             reinforcement: (bool):enable loss calculation for use in reinforcement learning
 
         Returns:
-            out_cat (torch.tensor):batched vectorized SELFIES tensor
-                                   of size [batch_size, seq_len, alphabet_size]
+            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
 
         If reinforcement is enabled, the following tensors are also returned:
             rl_loss (torch.tensor):loss for use in reinforcement learning
@@ -150,35 +145,20 @@ class EncoderDecoder(nn.Module):
 
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
+            out = self.relu(self.fc1(out)) # shape (batch_size, 42)
             outputs.append(out)
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:, n, :].unsqueeze(1)
             x = self.relu(self.fc2(out))
         out_cat = torch.cat(outputs, dim=1)
-        # out_cat = self.softmax2d(out_cat)
 
         if reinforcement:
             rl_loss, total_reward = self.reinforce(out_cat)
             return out_cat, rl_loss, total_reward
         else:
-            return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return out_cat # out_cat.shape [batch_size, selfie_len, alphabet_len]
 
-    @staticmethod
-    def reparameterize(mu, logvar):
-        """
-        Reparametrization trick for sampling from VAE latent space.
-        Args:
-            mu (torch.tensor): mean
-            logvar: (torch.tensor): log variance
-        Returns:
-            z (torch.tensor): latent vector
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        z = eps.mul(std).add_(mu)
-        return z
 
     def reinforce(self, out_cat, n_samples=10):
         """
@@ -194,32 +174,25 @@ class EncoderDecoder(nn.Module):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         out_cat = out_cat.detach().cpu().numpy()
 
-        # reinforcement learning    
+        # reinforcement learning
         rl_loss = 0
-        total_reward = 0
         gamma = 0.97
         batch_size = out_cat.shape[0]
         total_reward = 0
 
-        sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
-        valid = False
-        sf.set_semantic_constraints("hypervalent")
-        # check if able to decode all, else reroll
-        while not valid:
-            for idx in sample_idxs:
-                try:
-                    seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
-                    _ = sf.decoder(seq)
-                    valid = True
-                except:
-                    sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
-                    valid = False
-                    print('Exception caught, rerolling')
-                    break
+        sample_idxs = [random.randint(0, batch_size-1) for x in range(n_samples)]
+
         for idx in sample_idxs:
             # get reward
-            trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
-            trajectory = sf.decoder(trajectory)
+            try:
+                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                trajectory = sf.decoder(seq)
+            except sf.DecoderError:
+                sf.set_semantic_constraints("hypervalent")
+                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
+                trajectory = sf.decoder(seq)
+                sf.set_semantic_constraints("default")
+
             reward = self.get_reward(trajectory)
 
             # convert string of characters into tensor of shape [selfie_len, alphabet_len]
@@ -232,25 +205,39 @@ class EncoderDecoder(nn.Module):
             hidden = self.decoder.init_hidden(batch_size, batched=False).to(self.device)
 
             # 'follow' the trajectory
-            for p in range(len(trajectory) - 1):
+            for p in range(len(trajectory_input) - 1):
                 token = trajectory_input[p]
                 token_idx = torch.argmax(token.detach().cpu()).item()
+                if token_idx in (39, 40):  # finish loss calculation if encounters [nop] or [end]
+                    break
                 token = token.float().to(device)
-                while token_idx != 40 and token_idx != 39:  # until encounters [nop] or [end]
-                    representation = self.relu(self.fc2(token)).unsqueeze(0)  # [1, 512]
-                    representation, hidden = self.decoder(representation, hidden)
-                    representation = representation.squeeze(0)  # [512]
-                    next_token = self.relu(self.fc1(representation))  # [42]
-
-                    log_probs = F.log_softmax(next_token, dim=0)  # [42]
-                    top_i = trajectory_input[p + 1].long()
-                    rl_loss -= (log_probs[top_i] * discounted_reward)
-                    discounted_reward = discounted_reward * gamma
+                representation = self.relu(self.fc2(token)).unsqueeze(0)  # [1, 512]
+                representation, hidden = self.decoder(representation, hidden)
+                representation = representation.squeeze(0)  # [512]
+                next_token = self.relu(self.fc1(representation))  # [42]
+                log_probs = F.log_softmax(next_token, dim=0)  # [42]
+                top_i = torch.argmax(trajectory_input[p+1])
+                rl_loss -= (log_probs[top_i] * discounted_reward)
+                discounted_reward = discounted_reward * gamma
 
         rl_loss = rl_loss / n_samples
         total_reward = total_reward / n_samples
         return rl_loss, total_reward
 
+    @staticmethod
+    def reparameterize(mu, logvar):
+        """
+        Reparametrization trick for sampling from VAE latent space.
+        Args:
+            mu (torch.tensor): mean
+            logvar: (torch.tensor): log variance
+        Returns:
+            z (torch.tensor): latent vector
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps.mul(std).add_(mu)
+    
     @staticmethod
     def get_reward(smiles):
         """

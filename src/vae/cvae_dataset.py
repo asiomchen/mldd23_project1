@@ -5,12 +5,15 @@ import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 
+
 class VAEDataset(Dataset):
     def __init__(self, data_path):
         self.fps = pd.read_parquet(data_path, columns=['fps'])
         self.activity = pd.read_parquet(data_path, columns=['Class'])
+
     def __len__(self):
         return len(self.fps)
+
     def __getitem__(self, idx):
         activity = self.activity.iloc[idx].values[0]
         activity = np.array(activity)
@@ -24,7 +27,7 @@ class VAEDataset(Dataset):
     def prepare_X(fps):
         fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
         return fps
-    
+
     @staticmethod
     def prepare_y(activity):
         return np.array(activity.values)

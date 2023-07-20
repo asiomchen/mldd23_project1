@@ -3,15 +3,18 @@ import pandas as pd
 import time
 from src.gru.cce import CCE
 
-def train(config, model, train_loader, val_loader):
 
+def train_gru(config, model, train_loader, val_loader):
+    """
+    Training loopr fo GRU model
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     epochs = int(config['GRU']['epochs'])
-    run_name = config['GRU']['run_name']
+    run_name = str(config['GRU']['run_name'])
     learn_rate = float(config['GRU']['learn_rate'])
 
-    # Define dataframe for logging progess
+    # Define dataframe for logging progress
     epochs_range = range(1, epochs + 1)
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
@@ -24,11 +27,11 @@ def train(config, model, train_loader, val_loader):
 
     # Start training loop
     for epoch in epochs_range:
+        model.train()
         start_time = time.time()
         print(f'Epoch: {epoch}')
         epoch_loss = 0
-        model.train()
-        for batch_idx, (X, y) in enumerate(train_loader):
+        for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
@@ -48,17 +51,15 @@ def train(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if (epoch % 25 == 0):
+        if epoch % 25 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-        with open(f"./models/{run_name}/hyperparameters.csv", 'w') as file:
-            for key, value in config.items():
-                file.write('%s:%s\n' % (key, value))
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
+
 
 def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -66,8 +67,6 @@ def evaluate(model, val_loader):
     criterion = CCE()
     epoch_loss = 0
     for batch_idx, (X, y) in enumerate(val_loader):
-        X = X.to(device)
-        y = y.to(device)
         output = model(X, y, teacher_forcing=False, reinforcement=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()

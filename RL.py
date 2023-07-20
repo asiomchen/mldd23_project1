@@ -11,69 +11,71 @@ import os
 import pandas as pd
 import configparser
 
-NUM_WORKERS = 3
-train_size = 0.8
 
-config = configparser.ConfigParser()
-config.read('rl_config.ini')
-run_name = config['RL']['run_name']
-batch_size = int(config['RL']['batch_size'])
-fp_size = int(config['RL']['fp_size'])
-encoding_size = int(config['RL']['encoding_size'])
-hidden_size = int(config['RL']['hidden_size'])
-num_layers = int(config['RL']['num_layers'])
-dropout = float(config['RL']['dropout'])
-teacher_ratio = float(config['RL']['teacher_ratio'])
+def main():
+    NUM_WORKERS = 3
+    train_size = 0.8
 
-# number of samples per batch when using RL
-n_samples = int(config['RL']['n_samples'])
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f'Device: {device}')
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
+    data_path = 'data/GRU_data/combined_dataset.parquet'
+    dataset = pd.read_parquet(data_path)
 
-run_name = 'rl_' + run_name
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f'Device: {device}')
-vectorizer = SELFIESVectorizer(pad_to_len=128)
-data_path = 'data/GRU_data/combined_dataset.parquet'
-dataset = pd.read_parquet(data_path)
+    config = configparser.ConfigParser()
+    config.read('rl_config.ini')
+    run_name = config['RL']['run_name']
+    run_name = 'rl_' + run_name
+    batch_size = int(config['RL']['batch_size'])
+    encoding_size = int(config['RL']['encoding_size'])
+    hidden_size = int(config['RL']['hidden_size'])
+    num_layers = int(config['RL']['num_layers'])
+    dropout = float(config['RL']['dropout'])
+    fp_len = int(config['RL']['fp_len'])
+    teacher_ratio = float(config['RL']['teacher_ratio'])
+    data_path = str(config['RL']['data_path'])
+    encoder_path = str(config['RL']['encoder_path'])
 
-# create a directory for this model if not there
+    # create a directory for this model if not there
+    if not os.path.isdir(f'./models/{run_name}'):
+        os.mkdir(f'./models/{run_name}')
 
-if not os.path.isdir(f'./models/{run_name}'):
-    os.mkdir(f'./models/{run_name}')
+    # if train_dataset not generated, perform scaffold split
+    if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
+        train_df, val_df = scaffold_split(dataset, train_size)
+        train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
+        print("Scaffold split complete")
+    else:
+        train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
 
-# if train_dataset not generated, perform scaffold split
+    train_dataset = GRUDataset(train_df, vectorizer, fp_len)
+    val_dataset = GRUDataset(val_df, vectorizer, fp_len)
 
-if not os.path.isfile(f'data/GRU_data/train_dataset.parquet'):
-    train_df, val_df = scaffold_split(dataset, train_size)
-    train_df.to_parquet(f'data/GRU_data/train_dataset.parquet')
-    val_df.to_parquet(f'data/GRU_data/val_dataset.parquet')
-    print("Scaffold split complete")
-else:
-    train_df = pd.read_parquet(f'data/GRU_data/train_dataset.parquet')
-    val_df = pd.read_parquet(f'data/GRU_data/val_dataset.parquet')
+    print("Dataset size:", len(dataset))
+    print("Train size:", len(train_dataset))
+    print("Val size:", len(val_dataset))
 
-train_dataset = GRUDataset(train_df, vectorizer)
-val_dataset = GRUDataset(val_df, vectorizer)
+    train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size,
+                              drop_last=True, num_workers=NUM_WORKERS)
+    val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size,
+                            drop_last=True, num_workers=NUM_WORKERS)
 
-print("Dataset size:", len(dataset))
-print("Train size:", len(train_dataset))
-print("Val size:", len(val_dataset))
+    # Init model
+    model = EncoderDecoder(
+        fp_size=4860,
+        encoding_size=encoding_size,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        dropout=dropout,
+        teacher_ratio=teacher_ratio).to(device)
 
-train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size,
-                          drop_last=True, num_workers=NUM_WORKERS)
-val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size,
-                        drop_last=True, num_workers=NUM_WORKERS)
-rl_loader = DataLoader(train_dataset, shuffle=True, batch_size=1, num_workers=NUM_WORKERS)
+    # model.encoder.load_state_dict(torch.load(encoder_path))
+    # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
+    _ = train(config, model, train_loader, val_loader)
 
-# Init model
-model = EncoderDecoder(
-    fp_size=4860,
-    encoding_size=encoding_size,
-    hidden_size=hidden_size,
-    num_layers=num_layers,
-    dropout=dropout,
-    teacher_ratio=teacher_ratio).to(device)
-
-model.encoder.load_state_dict(torch.load('models/VAEEncoder_epoch_100.pt'))
+    return None
 
 
 def train(config, model, train_loader, val_loader):
@@ -106,17 +108,21 @@ def train(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
+            if epoch == 1:
+                output = model(X, y, teacher_forcing=True, reinforcement=False)
+                rl_loss = 0
+            else:
+                output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
+                epoch_rl_loss += rl_loss
+                epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
-            epoch_rl_loss += rl_loss
-            epoch_total_reward += total_reward
-
-            (loss + rl_loss).backward() #TODO: check values of loss and rl_loss
+            # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
+            (loss + rl_loss).backward()
             optimizer.step()
 
-        epoch_rl_loss = epoch_rl_loss/len(train_loader)
-        epoch_total_reward = epoch_total_reward/len(train_loader)
+        epoch_rl_loss = epoch_rl_loss / len(train_loader)
+        epoch_total_reward = epoch_total_reward / len(train_loader)
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'val_loss': val_loss,
@@ -151,11 +157,12 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output = model(X, y, teacher_forcing=False)
+        output, _, _ = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
 
 
-model = train(config, model, train_loader, val_loader)
+if __name__ == "__main__":
+    main()

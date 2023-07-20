@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class VAEEncoder(nn.Module):
     def __init__(self, input_size, output_size):
         super(VAEEncoder, self).__init__()
@@ -17,8 +18,9 @@ class VAEEncoder(nn.Module):
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
         mu = self.fc41(h3)
-        logvar = self.fc41(h3)
+        logvar = self.fc42(h3)
         return mu, logvar
+
 
 class VAEDecoder(nn.Module):
     def __init__(self, input_size, output_size):
@@ -37,6 +39,7 @@ class VAEDecoder(nn.Module):
         out = self.fc4(h3)
         return self.sigmoid(out)
 
+
 class VAE(nn.Module):
     def __init__(self, input_size, latent_size):
         super(VAE, self).__init__()
@@ -52,6 +55,7 @@ class VAE(nn.Module):
         mu, logvar = self.encoder(x)
         z = self.reparameterize(mu, logvar)
         return self.decoder(z), mu, logvar
+
 
 class VAELoss(nn.Module):
     def __init__(self):

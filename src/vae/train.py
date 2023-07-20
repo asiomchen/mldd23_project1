@@ -1,12 +1,14 @@
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from IPython.display import display
 import torch
 import src.vae.vae as vae
 import pandas as pd
-import matplotlib.pyplot as plt
 import time
 
-def train_VAE(config, model, train_loader, val_loader, plot_loss=False):
+
+def train_vae(config, model, train_loader, val_loader):
+    """
+    Training loop for VAE model
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     epochs = int(config['VAE']['epochs'])
@@ -15,14 +17,12 @@ def train_VAE(config, model, train_loader, val_loader, plot_loss=False):
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=20, verbose=True)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
-    # Define dataframe for logging progess
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss']);
+    # Define dataframe for logging progress
+    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
-    if plot_loss:
-        fig, ax = plt.subplots()
-        dh = display(fig, display_id=True)
+
 
     for epoch in range(1, epochs + 1):
         print(f'Epoch: {epoch}')
@@ -49,22 +49,12 @@ def train_VAE(config, model, train_loader, val_loader, plot_loss=False):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        save_path = f"./models/{run_name}/epoch_{epoch}.pt"
-        torch.save(model.state_dict(), save_path)
+
+        if epoch % 25 == 0:
+            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
+            torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
-
-        if (epoch % 50 == 0):
-            torch.save(model.state_dict(), f'./models/CVAE_full_epoch_{epoch}.pt')
-
-        if plot_loss:
-            ax.clear()
-            ax.plot(losses)
-            ax.set_title(f'Epoch {epoch}, Loss: {loss.item():.2f}')
-            ax.set_xlabel('Epoch')
-            ax.set_ylabel('Loss')
-            ax.set_yscale('log')
-            dh.update(fig)
 
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
