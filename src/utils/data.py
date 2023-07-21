@@ -50,21 +50,20 @@ def get_smiles_from_train(idx):
     return smiles
 
 
-def closest_in_train(mol, train_morgan_fps, return_smiles=False):
+def closest_in_train(mol, return_smiles=False):
     """
     Returns the highest tanimoto score between given molecule
     and all the molecules from the training set
 
     Args:
         mol (rdkit.Chem.Mol): molecule to compare
-        train_morgan_fps (pd.DataFrame): dataframe containing dataset to compare against
         return_smiles (bool): marks whether to return the smiles of molecule as well
 
     Returns:
         high_tan (float): highest tanimoto score
 
     """
-
+    train_morgan_fps = load_data()
     high_tan = 0
     high_idx = 0
     query_fp = Chem.rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=512)

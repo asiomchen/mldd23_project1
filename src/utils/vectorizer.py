@@ -80,5 +80,5 @@ class SELFIESVectorizer:
 
     @staticmethod
     def read_alphabet():
-        alphabet = pd.read_csv('data/train_data/alphabet.txt', header=None).values.flatten()
+        alphabet = pd.read_csv('data/alphabet.txt', header=None).values.flatten()
         return alphabet

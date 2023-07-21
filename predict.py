@@ -47,13 +47,15 @@ def main():
         dropout=dropout,
         teacher_ratio=0).to(device)
 
-    model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+    #model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}')
 
-    files = os.listdir('results')
+    dir_list = os.listdir('results') # get list of files and dirs in results folder
+    files = [name for name in dir_list if name.split('.')[-1] == 'parquet'] # get parquet files only
 
-    for file in files:
-        f_name, f_type = file.split('.')
+    for name in files:
+
+        f_name, f_type = name.split('.')
         already_processed = os.path.isdir(f'results/{f_name}')
         if f_type != 'parquet' or already_processed:
             continue
@@ -61,7 +63,7 @@ def main():
         with open(f'results/{f_name}/config.ini', 'w') as configfile:
             config.write(configfile)
 
-        df = pd.read_parquet(f'results/{file}')
+        df = pd.read_parquet(f'results/{name}')
 
         print(f'Getting predictions for file {f_name}...')
         predictions = get_predictions(model, df, vectorizer, fp_len=fp_len, batch_size=batch_size)
@@ -108,10 +110,10 @@ def get_predictions(model, df, vectorizer, fp_len, batch_size=100):
             for seq in preds:
                 selfie = vectorizer.devectorize(seq, remove_special=True)
                 try:
-                    preds_smiles.append(sf.decoder(selfie))
+                    preds_smiles.append(sf.decoder(selfie, compatible=True))
                 except sf.DecoderError:
                     sf.set_semantic_constraints("hypervalent")
-                    preds_smiles.append(sf.decoder(selfie))
+                    preds_smiles.append(sf.decoder(selfie, compatible=True))
                     sf.set_semantic_constraints()
     return preds_smiles
 
