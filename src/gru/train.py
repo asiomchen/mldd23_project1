@@ -67,6 +67,8 @@ def evaluate(model, val_loader):
     criterion = CCE()
     epoch_loss = 0
     for batch_idx, (X, y) in enumerate(val_loader):
+        X = X.to(device)
+        y = y.to(device)
         output = model(X, y, teacher_forcing=False, reinforcement=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()

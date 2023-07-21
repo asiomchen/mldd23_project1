@@ -8,5 +8,5 @@
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u predict_for_target.py > log_predict.out
+python -u predict.py > log_predict.out
 echo done

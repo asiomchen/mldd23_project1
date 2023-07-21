@@ -19,7 +19,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Device: {device}')
     vectorizer = SELFIESVectorizer(pad_to_len=128)
-    data_path = 'data/GRU_data/combined_dataset.parquet'
+    data_path = 'data/train_data/combined_dataset.parquet'
     dataset = pd.read_parquet(data_path)
 
     config = configparser.ConfigParser()
