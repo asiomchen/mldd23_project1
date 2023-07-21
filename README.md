@@ -27,7 +27,7 @@ This project is a machine learning model for *de novo* generation of ligands for
      `-n --number` (int) number of fingerprints to generate (default: 10 000)  
      `-m --magnitude` (float) increase probability of bits from active class to be selected  
      (recommended range: 1.0 - 5.0, default: 1.0)  
-     `-r -random` (bool) add random noise to fingerprints (default: False)  
+     `-r --random` (bool) add random noise to fingerprints (default: False)  
      `-a --av_bits` (int) average number of active bits in fingerprint (default: 60)
      
      The output file will be saved in ./results directory
