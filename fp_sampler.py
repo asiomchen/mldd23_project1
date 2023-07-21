@@ -43,7 +43,7 @@ class FpSampler:
         self.dataset = dataset
         self.magnitude = magnitude
         self.add_random = add_random
-        self.path = f"./datasets/fp_frequency_{self.dataset}/{self.target}_frequency.csv"
+        self.path = f"data/sampler_data/fp_frequency_{self.dataset}/{self.target}_frequency.csv"
         self.df = pd.read_csv(self.path, sep=',')
         self.sizes = {
             '5ht1a': 5250,
@@ -69,7 +69,7 @@ class FpSampler:
         self.dummy_df = pd.DataFrame(dummy_dict)
 
     def read_original(self):
-        self.org_df = pd.read_csv(f"./datasets/counts_full/counts_full_{self.dataset}.csv", sep=',')
+        self.org_df = pd.read_csv(f"data/sampler_data/counts_full/counts_full_{self.dataset}.csv", sep=',')
         self.org_df = self.org_df.loc[:, [f"{self.target}", "KEYS"]]
         self.org_df['Freq'] = self.org_df[f'{self.target}'] / self.sizes[f"{self.target}"]
 
@@ -104,7 +104,7 @@ def main():
     samples = sampler.generate_fingerprints(av_bits=av_bits, n=number)
     samples_df = pd.DataFrame({'fps': samples})
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    samples_df.to_parquet(f'../results/{timestamp}_{target}_{dataset}.parquet')
+    samples_df.to_parquet(f'results/{timestamp}_{target}_{dataset}.parquet')
     return None
 
 
