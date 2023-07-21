@@ -11,7 +11,7 @@ def load_data():
     Returns:
         train_morgan_fps (pd.DataFrame): df containing processed train dataset
     """
-    data_path = 'data/GRU_data/train_morgan_512bits.parquet'
+    data_path = 'data/train_data/train_morgan_512bits.parquet'
     train_morgan_fps = pd.read_parquet(data_path).fps.apply(eval).tolist()
     return train_morgan_fps
 
@@ -44,7 +44,7 @@ def get_smiles_from_train(idx):
         smiles (str): SMILES of the molecule
     """
 
-    data_path = 'data/GRU_data/train_dataset.parquet'
+    data_path = 'data/train_data/train_dataset.parquet'
     train = pd.read_parquet(data_path).smiles
     smiles = train.iloc[idx]
     return smiles
