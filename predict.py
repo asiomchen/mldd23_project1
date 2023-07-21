@@ -9,17 +9,16 @@ from rdkit.Chem import QED
 import os
 import torch
 import pandas as pd
-import argparse
 from src.utils.data import closest_in_train
 import configparser
 
 
 def main():
     """
-    Main function for predicting molecules from a trained model.
+    Predicting molecules using the trained model.
 
     Model parameters are loaded from pred_config.ini file.
-    The script scans the results folder for parquet generated earlier using the generate.py script.
+    The script scans the results folder for parquet files generated earlier using generate.py.
     For each parquet file, the script generates predictions and saves them in a new directory.
 
     Returns: None
@@ -27,9 +26,6 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     torch.cuda.empty_cache()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-t", "--Target", type=str, help="Target name (5ht1a, 5ht7, beta2, d2, h1)", default='5ht1a')
-    args = parser.parse_args()
 
     config = configparser.ConfigParser()
     config.read('pred_config.ini')
@@ -42,7 +38,6 @@ def main():
     num_layers = int(config['MODEL']['num_layers'])
     dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
-    target = args.Target
 
     model = EncoderDecoder(
         fp_size=4860,
@@ -80,8 +75,8 @@ def main():
                                      'qed': qeds,
                                      'tanimoto': tanimoto_scores
                                      })
-        data_to_save.to_csv(f'results/{f_name}/{target}.csv', index=False)
-        print(f'Saved data to results/{f_name}/{target}.csv')
+        data_to_save.to_csv(f'results/{f_name}/{f_name}.csv', index=False)
+        print(f'Saved data to results/{f_name}/{f_name}.csv')
 
         i = 0
         while i < 1000:
