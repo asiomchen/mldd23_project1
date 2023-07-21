@@ -52,7 +52,7 @@ def train_vae(config, model, train_loader, val_loader):
 
         if epoch % 25 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
-            torch.save(model.state_dict(), save_path)
+            torch.save(model.encoder.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
 

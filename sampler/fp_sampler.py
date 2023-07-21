@@ -1,43 +1,49 @@
 import numpy as np
 import pandas as pd
+import time
 import argparse
 
 # parse arguments
 
 parser = argparse.ArgumentParser()
 
-parser.add_argument('-p', '--protein', type=str, required=True, help='selects protein to use')
-parser.add_argument('-d', '--dtype', type=str, required=True, help='selects the dataset to use')
-parser.add_argument('-n', '--number', type=int, required=True, help='number of fingerprints to generate')
-parser.add_argument('-m', '--magnitude', type=int, default=1, help='increases probability of bits from '
-                                                                   'active class to be selected')
-parser.add_argument('-r', '--random', type=bool, default=False, help='adds random noise to fingerprints')
-parser.add_argument('-a', '--av_bits', type=int, default=60, help='average number of active bits in fingerprint')
+parser.add_argument('-t', '--target', type=str, default='5ht1a',
+                    help='(str) select target to use: 5ht1a,n 5ht7, beta2, d2, h1')
+parser.add_argument('-d', '--dataset', type=str, default='100nM',
+                    help='(str) selects the dataset to use for sampling: 100nM, balanced')
+parser.add_argument('-n', '--number', type=int, default=10000,
+                    help='(int) number of fingerprints to generate')
+parser.add_argument('-m', '--magnitude', type=int, default=1,
+                    help='(int) increase probability of bits from active class to be selected (1-5), default=1')
+parser.add_argument('-r', '--random', type=bool, default=False,
+                    help='(bool) adds random noise to fingerprints')
+parser.add_argument('-a', '--av_bits', type=int, default=60,
+                    help='(int) average number of active bits in fingerprint')
 
 args = parser.parse_args()
-protein = args.protein
-dtype = args.dtype
+target = args.target
+dataset = args.dataset
 number = args.number
 magnitude = args.magnitude
 random = args.random
 av_bits = args.av_bits
 
 class FpSampler:
-    def __init__(self, protein, dtype='100nM', magnitude=1, add_random=False):
-        allowed_proteins = ['5ht1a', '5ht7', 'beta2', 'd2', 'h1']
-        allowed_dtypes = ['100nM', 'balanced']
+    def __init__(self, target, dataset, magnitude, add_random):
+        allowed_targets = ['5ht1a', '5ht7', 'beta2', 'd2', 'h1']
+        allowed_datasets = ['100nM', 'balanced']
 
-        if protein not in allowed_proteins:
-            raise ValueError(f"Invalid value for protein. Allowed values are: {allowed_proteins}")
+        if target not in allowed_targets:
+            raise ValueError(f"Invalid value for target. Allowed values are: {allowed_targets}")
 
-        if dtype not in allowed_dtypes:
-            raise ValueError(f"Invalid value for dtype. Allowed values are: {allowed_dtypes}")
+        if dataset not in allowed_datasets:
+            raise ValueError(f"Invalid value for dataset. Allowed values are: {allowed_datasets}")
 
-        self.protein = protein
-        self.dtype = dtype
+        self.target = target
+        self.dataset = dataset
         self.magnitude = magnitude
         self.add_random = add_random
-        self.path = f"./datasets/fp_frequency_{self.dtype}/{self.protein}_frequency.csv"
+        self.path = f"./datasets/fp_frequency_{self.dataset}/{self.target}_frequency.csv"
         self.df = pd.read_csv(self.path, sep=',')
         self.sizes = {
             '5ht1a': 5250,
@@ -47,7 +53,7 @@ class FpSampler:
             'h1': 1691
         }
 
-        print(f"{self.dtype} dataset for {self.protein.upper()} loaded")
+        print(f"{self.dataset} dataset for {self.target.upper()} loaded")
 
         self.dummy_df = None
         self.org_df = None
@@ -63,9 +69,9 @@ class FpSampler:
         self.dummy_df = pd.DataFrame(dummy_dict)
 
     def read_original(self):
-        self.org_df = pd.read_csv(f"./datasets/counts_full/counts_full_{self.dtype}.csv", sep=',')
-        self.org_df = self.org_df.loc[:, [f"{self.protein}", "KEYS"]]
-        self.org_df['Freq'] = self.org_df[f'{self.protein}'] / self.sizes[f"{self.protein}"]
+        self.org_df = pd.read_csv(f"./datasets/counts_full/counts_full_{self.dataset}.csv", sep=',')
+        self.org_df = self.org_df.loc[:, [f"{self.target}", "KEYS"]]
+        self.org_df['Freq'] = self.org_df[f'{self.target}'] / self.sizes[f"{self.target}"]
 
     def combine_df(self):
         self.fp_df = self.dummy_df.merge(self.org_df, on='KEYS')
@@ -73,7 +79,7 @@ class FpSampler:
 
     def convert_to_proba(self):
         self.fp_df['Probability'] = self.fp_df['Freq'] * (
-                    (self.fp_df[f"{self.protein}_percentage"] * self.magnitude + 100) / 100)
+                    (self.fp_df[f"{self.target}_percentage"] * self.magnitude + 100) / 100)
         self.fp_df['Probability'] = [x if x >= 0 else 0 for x in self.fp_df['Probability']]
         self.fp_df['Probability'] = self.fp_df['Probability'] / self.fp_df['Probability'].apply(np.abs).sum()
         if self.add_random:
@@ -94,11 +100,13 @@ class FpSampler:
         return fps
 
 def main():
-    sampler = FpSampler(protein=protein, magnitude=magnitude, add_random=random)
+    sampler = FpSampler(target=target, magnitude=magnitude, add_random=random, dataset=dataset)
     samples = sampler.generate_fingerprints(av_bits=av_bits, n=number)
     samples_df = pd.DataFrame({'fps': samples})
-    samples_df.to_parquet(f'./{protein}_{dtype}_samples.parquet')
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    samples_df.to_parquet(f'../results/{timestamp}_{target}_{dataset}.parquet')
     return None
+
 
 if __name__ == '__main__':
     main()
