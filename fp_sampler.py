@@ -10,11 +10,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--target', type=str, default='5ht1a',
                     help='(str) select target to use: 5ht1a,n 5ht7, beta2, d2, h1')
 parser.add_argument('-d', '--dataset', type=str, default='100nM',
-                    help='(str) selects the dataset to use for sampling: 100nM, balanced')
+                    help='(str) select the dataset to use for sampling: 100nM, balanced')
 parser.add_argument('-n', '--number', type=int, default=10000,
                     help='(int) number of fingerprints to generate')
 parser.add_argument('-m', '--magnitude', type=int, default=1,
-                    help='(int) increase probability of bits from active class to be selected (1-5), default=1')
+                    help='(float) increase probability of bits from active class to be selected (1.0 - 5.0), '
+                         'default: 1.0')
 parser.add_argument('-r', '--random', type=bool, default=False,
                     help='(bool) adds random noise to fingerprints')
 parser.add_argument('-a', '--av_bits', type=int, default=60,
