@@ -71,7 +71,7 @@ def main():
         dropout=dropout,
         teacher_ratio=teacher_ratio).to(device)
 
-    # model.encoder.load_state_dict(torch.load(encoder_path))
+    model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
     _ = train(config, model, train_loader, val_loader)
 
@@ -157,7 +157,7 @@ def evaluate(model, val_loader):
     for batch_idx, (X, y) in enumerate(val_loader):
         X = X.to(device)
         y = y.to(device)
-        output, _, _ = model(X, y, teacher_forcing=False)
+        output = model(X, y, teacher_forcing=False)
         loss = criterion(y, output)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
