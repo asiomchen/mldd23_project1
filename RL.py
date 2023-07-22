@@ -113,8 +113,8 @@ def train(config, model, train_loader, val_loader):
                 rl_loss = 0
             else:
                 output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
-                epoch_rl_loss += rl_loss
-                epoch_total_reward += total_reward
+                epoch_rl_loss += rl_loss.item()
+                epoch_total_reward += total_reward.item()
             loss = criterion(y, output)
             epoch_loss += loss.item()
             # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
