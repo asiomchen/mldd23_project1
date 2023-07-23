@@ -79,7 +79,7 @@ def main():
 
 def train(config, model, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
+    rl_weight = 10
     run_name = config['RL']['run_name']
     learn_rate = float(config['RL']['learn_rate'])
     epochs = int(config['RL']['epochs'])
@@ -112,6 +112,7 @@ def train(config, model, train_loader, val_loader):
                 rl_loss = 0
             else:
                 output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
+                rl_loss = rl_loss * rl_weight
                 epoch_rl_loss += rl_loss.item()
                 epoch_total_reward += total_reward.item()
             loss = criterion(y, output)
