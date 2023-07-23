@@ -37,20 +37,19 @@ class GRUDataset(Dataset):
             X (torch.Tensor): reconstructed fingerprint
             y (torch.Tensor): vectorized SELFIES
         """
+        raw_smile = self.smiles[idx]
         try:
-            raw_smile = self.smiles[idx]
             randomized_smile = self.randomize_smiles(raw_smile)
             raw_selfie = sf.encoder(randomized_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
-        except:
-            print('Exception occurred when vectorizing selfie of idx', idx)
-            raw_smile = self.smiles[idx]
+        except sf.EncoderError:
             raw_selfie = sf.encoder(raw_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)
         return torch.from_numpy(X_reconstructed).float(), torch.from_numpy(vectorized_selfie).float()
+
 
     def randomize_smiles(self, smiles):
         """

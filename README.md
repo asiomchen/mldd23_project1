@@ -13,10 +13,9 @@ This project is a machine learning model for *de novo* generation of ligands for
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
 2. Download this repository. You need to have [Git](https://git-scm.com/) installed.
 3. Install environment from the YAML file: `conda env create -n mldd -f environment.yml`
-4. Activate the enviroment: `conda activate mldd`
 
 ## Interface
-1. Activate the enviroment: `conda activate mldd `
+1. Activate the environment: `conda activate mldd `
 2. Generate fingerprints of potential ligands for a chosen target: `python fp_sampler.py`
   
    Target selection:  

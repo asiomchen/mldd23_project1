@@ -117,7 +117,7 @@ def train(config, model, train_loader, val_loader):
                 epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
-            # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
+            print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
             (loss + rl_loss).backward()
             optimizer.step()
 

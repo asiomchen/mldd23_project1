@@ -1,4 +1,4 @@
-from src.gru.generator import EncoderDecoder
+from src.gru.generator_old import EncoderDecoder
 from src.gru.dataset import PredictionDataset
 from src.utils.vectorizer import SELFIESVectorizer
 import selfies as sf
@@ -47,7 +47,7 @@ def main():
         dropout=dropout,
         teacher_ratio=0).to(device)
 
-    #model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}')
 
     dir_list = os.listdir('results') # get list of files and dirs in results folder
@@ -79,9 +79,9 @@ def main():
                                      })
         data_to_save.to_csv(f'results/{f_name}/{f_name}.csv', index=False)
         print(f'Saved data to results/{f_name}/{f_name}.csv')
-
+        os.mkdir(f'results/{f_name}/imgs')
         i = 0
-        while i < 1000:
+        while i < (len(predictions_druglike) + 3):
             mol4 = predictions_druglike[i:(i + 4)]
             qed4 = qeds[i:(i + 4)]
             qed4 = ['{:.2f}'.format(x) for x in qed4]
@@ -102,7 +102,6 @@ def get_predictions(model, df, vectorizer, fp_len, batch_size=100):
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
     preds_smiles = []
     with torch.no_grad():
-        model.eval()
         for X in loader:
             X = X.to(device)
             preds = model(X, None, teacher_forcing=False)
@@ -110,11 +109,10 @@ def get_predictions(model, df, vectorizer, fp_len, batch_size=100):
             for seq in preds:
                 selfie = vectorizer.devectorize(seq, remove_special=True)
                 try:
-                    preds_smiles.append(sf.decoder(selfie, compatible=True))
+                    preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
-                    sf.set_semantic_constraints("hypervalent")
-                    preds_smiles.append(sf.decoder(selfie, compatible=True))
-                    sf.set_semantic_constraints()
+                    preds_smiles.append('C')  # dummy SMILES
+                    print('Exception caught, appending dummy SMILES')
     return preds_smiles
 
 
