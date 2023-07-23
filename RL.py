@@ -117,7 +117,7 @@ def train(config, model, train_loader, val_loader):
                 epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
-            print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
+            # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
             (loss + rl_loss).backward()
             optimizer.step()
 
@@ -137,9 +137,6 @@ def train(config, model, train_loader, val_loader):
             torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-        with open(f"./models/{run_name}/hyperparameters.csv", 'w') as file:
-            for key, value in config.items():
-                file.write('%s:%s\n' % (key, value))
 
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
