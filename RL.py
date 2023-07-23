@@ -109,7 +109,7 @@ def train(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             if epoch == 1:
                 output = model(X, y, teacher_forcing=True, reinforcement=False)
-                rl_loss = torch.tensor([0])
+                rl_loss = torch.tensor([0]).to(device)
             else:
                 output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
                 rl_loss = rl_loss * rl_weight
