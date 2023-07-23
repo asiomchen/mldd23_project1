@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=RL_GRU_128
+#SBATCH --job-name=RL_512
 #SBATCH --partition=student
-#SBATCH --qos=normal
+#SBATCH --qos=big
 #SBATCH --gpus=1
 #SBATCH --cpus-per-task=3
 #SBATCH --mem-per-cpu=32G
