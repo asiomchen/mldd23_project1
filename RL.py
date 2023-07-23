@@ -34,6 +34,7 @@ def main():
     teacher_ratio = float(config['RL']['teacher_ratio'])
     data_path = str(config['RL']['data_path'])
     encoder_path = str(config['RL']['encoder_path'])
+    checkpoint_path = str(config['RL']['checkpoint_path'])
 
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
@@ -71,7 +72,8 @@ def main():
         teacher_ratio=teacher_ratio).to(device)
 
     model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
-    # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_100.pt'))
+    if checkpoint_path != 'None':
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     _ = train(config, model, train_loader, val_loader)
 
     return None

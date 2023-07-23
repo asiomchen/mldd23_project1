@@ -33,6 +33,7 @@ def main():
     teacher_ratio = float(config['GRU']['teacher_ratio'])
     fp_len = int(config['GRU']['fp_len'])
     encoder_path = str(config['GRU']['encoder_path'])
+    checkpoint_path = str(config['GRU']['checkpoint_path'])
     data_path = str(config['GRU']['data_path'])
 
     dataset = pd.read_parquet(data_path)
@@ -77,8 +78,9 @@ def main():
     ).to(device)
 
     #  Load model parameters
-    # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
     model.encoder.load_state_dict(torch.load(encoder_path))
+    if checkpoint_path != 'None':
+        model.load_state_dict(torch.load(checkpoint_path))
     _ = train_gru(config, model, train_loader, val_loader)
     return None
 
