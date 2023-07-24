@@ -68,7 +68,7 @@ def train_rl(config, model, train_loader, val_loader):
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     rl_weight = 1
-    run_name = config['RL']['run_name']
+    run_name = str(config['RL']['run_name'])
     learn_rate = float(config['RL']['learn_rate'])
     epochs = int(config['RL']['epochs'])
 
