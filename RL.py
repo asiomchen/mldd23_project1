@@ -68,11 +68,12 @@ def main():
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
-        teacher_ratio=teacher_ratio).to(device)
+        teacher_ratio=teacher_ratio
+    ).to(device)
 
     if checkpoint_path != 'None':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    else:
+    elif encoder_path != 'None':
         model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     _ = train_rl(config, model, train_loader, val_loader)
 

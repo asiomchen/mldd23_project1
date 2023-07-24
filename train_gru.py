@@ -77,10 +77,10 @@ def main():
         teacher_ratio=teacher_ratio,
     ).to(device)
 
-    #  Load model parameters
-    model.encoder.load_state_dict(torch.load(encoder_path))
     if checkpoint_path != 'None':
-        model.load_state_dict(torch.load(checkpoint_path))
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    elif encoder_path != 'None':
+        model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     _ = train(config, model, train_loader, val_loader)
     return None
 
