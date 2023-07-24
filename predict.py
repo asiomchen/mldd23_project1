@@ -112,7 +112,7 @@ def get_predictions(model, df, vectorizer, fp_len, batch_size=100):
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
-                    print('Exception caught, appending dummy SMILES')
+                    print('DecoderError raised, appending dummy SMILES')
     return preds_smiles
 
 
