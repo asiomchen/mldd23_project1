@@ -1,10 +1,10 @@
 # Fragments from the known ligands as a source of building blocks for enumeration of new target-focused compound libraries supported by deep learning algoritms
 ## Authors: Mateusz Iwan, Hubert Rybka, Anton Siomchen
 ## Table of contents
-* Genertal info
-* Setup
-* Interface
-* Data sources and tools
+* [General info](#general-info)
+* [Setup](#setup)
+* [Interface](#interface)
+* [Data sources and tools](#data-sources-and-tools)
 
 ## General info
 This project is a machine learning model for *de novo* generation of ligands for 5HT1A, 5HT7, d2, beta2 and H1 receptors. A chosen number of [Klekota & Roth](https://pubmed.ncbi.nlm.nih.gov/18784118/) molecular fingerprints are sampled **(TODO: how???)**. Next, a recurrent neural network decodes the fingerprints into [SELFIES](https://iopscience.iop.org/article/10.1088/2632-2153/aba947) or SMILES notation. The resulting compounds are filtered based on chosen criteria (QED, max ring size, etc.).
@@ -13,10 +13,9 @@ This project is a machine learning model for *de novo* generation of ligands for
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
 2. Download this repository. You need to have [Git](https://git-scm.com/) installed.
 3. Install environment from the YAML file: `conda env create -n mldd -f environment.yml`
-4. Activate the enviroment: `conda activate mldd`
 
 ## Interface
-1. Activate the enviroment: `conda activate mldd `
+1. Activate the environment: `conda activate mldd `
 2. Generate fingerprints of potential ligands for a chosen target: `python fp_sampler.py`
   
    Target selection:  

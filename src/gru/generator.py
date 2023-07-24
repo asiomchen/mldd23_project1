@@ -184,16 +184,12 @@ class EncoderDecoder(nn.Module):
 
         for idx in sample_idxs:
             # get reward
+            trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
             try:
-                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
-                trajectory = sf.decoder(seq)
+                reward = self.get_reward(sf.decoder(trajectory))
             except sf.DecoderError:
-                sf.set_semantic_constraints("hypervalent")
-                seq = vectorizer.devectorize(out_cat[idx], remove_special=True)
-                trajectory = sf.decoder(seq)
-                sf.set_semantic_constraints("default")
-
-            reward = self.get_reward(trajectory)
+                print('SELFIES decoding error')
+                reward = 0
 
             # convert string of characters into tensor of shape [selfie_len, alphabet_len]
             trajectory_input = vectorizer.vectorize(trajectory)

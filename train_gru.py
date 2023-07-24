@@ -1,5 +1,5 @@
 # import packages
-from src.gru.train import train_gru
+from src.gru.train import train
 from src.gru.dataset import GRUDataset
 from src.gru.generator import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
@@ -24,7 +24,7 @@ def main():
 
     config = configparser.ConfigParser()
     config.read('gru_config.ini')
-    run_name = config['GRU']['run_name']
+    run_name = str(config['GRU']['run_name'])
     batch_size = int(config['GRU']['batch_size'])
     encoding_size = int(config['GRU']['encoding_size'])
     hidden_size = int(config['GRU']['hidden_size'])
@@ -33,6 +33,7 @@ def main():
     teacher_ratio = float(config['GRU']['teacher_ratio'])
     fp_len = int(config['GRU']['fp_len'])
     encoder_path = str(config['GRU']['encoder_path'])
+    checkpoint_path = str(config['GRU']['checkpoint_path'])
     data_path = str(config['GRU']['data_path'])
 
     dataset = pd.read_parquet(data_path)
@@ -76,10 +77,11 @@ def main():
         teacher_ratio=teacher_ratio,
     ).to(device)
 
-    #  Load model parameters
-    # model.load_state_dict(torch.load('models/fixed_cce_3_layers/epoch_175.pt'))
-    model.encoder.load_state_dict(torch.load(encoder_path))
-    _ = train_gru(config, model, train_loader, val_loader)
+    if checkpoint_path != 'None':
+        model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+    elif encoder_path != 'None':
+        model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
+    _ = train(config, model, train_loader, val_loader)
     return None
 
 
