@@ -18,8 +18,6 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Device: {device}')
     vectorizer = SELFIESVectorizer(pad_to_len=128)
-    data_path = 'data/train_data/combined_dataset.parquet'
-    dataset = pd.read_parquet(data_path)
 
     config = configparser.ConfigParser()
     config.read('rl_config.ini')
@@ -38,6 +36,8 @@ def main():
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
         os.mkdir(f'./models/{run_name}')
+
+    dataset = pd.read_parquet(data_path)
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
