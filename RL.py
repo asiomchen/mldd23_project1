@@ -9,9 +9,14 @@ import torch
 import os
 import pandas as pd
 import configparser
-
+import argparse
 
 def main():
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, default='rl_config.ini', help='Path to config file')
+    config_path = parser.parse_args().config
+
     NUM_WORKERS = 3
     train_size = 0.8
 
@@ -20,7 +25,7 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     config = configparser.ConfigParser()
-    config.read('rl_config.ini')
+    config.read(config_path)
     run_name = str(config['RL']['run_name'])
     batch_size = int(config['RL']['batch_size'])
     encoding_size = int(config['RL']['encoding_size'])
