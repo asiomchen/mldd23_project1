@@ -21,7 +21,7 @@ def main():
 
     config = configparser.ConfigParser()
     config.read('rl_config.ini')
-    run_name = config['RL']['run_name']
+    run_name = str(config['RL']['run_name'])
     batch_size = int(config['RL']['batch_size'])
     encoding_size = int(config['RL']['encoding_size'])
     hidden_size = int(config['RL']['hidden_size'])
