@@ -1,4 +1,4 @@
-from src.gru.generator_old import EncoderDecoder
+from src.gru.generator import EncoderDecoder
 from src.gru.dataset import PredictionDataset
 from src.utils.vectorizer import SELFIESVectorizer
 import selfies as sf
@@ -57,7 +57,7 @@ def main():
 
         f_name, f_type = name.split('.')
         already_processed = os.path.isdir(f'results/{f_name}')
-        if f_type != 'parquet' or already_processed:
+        if already_processed:
             continue
         os.mkdir(f'results/{f_name}')
         with open(f'results/{f_name}/config.ini', 'w') as configfile:
