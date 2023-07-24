@@ -1,5 +1,5 @@
 # import packages
-from src.gru.train import train_gru
+from src.gru.train import train
 from src.gru.dataset import GRUDataset
 from src.gru.generator import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
@@ -81,7 +81,7 @@ def main():
     model.encoder.load_state_dict(torch.load(encoder_path))
     if checkpoint_path != 'None':
         model.load_state_dict(torch.load(checkpoint_path))
-    _ = train_gru(config, model, train_loader, val_loader)
+    _ = train(config, model, train_loader, val_loader)
     return None
 
 
