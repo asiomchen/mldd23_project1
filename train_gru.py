@@ -24,7 +24,7 @@ def main():
 
     config = configparser.ConfigParser()
     config.read('gru_config.ini')
-    run_name = config['GRU']['run_name']
+    run_name = str(config['GRU']['run_name'])
     batch_size = int(config['GRU']['batch_size'])
     encoding_size = int(config['GRU']['encoding_size'])
     hidden_size = int(config['GRU']['hidden_size'])
