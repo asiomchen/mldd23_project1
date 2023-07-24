@@ -39,8 +39,6 @@ def main():
     with open(f'models/{run_name}/hyperparameters.ini', 'w') as configfile:
         config.write(configfile)
 
-    learning_rate = float(config['VAE']['learning_rate'])
-    epochs = float(config['VAE']['epochs'])
     train_dataset, val_dataset = data.random_split(dataset, [test_size, 1 - test_size])
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size, drop_last=True, num_workers=2)
     val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size, drop_last=True, num_workers=2)
