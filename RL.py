@@ -68,7 +68,7 @@ def main():
 
     # Init model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,
