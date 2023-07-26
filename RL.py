@@ -43,6 +43,7 @@ def main():
         os.mkdir(f'./models/{run_name}')
 
     dataset = pd.read_parquet(data_path)
+    print('Dataset loaded')
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
@@ -76,12 +77,14 @@ def main():
         teacher_ratio=teacher_ratio
     ).to(device)
 
+    print('Model initialized')
+
     if checkpoint_path != 'None':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     elif encoder_path != 'None':
         model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
+    print('Encoder parameters loaded')
     _ = train_rl(config, model, train_loader, val_loader)
-
     return None
 
 
