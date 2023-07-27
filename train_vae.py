@@ -6,17 +6,21 @@ from torch.utils.data import DataLoader
 import torch
 import os
 import configparser
-
+import argparse
 
 def main():
     """
     Training script for the VAE model
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    config_path = parser.parse_args().config
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Device: {device}')
 
     config = configparser.ConfigParser()
-    config.read('vae_config.ini')
+    config.read(config_path)
     run_name = config['VAE']['run_name']
     batch_size = int(config['VAE']['batch_size'])
     input_size = int(config['VAE']['input_size'])

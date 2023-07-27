@@ -11,6 +11,7 @@ import torch
 import pandas as pd
 from src.utils.data import closest_in_train
 import configparser
+import argparse
 
 
 def main():
@@ -23,12 +24,17 @@ def main():
 
     Returns: None
     """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    config_path = parser.parse_args().config
+
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     torch.cuda.empty_cache()
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     config = configparser.ConfigParser()
-    config.read('pred_config.ini')
+    config.read(config_path)
     QED_threshold = float(config['FILTER']['QED_threshold'])
     max_ring_size = int(config['FILTER']['max_ring_size'])
     batch_size = int(config['MODEL']['batch_size'])
