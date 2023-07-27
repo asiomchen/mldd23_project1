@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator_new import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
