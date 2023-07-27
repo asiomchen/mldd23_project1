@@ -12,6 +12,7 @@ import pandas as pd
 from src.utils.data import closest_in_train
 import configparser
 import argparse
+from tqdm import tqdm
 
 
 def main():
@@ -26,7 +27,7 @@ def main():
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    parser.add_argument('--config', '-c', type=str, default='pred_config.ini', help='Path to config file')
     config_path = parser.parse_args().config
 
     vectorizer = SELFIESVectorizer(pad_to_len=128)
@@ -56,26 +57,25 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}')
 
-    dir_list = os.listdir('results') # get list of files and dirs in results folder
-    files = [name for name in dir_list if name.split('.')[-1] == 'parquet'] # get parquet files only
+    dir_list = os.listdir('results')  # get list of files and dirs in results folder
+    files = [name for name in dir_list if name.split('.')[-1] == 'parquet']  # get parquet files only
 
     for name in files:
 
         f_name, f_type = name.split('.')
-        already_processed = os.path.isdir(f'results/{f_name}')
-        if already_processed:
-            continue
         os.mkdir(f'results/{f_name}')
         with open(f'results/{f_name}/config.ini', 'w') as configfile:
             config.write(configfile)
+        os.rename(f'results/{name}', f'results/{f_name}/{name}')
 
-        df = pd.read_parquet(f'results/{name}')
+        df = pd.read_parquet(f'results/{f_name}/{name}')
 
         print(f'Getting predictions for file {f_name}...')
         predictions = get_predictions(model, df, vectorizer, fp_len=fp_len, batch_size=batch_size)
         print('Filtering out non-druglike molecules...')
         predictions_druglike, qeds, fps = filter_out_nondruglike(predictions, QED_threshold, max_ring_size, df)
-        tanimoto_scores = [closest_in_train(mol) for mol in predictions_druglike]
+        print('Calculating tanimoto scores...')
+        tanimoto_scores = [closest_in_train(mol) for mol in tqdm(predictions_druglike)]
 
         # save data as csv
         data_to_save = pd.DataFrame({'smiles': [Chem.MolToSmiles(m) for m in predictions_druglike],
@@ -129,7 +129,7 @@ def filter_out_nondruglike(predictions, threshold, max_ring_size, df):
     filtered_mols = []
     filtered_qeds = []
     filtered_fps = []
-    for i, value in enumerate(raw_qeds):
+    for i, value in enumerate(tqdm(raw_qeds)):
         mol = raw_mols[i]
         fp = raw_fps[i]
         ri = mol.GetRingInfo()
