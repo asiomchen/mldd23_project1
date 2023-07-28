@@ -15,7 +15,7 @@ from tqdm import tqdm
 import time
 
 
-def predict(file_name):
+def predict(file_name, is_verbose=True):
     """
     Predicting molecules using the trained model.
 
@@ -35,9 +35,6 @@ def predict(file_name):
                         default='pred_config.ini',
                         help='Path to config file')
     config_path = parser.parse_args().config
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-    print(f'Using {device} device')
 
     name, _ = file_name.split('.')
     name += '_processed'
@@ -52,7 +49,10 @@ def predict(file_name):
     num_layers = int(config['MODEL']['num_layers'])
     dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
-    progress_bar = config['SCRIPT'].getboolean('progress_bar')
+    use_cuda = config['SCRIPT'].getboolean('cuda')
+    progress_bar = config['SCRIPT'].getboolean('progress_bar') if is_verbose else False
+    device = 'cuda' if use_cuda else 'cpu'
+    print(f'Using {device} device') if is_verbose else None
 
     # load model
     model = EncoderDecoder(
@@ -65,22 +65,23 @@ def predict(file_name):
     ).to(device)
 
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
-    print(f'Loaded model from {model_path}')
+    print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
     data = pd.read_parquet(f'results/{file_name}')
 
     # get predictions
-    print(f'Getting predictions for file {file_name}...')
+    print(f'Getting predictions for file {file_name}...') if is_verbose else None
     predictions = get_predictions(model,
                                   data,
                                   fp_len=fp_len,
                                   batch_size=batch_size,
-                                  progress_bar=progress_bar
+                                  progress_bar=progress_bar,
+                                  use_cuda=use_cuda
                                   )
 
     # pred out non-druglike molecules
-    print('Filtering out non-druglike molecules...')
+    print('Filtering out non-druglike molecules...') if is_verbose else None
     df = pd.DataFrame({'smiles': predictions, 'fps': data.fps})
     druglike_df = molecule_filter(df, config=config)
     output = druglike_df.drop(columns=['mols'])
@@ -92,7 +93,7 @@ def predict(file_name):
         config.write(configfile)
 
     output.to_csv(f'results/{name}/{name}.csv', index=False)
-    print(f'Saved data to results/{name}/{name}.csv')
+    print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
 
     os.rename(f'results/{file_name}', f'results/{name}/{file_name}')
 
@@ -101,10 +102,10 @@ def predict(file_name):
     for i, mol in enumerate(druglike_df.mols):
         Draw.MolToFile(mol, f'results/{name}/imgs/{i}.png', size=(300, 300))
     time_elapsed = time.time() - start_time
-    print(f'Finished in {(time_elapsed / 60):.2f} minutes')
+    print(f'{name} processed in {(time_elapsed / 60):.2f} minutes')
 
 
-def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False):
+def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, use_cuda=False):
     """
     Generates predictions for a given model and dataframe.
     Args:
@@ -113,10 +114,11 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False):
         fp_len: Fingerprint length.
         batch_size (int): Batch size.
         progress_bar (bool): Whether to show progress bar.
+        use_cuda (bool): Whether to use CUDA for predictions.
     Returns:
         list: List of predicted molecules in SMILES notation.
     """
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = 'cuda' if use_cuda else 'cpu'
     dataset = PredictionDataset(df, fp_len=fp_len)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
@@ -156,9 +158,14 @@ if __name__ == '__main__':
 
     # launch a process for each file in queue
     procs = []
-    for name in queue:
+    verbose = True
+    for i, name in enumerate(queue):
         print(f'Processing file {name}')
-        proc = mp.Process(target=predict, args=(name,))
+        if i == 0:
+            verbose = True
+        else:
+            verbose = False
+        proc = mp.Process(target=predict, args=(name, verbose))
         procs.append(proc)
         proc.start()
 
