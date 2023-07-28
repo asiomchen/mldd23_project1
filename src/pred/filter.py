@@ -67,7 +67,7 @@ def molecule_filter(df, config):
     """
     Filters out non-druglike molecules from a list of SMILES.
     Args:
-        df (pd.DataFrame): Dataframe containing SMILES.
+        df (pd.DataFrame): Dataframe containing 'smiles' and 'fps' columns.
         config (ConfigParser): Configuration file.
     Returns:
         pd.DataFrame: Dataframe containing druglike molecules.
@@ -80,9 +80,12 @@ def molecule_filter(df, config):
     check_sub = config['FILTER'].getboolean('check_sub')
     progress_bar = config['SCRIPT'].getboolean('progress_bar')
 
+    # generate mol object for each smiles
+    df['mol'] = df.smiles.apply(Chem.MolFromSmiles)
     print(f"Original size of dataset: {len(df)}")
 
     if qed is not None:
+        df['qed'] = df['mol'].apply()
         df = df[df['qed'] > qed].reset_index(drop=True)
     print(f"Dataset size after QED check: {len(df)}")
 

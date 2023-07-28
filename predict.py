@@ -1,21 +1,21 @@
 from src.gru.generator import EncoderDecoder
 from src.gru.dataset import PredictionDataset
 from src.utils.vectorizer import SELFIESVectorizer
-import selfies as sf
 from torch.utils.data import DataLoader
-import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
 from src.pred.filter import molecule_filter
+import multiprocessing as mp
+import selfies as sf
 import os
 import torch
 import pandas as pd
 import configparser
 import argparse
 from tqdm import tqdm
-from time import time
+import time
 
 
-def main():
+def predict(file_name):
     """
     Predicting molecules using the trained model.
 
@@ -27,11 +27,20 @@ def main():
     """
 
     # setup
+    start_time = time.time()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', '-c', type=str, default='pred_config.ini', help='Path to config file')
+    parser.add_argument('--config',
+                        '-c',
+                        type=str,
+                        default='pred_config.ini',
+                        help='Path to config file')
     config_path = parser.parse_args().config
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
     print(f'Using {device} device')
+
+    name, _ = file_name.split('.')
+    name += '_processed'
 
     # load config
     config = configparser.ConfigParser()
@@ -58,57 +67,41 @@ def main():
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}')
 
-    # get list of files and dirs in results folder
-    if os.path.isdir('results') and os.listdir('results') is not None:
-        dir_list = os.listdir('results')
-        files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
-    else:
-        files = []
+    # load data
+    data = pd.read_parquet(f'results/{file_name}')
 
-    # iterate over parquet files
-    for name in files:
-        start_time = time()
-        f_name, f_type = name.split('.')
-        f_name += '_done'
+    # get predictions
+    print(f'Getting predictions for file {file_name}...')
+    predictions = get_predictions(model,
+                                  data,
+                                  fp_len=fp_len,
+                                  batch_size=batch_size,
+                                  progress_bar=progress_bar
+                                  )
 
-        # load data
-        data = pd.read_parquet(f'results/{name}')
+    # pred out non-druglike molecules
+    print('Filtering out non-druglike molecules...')
+    df = pd.DataFrame({'smiles': predictions, 'fps': data.fps})
+    druglike_df = molecule_filter(df, config=config)
+    output = druglike_df.drop(columns=['mols'])
 
-        # get predictions
-        print(f'Getting predictions for file {name}...')
-        predictions = get_predictions(model,
-                                      data,
-                                      fp_len=fp_len,
-                                      batch_size=batch_size,
-                                      progress_bar=progress_bar
-                                      )
+    # save data as csv
+    os.mkdir(f'results/{name}')
 
-        # pred out non-druglike molecules
-        print('Filtering out non-druglike molecules...')
-        df = pd.DataFrame({'smiles': predictions})
-        df['mols'] = df.smiles.apply(Chem.MolFromSmiles)
-        df['raw_fps'] = data.fps
+    with open(f'results/{name}/config.ini', 'w') as configfile:
+        config.write(configfile)
 
-        druglike_df = molecule_filter(df, config=config)
-        output = druglike_df.drop(columns=['mols'])
+    output.to_csv(f'results/{name}/{name}.csv', index=False)
+    print(f'Saved data to results/{name}/{name}.csv')
 
-        # save data as csv
-        os.mkdir(f'results/{f_name}')
+    os.rename(f'results/{file_name}', f'results/{name}/{file_name}')
 
-        with open(f'results/{f_name}/config.ini', 'w') as configfile:
-            config.write(configfile)
-
-        output.to_csv(f'results/{f_name}/{f_name}.csv', index=False)
-        print(f'Saved data to results/{f_name}.csv')
-
-        os.rename(f'results/{name}', f'results/{f_name}/{name}')
-
-        # save images
-        os.mkdir(f'results/{f_name}/imgs')
-        for i, mol in enumerate(druglike_df.mols):
-            Draw.MolToFile(mol, f'results/{f_name}/imgs/{i}.png', size=(300, 300))
-        time_elapsed = time() - start_time
-        print(f'Finished in {(time_elapsed / 60):.2f} minutes')
+    # save images
+    os.mkdir(f'results/{name}/imgs')
+    for i, mol in enumerate(druglike_df.mols):
+        Draw.MolToFile(mol, f'results/{name}/imgs/{i}.png', size=(300, 300))
+    time_elapsed = time.time() - start_time
+    print(f'Finished in {(time_elapsed / 60):.2f} minutes')
 
 
 def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False):
@@ -142,5 +135,33 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False):
                     print('DecoderError raised, appending dummy SMILES')
     return preds_smiles
 
+
 if __name__ == '__main__':
-    main()
+    """
+    Multiprocessing support and queue handling
+    """
+
+    print("Number of cpus: ", mp.cpu_count())
+    queue = []
+
+    # get list of files and dirs in results folder
+    if os.path.isdir('results'):
+        dir_list = os.listdir('results')
+        queue = [name for name in dir_list if name.split('.')[-1] == 'parquet']
+    else:
+        print('No data files found in results directory')
+
+    # for now
+    assert mp.cpu_count() >= len(queue)
+
+    # launch a process for each file in queue
+    procs = []
+    for name in queue:
+        print(f'Processing file {name}')
+        proc = mp.Process(target=predict, args=(name,))
+        procs.append(proc)
+        proc.start()
+
+    # complete the processes
+    for proc in procs:
+        proc.join()
