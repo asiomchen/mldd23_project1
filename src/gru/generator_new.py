@@ -24,6 +24,7 @@ class VAEEncoder(nn.Module):
         self.fc3 = nn.Linear(1024, 512)
         self.fc41 = nn.Linear(512, output_size)
         self.fc42 = nn.Linear(512, output_size)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         """
