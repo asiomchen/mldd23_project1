@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import rdkit.Chem as Chem
 import rdkit.Chem.QED
 import selfies as sf
+import pandas as pd
 
 
 class VAEEncoder(nn.Module):
@@ -24,7 +25,6 @@ class VAEEncoder(nn.Module):
         self.fc41 = nn.Linear(512, output_size)
         self.fc42 = nn.Linear(512, output_size)
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         """
@@ -90,7 +90,7 @@ class DecoderNet(nn.Module):
 
 class EncoderDecoder(nn.Module):
     def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
-                 teacher_ratio=0.5, random_seed=42):
+                 teacher_ratio=0.5, random_seed=42, use_cuda=True):
         """
         Encoder-Decoder class based on VAE and GRU.
 
@@ -110,7 +110,7 @@ class EncoderDecoder(nn.Module):
         self.decoder = DecoderNet(encoding_size, hidden_size, num_layers, output_size, dropout)
         self.encoding_size = encoding_size
         self.hidden_size = hidden_size
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
         random.seed(random_seed)
 
         # pytorch.nn
@@ -119,10 +119,10 @@ class EncoderDecoder(nn.Module):
         self.relu = nn.ReLU()
         self.softmax2d = nn.Softmax(dim=2)
 
-    def forward(self, x, y, teacher_forcing=False, reinforcement=False):
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
         """
         Args:
-            x (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
+            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
             y (torch.tensor):batched SMILES of target molecules
             teacher_forcing: (bool):enable teacher forcing
             reinforcement: (bool):enable loss calculation for use in reinforcement learning
@@ -134,9 +134,9 @@ class EncoderDecoder(nn.Module):
             rl_loss (torch.tensor):loss for use in reinforcement learning
             total_reward (torch.tensor):total reward for use in reinforcement learning
         """
-        batch_size = x.shape[0]
+        batch_size = X.shape[0]
         hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        mu, logvar = self.encoder(x)
+        mu, logvar = self.encoder(X)
         encoded = self.reparameterize(mu, logvar)
         x = encoded.unsqueeze(1)
         outputs = []
@@ -145,7 +145,7 @@ class EncoderDecoder(nn.Module):
 
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out)) # shape (batch_size, 42)
+            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
             outputs.append(out)
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
@@ -154,21 +154,21 @@ class EncoderDecoder(nn.Module):
         out_cat = torch.cat(outputs, dim=1)
 
         if reinforcement:
-            rl_loss, total_reward = self.reinforce(out_cat)
+            rl_loss, total_reward = self.reinforce(out_cat, X)
             return out_cat, rl_loss, total_reward
         else:
-            return out_cat # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]
 
-
-    def reinforce(self, out_cat, n_samples=10):
+    def reinforce(self, out_cat, X, n_samples=10):
         """
         Reinforcement learning loop for use in training the model.
         Args:
-            out_cat (torch.tensor):batched vectorized SELFIES tensor
-            n_samples (int):number of samples to draw from batch
+            out_cat (torch.tensor): batched vectorized SELFIES tensor
+            X: (torch.tensor): batched fingerprint tensor of shape [batch_size, fp_size]
+            n_samples (int): number of samples to draw from batch
         Returns:
-            rl_loss (torch.tensor):loss for use in reinforcement learning
-            total_reward (torch.tensor):total reward for use in reinforcement learning
+            rl_loss (torch.tensor): loss for use in reinforcement learning
+            total_reward (torch.tensor): total reward for use in reinforcement learning
         """
         vectorizer = SELFIESVectorizer(pad_to_len=128)
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -180,13 +180,15 @@ class EncoderDecoder(nn.Module):
         batch_size = out_cat.shape[0]
         total_reward = 0
 
-        sample_idxs = [random.randint(0, batch_size-1) for x in range(n_samples)]
+        sample_idxs = [random.randint(0, batch_size - 1) for x in range(n_samples)]
 
         for idx in sample_idxs:
             # get reward
             trajectory = vectorizer.devectorize(out_cat[idx], remove_special=True)
             try:
-                reward = self.get_reward(sf.decoder(trajectory))
+                smiles = sf.decoder(trajectory)
+                mol = Chem.MolFromSmiles(smiles)
+                reward = (self.get_qed_reward(smiles) + self.get_fp_reward(mol, X[idx]))/2
             except sf.DecoderError:
                 print('SELFIES decoding error')
                 reward = 0
@@ -212,7 +214,7 @@ class EncoderDecoder(nn.Module):
                 representation = representation.squeeze(0)  # [512]
                 next_token = self.relu(self.fc1(representation))  # [42]
                 log_probs = F.log_softmax(next_token, dim=0)  # [42]
-                top_i = torch.argmax(trajectory_input[p+1])
+                top_i = torch.argmax(trajectory_input[p + 1])
                 rl_loss -= (log_probs[top_i] * discounted_reward)
                 discounted_reward = discounted_reward * gamma
 
@@ -233,16 +235,36 @@ class EncoderDecoder(nn.Module):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std).add_(mu)
-    
+
     @staticmethod
-    def get_reward(smiles):
+    def get_qed_reward(mol):
         """
-        Calculates the reward for a given SMILES string
+        Calculates the QED reward for a given SMILES string
         Args:
-            smiles: SMILES string
+            mol (rdkit.mol): mol file
         Returns:
-            reward: float
+            reward (float): QED score
+
+        QED score is calculated using rdkit.Chem.QED(). Please refer to RDKit documentation.
         """
-        mol = Chem.MolFromSmiles(smiles)
         reward = Chem.QED.qed(mol)
         return reward
+
+    @staticmethod
+    def get_fp_reward(mol, fp):
+        """
+        Simple metric, which calculates the fraction of input fingerprint's active bits that are
+        also active in the predicted molecule's fingerprint.
+        Args:
+            mol (rdkit.Mol): mol of the query molecule
+            fp (torch.tensor): 1-D tensor of size [4860] containing Klekota&Roth fingerprint
+        Returns:
+            reward (float): reward
+        """
+        score = 0
+        key = pd.read_csv('data/KlekFP_keys.txt')
+        for i in range(4860):
+            if fp[i] == 1:
+                frag = Chem.MolFromSmarts(key.iloc[i])
+                score += mol.HasSubstructMatch(frag)
+        return score/fp.shape[0]

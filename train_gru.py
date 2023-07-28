@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator_new import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -9,12 +9,16 @@ from torch.utils.data import DataLoader
 import os
 import pandas as pd
 import configparser
-
+import argparse
 
 def main():
     """
     Training script for model with variational encoder and GRU decoder
     """
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    config_path = parser.parse_args().config
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(device)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
@@ -23,7 +27,7 @@ def main():
     train_size = 0.8
 
     config = configparser.ConfigParser()
-    config.read('gru_config.ini')
+    config.read(config_path)
     run_name = str(config['GRU']['run_name'])
     batch_size = int(config['GRU']['batch_size'])
     encoding_size = int(config['GRU']['encoding_size'])
