@@ -61,7 +61,8 @@ def predict(file_name, is_verbose=True):
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
-        teacher_ratio=0
+        teacher_ratio=0,
+        use_cuda=use_cuda,
     ).to(device)
 
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
@@ -134,7 +135,6 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
-                    print('DecoderError raised, appending dummy SMILES')
     return preds_smiles
 
 
@@ -142,8 +142,8 @@ if __name__ == '__main__':
     """
     Multiprocessing support and queue handling
     """
-
-    print("Number of cpus: ", mp.cpu_count())
+    cpus = mp.cpu_count()
+    print("Number of cpus: ", cpus)
     queue = []
 
     # get list of files and dirs in results folder
@@ -153,9 +153,8 @@ if __name__ == '__main__':
     else:
         print('No data files found in results directory')
 
-    # for now
-    assert mp.cpu_count() >= len(queue)
-
+    if len(queue) > cpus:
+        queue = queue[:cpus]
     # launch a process for each file in queue
     procs = []
     verbose = True

@@ -90,7 +90,7 @@ class DecoderNet(nn.Module):
 
 class EncoderDecoder(nn.Module):
     def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
-                 teacher_ratio=0.5, random_seed=42):
+                 teacher_ratio=0.5, random_seed=42, use_cuda=True):
         """
         Encoder-Decoder class based on VAE and GRU.
 
@@ -110,7 +110,7 @@ class EncoderDecoder(nn.Module):
         self.decoder = DecoderNet(encoding_size, hidden_size, num_layers, output_size, dropout)
         self.encoding_size = encoding_size
         self.hidden_size = hidden_size
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
         random.seed(random_seed)
 
         # pytorch.nn
