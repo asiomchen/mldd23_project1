@@ -25,7 +25,6 @@ class VAEEncoder(nn.Module):
         self.fc41 = nn.Linear(512, output_size)
         self.fc42 = nn.Linear(512, output_size)
         self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         """
