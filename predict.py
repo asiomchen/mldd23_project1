@@ -24,6 +24,9 @@ def predict(file_name, is_verbose=True):
     The script scans the results folder for parquet files generated earlier using generate.py.
     For each parquet file, the script generates predictions and saves them in a new directory.
 
+    Args:
+        file_name (str): Name of the parquet file to process.
+        is_verbose (bool): Whether to print progress.
     Returns: None
     """
 
@@ -79,7 +82,8 @@ def predict(file_name, is_verbose=True):
                          fp_len=fp_len,
                          batch_size=batch_size,
                          progress_bar=progress_bar,
-                         use_cuda=use_cuda
+                         use_cuda=use_cuda,
+                         verbose=is_verbose
                          )
 
     # pred out non-druglike molecules
@@ -109,7 +113,14 @@ def predict(file_name, is_verbose=True):
     print(f'{name} processed in {(time_elapsed / 60):.2f} minutes')
 
 
-def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, use_cuda=False):
+def get_predictions(model,
+                    df,
+                    fp_len=4860,
+                    batch_size=512,
+                    progress_bar=False,
+                    use_cuda=False,
+                    verbose=True,
+                    ):
     """
     Generates predictions for a given model and dataframe.
     Args:
@@ -128,7 +139,7 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=False)
     preds_smiles = []
     with torch.no_grad():
-        for X in tqdm(loader, disable=not progress_bar):
+        for n, X in enumerate(tqdm(loader, disable=not progress_bar)):
             fps = X.cpu().numpy()
             X = X.to(device)
             preds = model(X, None, teacher_forcing=False)
@@ -139,6 +150,8 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
+            if (not progress_bar and verbose) and n % 50 == 0:
+                print(f'Predicting... {n/len(loader):.2%}')
     output = pd.DataFrame({'smiles': preds_smiles, 'fps': fps})
     return output
 
