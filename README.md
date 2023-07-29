@@ -34,6 +34,17 @@ This project is a machine learning model for *de novo* generation of ligands for
      Example use: `python fp_sampler.py -t 5ht1a -n 5000 -r True`
      
      Generates 5000 fingerprints of potentially active 5ht1a ligands with random noise added.
+
+3. (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`
+
+   Required arguments:
+    `-f --file` (str) path to .csv file containing SMILES of molecules; should be put into ./Smiles2Fp/datasets
+
+   Other arguments:
+    `-s --smiles_col` (str) name of column with SMILES of molecues, default: SMILES
+    `-n --n_jobs` (int) number of processes to use during conversion, default: -1
+    `-o --output` (str) name of .csv file to be saved into ./Smiles2Fp/outputs directory
+    `-k --keys` (str) path to SMARTS keys, default file is included in the directory
   
 4. Generate molecules for fingerprints: `python predict.py`
      
