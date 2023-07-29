@@ -10,5 +10,5 @@ nvidia-smi -L
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-python -u RL.py > log_rl.out
+python -u train_rl.py > log_rl.out
 echo done
