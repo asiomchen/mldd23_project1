@@ -11,8 +11,8 @@ import pandas as pd
 import configparser
 import argparse
 
-def main():
 
+def main():
     NUM_WORKERS = 3
     train_size = 0.8
 
@@ -21,7 +21,7 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    parser.add_argument('-c', '--config', type=str, default='rl_config.ini', help='Path to config file')
     config_path = parser.parse_args().config
 
     config = configparser.ConfigParser()

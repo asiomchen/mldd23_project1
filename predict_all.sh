@@ -15,4 +15,4 @@ python fp_sampler.py -t 5ht7 -n 100000
 python fp_sampler.py -t d2 -n 100000
 python fp_sampler.py -t beta2 -n 100000
 python fp_sampler.py -t h1 -n 100000
-python predict.py -c pred_config.ini
+python predict.py -c pred_config.ini > log_predict_all.out
