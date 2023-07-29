@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from rdkit import Chem
-from rdkit.Chem import Descriptors, QED
+from rdkit.Chem import Descriptors, Lipinski, QED, Crippen
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
 from src.pred.tanimoto import closest_in_train
 from tqdm import tqdm
@@ -18,10 +18,10 @@ def get_largest_ring(mol):
 
 def calculate_ro5(mol):
     prop = {
-        'MW': Descriptors.MolWt(mol),
-        'LogP': Descriptors.MolLogP(mol),
-        'HBD': Descriptors.NumHDonors(mol),
-        'HBA': Descriptors.NumHAcceptors(mol),
+        'MW': Chem.Descriptors.MolWt(mol),
+        'LogP': Chem.Crippen.MolLogP(mol),
+        'HBD': Lipinski.NumHDonors(mol),
+        'HBA': Lipinski.NumHAcceptors(mol)
     }
     return pd.Series(prop)
 
@@ -85,7 +85,7 @@ def molecule_filter(df, config):
     print(f"Original size of dataset: {len(df)}")
 
     if qed is not None:
-        df['qed'] = df['mol'].apply()
+        df['qed'] = df['mol'].apply(QED.qed())
         df = df[df['qed'] > qed].reset_index(drop=True)
     print(f"Dataset size after QED check: {len(df)}")
 
