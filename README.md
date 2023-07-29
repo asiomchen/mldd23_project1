@@ -7,7 +7,8 @@
 * [Data sources and tools](#data-sources-and-tools)
 
 ## General info
-This project is a machine learning model for *de novo* generation of ligands for 5HT1A, 5HT7, d2, beta2 and H1 receptors. A chosen number of [Klekota & Roth](https://pubmed.ncbi.nlm.nih.gov/18784118/) molecular fingerprints are sampled **(TODO: how???)**. Next, a recurrent neural network decodes the fingerprints into [SELFIES](https://iopscience.iop.org/article/10.1088/2632-2153/aba947) or SMILES notation. The resulting compounds are filtered based on chosen criteria (QED, max ring size, etc.).
+This project is a machine learning model for *de novo* generation of ligands for 5HT1A, 5HT7, d2, beta2 and H1 receptors. A chosen number of [Klekota & Roth](https://pubmed.ncbi.nlm.nih.gov/18784118/) molecular fingerprints are sampled in the following way: first, the incidence and percentage point difference between active/inactive classes of each bit are calcualted based on the fingerprints of known ligands. Afterward, a probabilty of each bit being active in a new fingerprint is calculated as: incidence * (p.p. difference * magnitude (adjustable parameter) + 100) / 100. Then, the probability values for each bit are adjusted to sum up to 1. Finally, a random value is drawn for each bit and compared with the calculated probability to decide if the bit will be 1 or 0.
+Next, a recurrent neural network decodes the fingerprints into [SELFIES](https://iopscience.iop.org/article/10.1088/2632-2153/aba947) or SMILES notation. The resulting compounds are filtered based on chosen criteria (QED, max ring size, etc.).
 
 ## Setup
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
