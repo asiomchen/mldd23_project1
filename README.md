@@ -40,13 +40,13 @@ This project is a machine learning model for *de novo* generation of ligands for
    Required arguments:
     `-f --file` (str) path to .csv file containing SMILES of molecules; should be put into ./Smiles2Fp/datasets
 
-   Other arguments:
-    `-s --smiles_col` (str) name of column with SMILES of molecues, default: SMILES
-    `-n --n_jobs` (int) number of processes to use during conversion, default: -1
-    `-o --output` (str) name of .csv file to be saved into ./Smiles2Fp/outputs directory
-    `-k --keys` (str) path to SMARTS keys, default file is included in the directory
-  
-4. Generate molecules for fingerprints: `python predict.py`
+   Other arguments:  
+    `-s --smiles_col` (str) name of column with SMILES of molecues, default: SMILES  
+    `-n --n_jobs` (int) number of processes to use during conversion, default: -1  
+    `-o --output` (str) name of .csv file to be saved into ./Smiles2Fp/outputs directory  
+    `-k --keys` (str) path to SMARTS keys, default file is included in the directory  
+   
+5. Generate molecules for fingerprints: `python predict.py`
      
    The script will scan ./results folder for .parquet files generated in previous step. For each one, a new directory in ./results will be generated, containing:
    * .csv file with SMILES of the generated compounds, QED (quantitative estimator od drug-likeness) and highest tanimoto similarity in the training set
