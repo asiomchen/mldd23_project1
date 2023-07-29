@@ -1,5 +1,5 @@
 from src.gru.generator import EncoderDecoder
-from src.gru.dataset import PredictionDataset
+from src.pred.dataset import PredictionDataset
 from src.utils.vectorizer import SELFIESVectorizer
 from torch.utils.data import DataLoader
 import rdkit.Chem.Draw as Draw
@@ -13,6 +13,7 @@ import configparser
 import argparse
 from tqdm import tqdm
 import time
+import queue
 
 
 def predict(file_name, is_verbose=True):
@@ -51,7 +52,7 @@ def predict(file_name, is_verbose=True):
     model_path = str(config['MODEL']['model_path'])
     use_cuda = config['SCRIPT'].getboolean('cuda')
     progress_bar = config['SCRIPT'].getboolean('progress_bar') if is_verbose else False
-    device = 'cuda' if use_cuda else 'cpu'
+    device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     print(f'Using {device} device') if is_verbose else None
 
     # load model
@@ -69,23 +70,21 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    data = pd.read_parquet(f'results/{file_name}')
+    query_df = pd.read_parquet(f'results/{file_name}')
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
-    predictions = get_predictions(model,
-                                  data,
-                                  fp_len=fp_len,
-                                  batch_size=batch_size,
-                                  progress_bar=progress_bar,
-                                  use_cuda=use_cuda
-                                  )
+    df = get_predictions(model,
+                         query_df,
+                         fp_len=fp_len,
+                         batch_size=batch_size,
+                         progress_bar=progress_bar,
+                         use_cuda=use_cuda
+                         )
 
     # pred out non-druglike molecules
     print('Filtering out non-druglike molecules...') if is_verbose else None
-    df = pd.DataFrame({'smiles': predictions, 'fps': data.fps})
     druglike_df = molecule_filter(df, config=config)
-    output = druglike_df.drop(columns=['mols'])
 
     # save data as csv
     os.mkdir(f'results/{name}')
@@ -93,9 +92,13 @@ def predict(file_name, is_verbose=True):
     with open(f'results/{name}/config.ini', 'w') as configfile:
         config.write(configfile)
 
-    output.to_csv(f'results/{name}/{name}.csv', index=False)
+    druglike_df.to_csv(f'results/{name}/{name}.csv',
+                       columns=['fps', 'smiles', 'qed', 'logp'],
+                       index=False)
+
     print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
 
+    # move fingerprint-containing parquet file to new directory
     os.rename(f'results/{file_name}', f'results/{name}/{file_name}')
 
     # save images
@@ -117,15 +120,16 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
         progress_bar (bool): Whether to show progress bar.
         use_cuda (bool): Whether to use CUDA for predictions.
     Returns:
-        list: List of predicted molecules in SMILES notation.
+        output (pd.DataFrame): prediction df containing 'smiles' and 'fp' columns
     """
-    device = 'cuda' if use_cuda else 'cpu'
+    device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     dataset = PredictionDataset(df, fp_len=fp_len)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
-    loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=True)
+    loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=False)
     preds_smiles = []
     with torch.no_grad():
         for X in tqdm(loader, disable=not progress_bar):
+            fps = X.cpu().numpy()
             X = X.to(device)
             preds = model(X, None, teacher_forcing=False)
             preds = preds.detach().cpu().numpy()
@@ -135,7 +139,8 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
-    return preds_smiles
+    output = pd.DataFrame({'smiles': preds_smiles, 'fps': fps})
+    return output
 
 
 if __name__ == '__main__':
@@ -144,30 +149,39 @@ if __name__ == '__main__':
     """
     cpus = mp.cpu_count()
     print("Number of cpus: ", cpus)
-    queue = []
 
     # get list of files and dirs in results folder
     if os.path.isdir('results'):
         dir_list = os.listdir('results')
-        queue = [name for name in dir_list if name.split('.')[-1] == 'parquet']
+        files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
     else:
         print('No data files found in results directory')
+        files = []
 
-    if len(queue) > cpus:
-        queue = queue[:cpus]
-    # launch a process for each file in queue
-    procs = []
+    # prepare a process for each file and add to queue
+    queue = queue.Queue()
     verbose = True
-    for i, name in enumerate(queue):
+    for i, name in enumerate(files):
         print(f'Processing file {name}')
+        # make only the first process verbose
         if i == 0:
             verbose = True
         else:
             verbose = False
         proc = mp.Process(target=predict, args=(name, verbose))
-        procs.append(proc)
-        proc.start()
+        queue.put(proc)
+
+    # handle the queue
+    processes = []
+    while True:
+        if queue.empty():
+            break
+        if len(mp.active_children()) < cpus:
+            proc = queue.get()
+            proc.start()
+            processes.append(proc)
+        time.sleep(10)
 
     # complete the processes
-    for proc in procs:
+    for proc in processes:
         proc.join()
