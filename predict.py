@@ -90,6 +90,10 @@ def predict(file_name, is_verbose=True):
     print('Filtering out non-druglike molecules...') if is_verbose else None
     druglike_df = molecule_filter(df, config=config)
 
+    if len(druglike_df) == 0:
+        print('None of predicted molecules meets the filter criteria')
+        return None
+
     # save data as csv
     os.mkdir(f'results/{name}')
 
@@ -97,7 +101,7 @@ def predict(file_name, is_verbose=True):
         config.write(configfile)
 
     druglike_df.to_csv(f'results/{name}/{name}.csv',
-                       columns=['fps', 'smiles', 'qed', 'logp'],
+                       columns=['fps', 'smiles', 'qed'],
                        index=False)
 
     print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
@@ -130,6 +134,7 @@ def get_predictions(model,
         batch_size (int): Batch size.
         progress_bar (bool): Whether to show progress bar.
         use_cuda (bool): Whether to use CUDA for predictions.
+        verbose (bool): Whether to print progress.
     Returns:
         output (pd.DataFrame): prediction df containing 'smiles' and 'fp' columns
     """
@@ -140,7 +145,6 @@ def get_predictions(model,
     preds_smiles = []
     with torch.no_grad():
         for n, X in enumerate(tqdm(loader, disable=not progress_bar)):
-            fps = X.cpu().numpy()
             X = X.to(device)
             preds = model(X, None, teacher_forcing=False)
             preds = preds.detach().cpu().numpy()
@@ -150,9 +154,10 @@ def get_predictions(model,
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
-            if (not progress_bar and verbose) and n % 50 == 0:
-                print(f'Predicting... {n/len(loader):.2%}')
-    output = pd.DataFrame({'smiles': preds_smiles, 'fps': fps})
+            if (not progress_bar and verbose) and (n % 10 == 0):
+                print(f'Processed batch {n} of {len(loader)}')
+    print('Predictions complete') if verbose else None
+    output = pd.DataFrame({'smiles': preds_smiles, 'fps': df.fps})
     return output
 
 
@@ -164,12 +169,13 @@ if __name__ == '__main__':
     print("Number of cpus: ", cpus)
 
     # get list of files and dirs in results folder
-    if os.path.isdir('results'):
-        dir_list = os.listdir('results')
-        files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
-    else:
-        print('No data files found in results directory')
-        files = []
+    if not os.path.isdir('results'):
+        os.mkdir('results')
+
+    dir_list = os.listdir('results')
+    files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
+    if not files:
+        print('No .parquet files found')
 
     # prepare a process for each file and add to queue
     queue = queue.Queue()

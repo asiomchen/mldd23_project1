@@ -27,12 +27,11 @@ def calculate_ro5(mol):
 
 
 def check_pains(df_):
-    mol_list = [Chem.MolFromSmiles(smiles) for smiles in df_['smiles']]
     params_all = FilterCatalogParams()
     params_all.AddCatalog(FilterCatalogParams.FilterCatalogs.ALL)
     catalog_all = FilterCatalog(params_all)
     pains_ = []
-    for mol in mol_list:
+    for mol in df_.mols:
         pains_.append([entry.GetProp('FilterSet') for entry in catalog_all.GetMatches(mol)])
     mask = pd.Series([bool(pains_[i]) for i in range(len(pains_))])
     for value, smiles, pain in zip(mask, df_.smiles, pains_):
@@ -42,7 +41,7 @@ def check_pains(df_):
     return df_
 
 
-def check_substructures(smiles):
+def check_substructures(mol):
     value = False
     smarts = ['[C]1-[C]=[C]-1',  # cyclopropene
               '[C]1-[C]#[C]-1',  # cyclopropyne
@@ -54,7 +53,6 @@ def check_substructures(smiles):
               '[C]1=[C]-[C]-[C]=[C]-[C]-1',  # 1,4-cyclohexadiene
               '[c]1#[c]~[c]~[c]~[c]~[c]~1'  # any pseudo-aromatic 6-membered ring with triple bond
               ]
-    mol = Chem.MolFromSmiles(smiles)
     for substructure in smarts:
         pattern = Chem.MolFromSmarts(substructure)
         value = mol.HasSubstructMatch(pattern)
@@ -78,37 +76,44 @@ def molecule_filter(df, config):
     pains = config['FILTER'].getboolean('pains')
     ro5 = config['FILTER'].getboolean('ro5')
     check_sub = config['FILTER'].getboolean('check_sub')
+    calc_tanimoto = config['FILTER'].getboolean('calc_tanimoto')
     progress_bar = config['SCRIPT'].getboolean('progress_bar')
+    max_ring_size = int(config['FILTER']['max_ring_size'])
 
     # generate mol object for each smiles
-    df['mol'] = df.smiles.apply(Chem.MolFromSmiles)
+    df['mols'] = df.smiles.apply(Chem.MolFromSmiles)
     print(f"Original size of dataset: {len(df)}")
 
-    if qed is not None:
-        df['qed'] = df['mol'].apply(QED.qed())
-        df = df[df['qed'] > qed].reset_index(drop=True)
-    print(f"Dataset size after QED check: {len(df)}")
+    if max_ring_size is not None:
+        df['max_ring'] = df['mols'].apply(get_largest_ring)
+        df = df[df['max_ring'] <= max_ring_size].reset_index(drop=True)
+        print(f"Dataset size after ring size check: {len(df)}")
 
-    if tanimoto is not None:
+    if qed is not None and len(df) > 0:
+        df['qed'] = df['mols'].apply(QED.qed)
+        df = df[df['qed'] > qed].reset_index(drop=True)
+        print(f"Dataset size after QED check: {len(df)}")
+
+    if tanimoto is not None and calc_tanimoto and len(df) > 0:
         df['tanimoto'] = [closest_in_train(mol) for mol in tqdm(df.mols, disable=not progress_bar)]
         df = df[df['tanimoto'] < tanimoto].reset_index(drop=True)
-    print(f"Dataset size after Tanimoto check: {len(df)}")
+        print(f"Dataset size after Tanimoto check: {len(df)}")
 
-    if pains:
+    if pains and len(df) > 0:
         df = check_pains(df).reset_index(drop=True)
-    print(f"Dataset size after PAINS check: {len(df)}")
+        print(f"Dataset size after PAINS check: {len(df)}")
 
-    if ro5:
-        properties = df['smiles'].apply(calculate_ro5)
+    if ro5 and len(df) > 0:
+        properties = df['mols'].apply(calculate_ro5)
         df = pd.concat([df, properties], axis=1)
         df = df[np.logical_and(df['MW'] < 500, df['LogP'] < 5)]
         df = df[np.logical_and(df['HBD'] < 10, df['HBA'] < 5)]
         df.reset_index(drop=True, inplace=True)
-    print(f"Dataset size after Ro5 check: {len(df)}")
+        print(f"Dataset size after Ro5 check: {len(df)}")
 
-    if check_sub:
-        mask = df['smiles'].apply(check_substructures)
+    if check_sub and len(df) > 0:
+        mask = df['mols'].apply(check_substructures)
         df = df[~mask].reset_index(drop=True)
-    print(f"Dataset size after substructure check: {len(df)}")
+        print(f"Dataset size after substructure check: {len(df)}")
 
     return df
