@@ -6,7 +6,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 
 
-class VAEDataset(Dataset):
+class CVAEDataset(Dataset):
     def __init__(self, data_path):
         self.fps = pd.read_parquet(data_path, columns=['fps'])
         self.activity = pd.read_parquet(data_path, columns=['Class'])
