@@ -106,9 +106,6 @@ def predict(file_name, is_verbose=True):
 
     print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
 
-    # move fingerprint-containing parquet file to new directory
-    os.rename(f'results/{file_name}', f'results/{name}/{file_name}')
-
     # save images
     os.mkdir(f'results/{name}/imgs')
     for i, mol in enumerate(druglike_df.mols):
