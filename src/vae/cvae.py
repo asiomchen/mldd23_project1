@@ -6,8 +6,8 @@ class CVAEEncoder(nn.Module):
     def __init__(self, input_size, hidden_size):
         super(CVAEEncoder, self).__init__()
         input_size = input_size + 1  # add one for activity label
-        self.fc1 = nn.Linear(input_size, 512)
-        self.fc2 = nn.Linear(512, 256)
+        self.fc1 = nn.Linear(input_size, 1024)
+        self.fc2 = nn.Linear(1024, 256)
         self.fc3 = nn.Linear(256, 128)
         self.fc41 = nn.Linear(128, hidden_size)
         self.fc42 = nn.Linear(128, hidden_size)
@@ -28,11 +28,12 @@ class CVAEDecoder(nn.Module):
     def __init__(self, hidden_size, output_size):
         super(CVAEDecoder, self).__init__()
         input_size = hidden_size + 1  # add one for the label
-        self.fc1 = nn.Linear(hidden_size, 128)
+        self.fc1 = nn.Linear(input_size, 128)
         self.fc2 = nn.Linear(128, 256)
-        self.fc3 = nn.Linear(256, 512)
-        self.fc4 = nn.Linear(512, output_size)
+        self.fc3 = nn.Linear(256, 1024)
+        self.fc4 = nn.Linear(1024, output_size)
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, x, y):
         y = y.reshape(-1, 1)  # reshape to (batch_size, 1), unsqueeze should also work
@@ -45,10 +46,10 @@ class CVAEDecoder(nn.Module):
 
 
 class CVAE(nn.Module):
-    def __init__(self, input_size, output_size, latent_size):
+    def __init__(self, fp_size, latent_size):
         super(CVAE, self).__init__()
-        self.encoder = CVAEEncoder(input_size, latent_size)
-        self.decoder = CVAEDecoder(latent_size, output_size)
+        self.encoder = CVAEEncoder(fp_size, latent_size)
+        self.decoder = CVAEDecoder(latent_size, fp_size)
 
     def forward(self, x, y):
         mu, logvar = self.encoder(x, y)

@@ -41,7 +41,8 @@ def predict(file_name, is_verbose=True):
     config_path = parser.parse_args().config
 
     name, _ = file_name.split('.')
-    name += '_processed'
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    name += '_' + timestamp
 
     # load config
     config = configparser.ConfigParser()
@@ -73,7 +74,7 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}')
+    query_df = pd.read_parquet(f'results/{file_name}').sample(n=10000)
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
