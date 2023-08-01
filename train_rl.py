@@ -1,6 +1,6 @@
 # import packages
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator_new import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
@@ -68,7 +68,7 @@ def main():
 
     # Init model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,

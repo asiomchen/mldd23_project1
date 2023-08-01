@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=RL_512
+#SBATCH --job-name=RL_512_fp
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1

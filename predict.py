@@ -61,7 +61,7 @@ def predict(file_name, is_verbose=True):
 
     # load model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,
@@ -74,7 +74,7 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}').sample(n=10000)
+    query_df = pd.read_parquet(f'results/{file_name}').sample(n=100000)
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
@@ -117,8 +117,8 @@ def predict(file_name, is_verbose=True):
 
 def get_predictions(model,
                     df,
-                    fp_len=4860,
-                    batch_size=512,
+                    fp_len,
+                    batch_size,
                     progress_bar=False,
                     use_cuda=False,
                     verbose=True,

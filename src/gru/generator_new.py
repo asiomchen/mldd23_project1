@@ -253,7 +253,7 @@ class EncoderDecoder(nn.Module):
     @staticmethod
     def get_fp_reward(mol, fp):
         """
-        Simple metric, which calculates the fraction of input fingerprint's active bits that are
+        A simple metric, which calculates the fraction of input fingerprint's active bits that are
         also active in the predicted molecule's fingerprint.
         Args:
             mol (rdkit.Mol): mol of the query molecule

@@ -61,7 +61,6 @@ def train(config, model, train_loader, val_loader):
         print(f'Executed in {loop_time} minutes')
 
 
-
 def train_rl(config, model, train_loader, val_loader):
     """
         Training loopr fo GRU model with reinforced learning
@@ -71,9 +70,12 @@ def train_rl(config, model, train_loader, val_loader):
     run_name = str(config['RL']['run_name'])
     learn_rate = float(config['RL']['learn_rate'])
     epochs = int(config['RL']['epochs'])
+    teacher_ratio = float(config['RL']['teacher_ratio'])
+    start_epoch = int(config['RL']['start_epoch'])
+    use_teacher = True if teacher_ratio > 0 else False
 
     # Define dataframe for logging progress
-    epochs_range = range(1, epochs + 1)
+    epochs_range = range(start_epoch, epochs + start_epoch)
     metrics = pd.DataFrame(columns=['epoch', 'val_loss', 'rl_loss', 'total_reward'])
 
     # Define loss function and optimizer
@@ -95,14 +97,10 @@ def train_rl(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            if epoch == 1:
-                output = model(X, y, teacher_forcing=True, reinforcement=False)
-                rl_loss = torch.tensor([0]).to(device)
-            else:
-                output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
-                rl_loss = rl_loss * rl_weight
-                epoch_rl_loss += rl_loss.item()
-                epoch_total_reward += total_reward
+            output, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
+            rl_loss = rl_loss * rl_weight
+            epoch_rl_loss += rl_loss.item()
+            epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
             # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
