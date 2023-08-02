@@ -188,7 +188,7 @@ class EncoderDecoder(nn.Module):
             try:
                 smiles = sf.decoder(trajectory)
                 mol = Chem.MolFromSmiles(smiles)
-                reward = (self.get_qed_reward(smiles) + self.get_fp_reward(mol, X[idx]))/2
+                reward = (self.get_qed_reward(mol) + self.get_fp_reward(mol, X[idx]))/2
             except sf.DecoderError:
                 print('SELFIES decoding error')
                 reward = 0
