@@ -3,7 +3,7 @@
 #SBATCH --partition=student
 #SBATCH --qos=normal
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=32G
 
 nvidia-smi -L
