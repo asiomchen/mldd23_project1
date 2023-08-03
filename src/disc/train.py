@@ -1,6 +1,7 @@
 import torch
 import time
 import pandas as pd
+import wandb
 
 
 def train_disc(config, model, train_loader, val_loader):
@@ -13,6 +14,14 @@ def train_disc(config, model, train_loader, val_loader):
     start_epoch = int(config['RUN']['start_epoch'])
     run_name = config['RUN']['run_name']
     learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='gmum-servers',
+            config=log_dict,
+            name=run_name
+        )
 
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
@@ -45,6 +54,9 @@ def train_disc(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
+
+        if use_wandb:
+            wandb.log(metrics_dict)
 
         if epoch % 100 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"

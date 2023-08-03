@@ -22,7 +22,8 @@ def train_vae(config, model, train_loader, val_loader):
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
             project='gmum-servers',
-            config=log_dict
+            config=log_dict,
+            name=run_name
         )
 
     criterion = vae.VAELoss()
@@ -97,7 +98,8 @@ def train_cvae(config, model, train_loader, val_loader):
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
             project='gmum-servers',
-            config=log_dict
+            config=log_dict,
+            name=run_name
         )
 
     criterion = vae.VAELoss()

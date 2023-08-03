@@ -22,7 +22,8 @@ def train(config, model, train_loader, val_loader):
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
             project='gmum-servers',
-            config=log_dict
+            config=log_dict,
+            name=run_name
         )
 
     # Define dataframe for logging progress
@@ -95,7 +96,8 @@ def train_rl(config, model, train_loader, val_loader):
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
             project='gmum-servers',
-            config=log_dict
+            config=log_dict,
+            name=run_name
         )
 
     # Define dataframe for logging progress
