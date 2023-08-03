@@ -10,6 +10,7 @@ def train_discr(config, model, train_loader, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     epochs = int(config['VAE']['epochs'])
+    start_epoch = int(config['VAE']['start_epoch'])
     run_name = config['VAE']['run_name']
     learning_rate = float(config['VAE']['learning_rate'])
 
@@ -19,7 +20,7 @@ def train_discr(config, model, train_loader, val_loader):
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
 
-    for epoch in range(1, epochs + 1):
+    for epoch in range(start_epoch, epochs + start_epoch):
         print(f'Epoch: {epoch}')
         epoch_loss = 0
         start_time = time.time()

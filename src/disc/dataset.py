@@ -1,9 +1,17 @@
 from torch.utils.data import Dataset
+from src.disc.discriminator import reparameterize
 import pandas as pd
 import torch
 
 
 class DiscrDataset(Dataset):
+    """
+    Dataset for the discriminator model
+    Args:
+        mu_path (str): path to the mu parquet file containing the mu values and activity labels in 'label' column
+        logvar_path (str): path to the logvar parquet file
+    """
+
     def __init__(self, mu_path, logvar_path):
         super().__init__()
         self.mu, self.activity = self.load_mu_n_labels(mu_path)
@@ -30,9 +38,3 @@ class DiscrDataset(Dataset):
         df = pd.read_parquet(path)
         tensor = torch.tensor(df.to_numpy())
         return tensor
-
-
-def reparameterize(mu, logvar):
-    std = torch.exp(0.5 * logvar)
-    eps = torch.randn_like(std)
-    return eps.mul(std).add_(mu)

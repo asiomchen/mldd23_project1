@@ -3,6 +3,11 @@ import torch
 
 
 class Discriminator(nn.Module):
+    """
+    Discriminator model for searching VAE latent space
+    Args:
+        latent_size (int): size of the latent space
+    """
     def __init__(self, latent_size):
         super().__init__()
         self.latent_size = latent_size
@@ -21,6 +26,15 @@ class Discriminator(nn.Module):
 
 
 def reparameterize(mu, logvar):
+    """
+    Reparameterization trick for sampling VAE latent space
+    Args:
+        mu: tensor of mu values
+        logvar: tensor of logvar values
+    Returns:
+        tensor of sampled values
+    """
+
     std = torch.exp(0.5 * logvar)
     eps = torch.randn_like(std)
     return eps.mul(std).add_(mu)
