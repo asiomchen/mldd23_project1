@@ -3,6 +3,7 @@ import torch
 import src.vae.vae as vae
 import pandas as pd
 import time
+import wandb
 
 
 def train_vae(config, model, train_loader, val_loader):
@@ -14,6 +15,15 @@ def train_vae(config, model, train_loader, val_loader):
     epochs = int(config['VAE']['epochs'])
     run_name = config['VAE']['run_name']
     learning_rate = float(config['VAE']['learning_rate'])
+    use_wandb = config.getboolean('VAE', 'use_wandb')
+
+    # start a new wandb run to track this script
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='gmum-servers',
+            config=log_dict
+        )
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
@@ -43,6 +53,16 @@ def train_vae(config, model, train_loader, val_loader):
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
 
+        if use_wandb:
+            log_dict = {s: dict(config.items(s)) for s in config.sections()}
+            wandb.init(
+                project="gmum-servers",
+                config=log_dict
+            )
+
+        if use_wandb:
+            wandb.log(metrics_dict)
+
         scheduler.step(avg_loss)
 
         # Update metrics df
@@ -70,6 +90,15 @@ def train_cvae(config, model, train_loader, val_loader):
     epochs = int(config['VAE']['epochs'])
     run_name = config['VAE']['run_name']
     learning_rate = float(config['VAE']['learning_rate'])
+    use_wandb = config.getboolean('VAE', 'use_wandb')
+
+    # start a new wandb run to track this script
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='gmum-servers',
+            config=log_dict
+        )
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
@@ -105,6 +134,9 @@ def train_cvae(config, model, train_loader, val_loader):
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
 
+        if use_wandb:
+            wandb.log(metrics_dict)
+
         if epoch % 10 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.encoder.state_dict(), save_path)
@@ -115,7 +147,8 @@ def train_cvae(config, model, train_loader, val_loader):
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
 
-    return model
+    wandb.finish()
+    return None
 
 
 def evaluate(model, val_loader):

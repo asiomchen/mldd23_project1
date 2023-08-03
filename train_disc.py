@@ -22,17 +22,17 @@ def main():
     parser.add_argument('-c',
                         '--config',
                         type=str,
-                        default='disc_config.ini',
+                        default='config_files/disc_config.ini',
                         help='Path to config file')
     config_path = parser.parse_args().config
     config = configparser.ConfigParser()
     config.read(config_path)
-    run_name = str(config['DISC']['run_name'])
-    batch_size = int(config['DISC']['batch_size'])
-    latent_size = int(config['DISC']['latent_size'])
-    mu_path = str(config['DISC']['mu_path'])
-    logvar_path = str(config['DISC']['logvar_path'])
-    checkpoint_path = str(config['DISC']['checkpoint_path'])
+    run_name = str(config['RUN']['run_name'])
+    batch_size = int(config['RUN']['batch_size'])
+    mu_path = str(config['RUN']['mu_path'])
+    logvar_path = str(config['RUN']['logvar_path'])
+    latent_size = int(config['MODEL']['latent_size'])
+    checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     # create a directory for this model if not there
     if not os.path.isdir(f'models/{run_name}'):

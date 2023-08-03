@@ -11,12 +11,17 @@ import pandas as pd
 import configparser
 import argparse
 
+
 def main():
     """
     Training script for model with variational encoder and GRU decoder
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='gru_config.ini', help='Path to config file')
+    parser.add_argument('-c',
+                        '--config',
+                        type=str,
+                        default='config_files/gru_config.ini',
+                        help='Path to config file')
     config_path = parser.parse_args().config
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -28,17 +33,17 @@ def main():
 
     config = configparser.ConfigParser()
     config.read(config_path)
-    run_name = str(config['GRU']['run_name'])
-    batch_size = int(config['GRU']['batch_size'])
-    encoding_size = int(config['GRU']['encoding_size'])
-    hidden_size = int(config['GRU']['hidden_size'])
-    num_layers = int(config['GRU']['num_layers'])
-    dropout = float(config['GRU']['dropout'])
-    teacher_ratio = float(config['GRU']['teacher_ratio'])
-    fp_len = int(config['GRU']['fp_len'])
-    encoder_path = str(config['GRU']['encoder_path'])
-    checkpoint_path = str(config['GRU']['checkpoint_path'])
-    data_path = str(config['GRU']['data_path'])
+    run_name = str(config['RUN']['run_name'])
+    batch_size = int(config['RUN']['batch_size'])
+    data_path = str(config['RUN']['data_path'])
+    encoding_size = int(config['MODEL']['encoding_size'])
+    hidden_size = int(config['MODEL']['hidden_size'])
+    num_layers = int(config['MODEL']['num_layers'])
+    dropout = float(config['MODEL']['dropout'])
+    teacher_ratio = float(config['MODEL']['teacher_ratio'])
+    fp_len = int(config['MODEL']['fp_len'])
+    encoder_path = str(config['MODEL']['encoder_path'])
+    checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     dataset = pd.read_parquet(data_path)
 
@@ -73,7 +78,7 @@ def main():
 
     # Init model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,

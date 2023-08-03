@@ -9,10 +9,10 @@ def train_disc(config, model, train_loader, val_loader):
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    epochs = int(config['DISC']['epochs'])
-    start_epoch = int(config['DISC']['start_epoch'])
-    run_name = config['DISC']['run_name']
-    learning_rate = float(config['DISC']['learning_rate'])
+    epochs = int(config['RUN']['epochs'])
+    start_epoch = int(config['RUN']['start_epoch'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
 
     criterion = torch.nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
