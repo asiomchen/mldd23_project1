@@ -22,7 +22,7 @@ class Discriminator(nn.Module):
         h1 = self.relu(self.fc1(x))
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
-        return self.sigmoid(h3)
+        return self.sigmoid(self.fc4(h3))
 
 
 def reparameterize(mu, logvar):

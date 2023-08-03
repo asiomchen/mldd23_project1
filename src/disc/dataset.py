@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 
 
-class DiscrDataset(Dataset):
+class DiscDataset(Dataset):
     """
     Dataset for the discriminator model
     Args:
@@ -19,7 +19,7 @@ class DiscrDataset(Dataset):
 
     def __getitem__(self, idx):
         encoding = reparameterize(self.mu[idx], self.logvar[idx])
-        activity = self.activity[idx]
+        activity = self.activity[idx].float()
         return encoding, activity
 
     def __len__(self):
@@ -28,7 +28,7 @@ class DiscrDataset(Dataset):
     @staticmethod
     def load_mu_n_labels(path):
         df = pd.read_parquet(path)
-        labels = df.label
+        labels = torch.tensor(df.label.to_numpy())
         df = df.drop(columns=['label'])
         tensor = torch.tensor(df.to_numpy())
         return tensor, labels
