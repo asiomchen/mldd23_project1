@@ -24,6 +24,9 @@ def predict(file_name, is_verbose=True):
     The script scans the results folder for parquet files generated earlier using generate.py.
     For each parquet file, the script generates predictions and saves them in a new directory.
 
+    Args:
+        file_name (str): Name of the parquet file to process.
+        is_verbose (bool): Whether to print progress.
     Returns: None
     """
 
@@ -38,7 +41,8 @@ def predict(file_name, is_verbose=True):
     config_path = parser.parse_args().config
 
     name, _ = file_name.split('.')
-    name += '_processed'
+    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    name += '_' + timestamp
 
     # load config
     config = configparser.ConfigParser()
@@ -57,7 +61,7 @@ def predict(file_name, is_verbose=True):
 
     # load model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,
@@ -70,7 +74,7 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}')
+    query_df = pd.read_parquet(f'results/{file_name}').sample(n=100000)
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
@@ -79,12 +83,17 @@ def predict(file_name, is_verbose=True):
                          fp_len=fp_len,
                          batch_size=batch_size,
                          progress_bar=progress_bar,
-                         use_cuda=use_cuda
+                         use_cuda=use_cuda,
+                         verbose=is_verbose
                          )
 
     # pred out non-druglike molecules
     print('Filtering out non-druglike molecules...') if is_verbose else None
     druglike_df = molecule_filter(df, config=config)
+
+    if len(druglike_df) == 0:
+        print('None of predicted molecules meets the filter criteria')
+        return None
 
     # save data as csv
     os.mkdir(f'results/{name}')
@@ -93,13 +102,10 @@ def predict(file_name, is_verbose=True):
         config.write(configfile)
 
     druglike_df.to_csv(f'results/{name}/{name}.csv',
-                       columns=['fps', 'smiles', 'qed', 'logp'],
+                       columns=['fps', 'smiles', 'qed'],
                        index=False)
 
     print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
-
-    # move fingerprint-containing parquet file to new directory
-    os.rename(f'results/{file_name}', f'results/{name}/{file_name}')
 
     # save images
     os.mkdir(f'results/{name}/imgs')
@@ -109,7 +115,14 @@ def predict(file_name, is_verbose=True):
     print(f'{name} processed in {(time_elapsed / 60):.2f} minutes')
 
 
-def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, use_cuda=False):
+def get_predictions(model,
+                    df,
+                    fp_len,
+                    batch_size,
+                    progress_bar=False,
+                    use_cuda=False,
+                    verbose=True,
+                    ):
     """
     Generates predictions for a given model and dataframe.
     Args:
@@ -119,6 +132,7 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
         batch_size (int): Batch size.
         progress_bar (bool): Whether to show progress bar.
         use_cuda (bool): Whether to use CUDA for predictions.
+        verbose (bool): Whether to print progress.
     Returns:
         output (pd.DataFrame): prediction df containing 'smiles' and 'fp' columns
     """
@@ -128,8 +142,7 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
     loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=False)
     preds_smiles = []
     with torch.no_grad():
-        for X in tqdm(loader, disable=not progress_bar):
-            fps = X.cpu().numpy()
+        for n, X in enumerate(tqdm(loader, disable=not progress_bar)):
             X = X.to(device)
             preds = model(X, None, teacher_forcing=False)
             preds = preds.detach().cpu().numpy()
@@ -139,7 +152,10 @@ def get_predictions(model, df, fp_len=4860, batch_size=512, progress_bar=False, 
                     preds_smiles.append(sf.decoder(selfie))
                 except sf.DecoderError:
                     preds_smiles.append('C')  # dummy SMILES
-    output = pd.DataFrame({'smiles': preds_smiles, 'fps': fps})
+            if (not progress_bar and verbose) and (n % 10 == 0):
+                print(f'Processed batch {n} of {len(loader)}')
+    print('Predictions complete') if verbose else None
+    output = pd.DataFrame({'smiles': preds_smiles, 'fps': df.fps})
     return output
 
 
@@ -151,12 +167,13 @@ if __name__ == '__main__':
     print("Number of cpus: ", cpus)
 
     # get list of files and dirs in results folder
-    if os.path.isdir('results'):
-        dir_list = os.listdir('results')
-        files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
-    else:
-        print('No data files found in results directory')
-        files = []
+    if not os.path.isdir('results'):
+        os.mkdir('results')
+
+    dir_list = os.listdir('results')
+    files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
+    if not files:
+        print('No .parquet files found')
 
     # prepare a process for each file and add to queue
     queue = queue.Queue()

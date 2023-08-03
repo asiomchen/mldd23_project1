@@ -1,6 +1,6 @@
 # import packages
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator_new import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
@@ -21,22 +21,27 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='rl_config.ini', help='Path to config file')
+    parser.add_argument('-c',
+                        '--config',
+                        type=str,
+                        default='config_files/rl_config.ini',
+                        help='Path to config file')
     config_path = parser.parse_args().config
 
     config = configparser.ConfigParser()
     config.read(config_path)
-    run_name = str(config['RL']['run_name'])
-    batch_size = int(config['RL']['batch_size'])
-    encoding_size = int(config['RL']['encoding_size'])
-    hidden_size = int(config['RL']['hidden_size'])
-    num_layers = int(config['RL']['num_layers'])
-    dropout = float(config['RL']['dropout'])
-    fp_len = int(config['RL']['fp_len'])
-    teacher_ratio = float(config['RL']['teacher_ratio'])
-    data_path = str(config['RL']['data_path'])
-    encoder_path = str(config['RL']['encoder_path'])
-    checkpoint_path = str(config['RL']['checkpoint_path'])
+
+    run_name = str(config['RUN']['run_name'])
+    batch_size = int(config['RUN']['batch_size'])
+    data_path = str(config['RUN']['data_path'])
+    encoding_size = int(config['MODEL']['encoding_size'])
+    hidden_size = int(config['MODEL']['hidden_size'])
+    num_layers = int(config['MODEL']['num_layers'])
+    dropout = float(config['MODEL']['dropout'])
+    fp_len = int(config['MODEL']['fp_len'])
+    teacher_ratio = float(config['MODEL']['teacher_ratio'])
+    encoder_path = str(config['MODEL']['encoder_path'])
+    checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
@@ -68,7 +73,7 @@ def main():
 
     # Init model
     model = EncoderDecoder(
-        fp_size=4860,
+        fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,

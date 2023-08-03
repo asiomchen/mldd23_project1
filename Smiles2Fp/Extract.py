@@ -3,7 +3,6 @@ import argparse
 import multiprocessing
 from joblib import Parallel, delayed
 from rdkit import Chem
-from dask import delayed, compute
 
 parser = argparse.ArgumentParser()
 
@@ -15,7 +14,7 @@ parser.add_argument('-n', '--n_jobs', type=int, default=-1, help='(int) how many
 
 parser.add_argument('-o', '--output', type=str, default='./outputs/out.csv', help='(str) output filename, optional')
 
-parser.add_argument('-k', '--keys', type=str, default='./KlekFP_keys.txt', help='(str) path to SMARTS keys')
+parser.add_argument('-k', '--keys', type=str, default='../data/KlekFP_keys.txt', help='(str) path to SMARTS keys')
 
 args = parser.parse_args()
 

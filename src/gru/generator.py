@@ -188,7 +188,7 @@ class EncoderDecoder(nn.Module):
             try:
                 smiles = sf.decoder(trajectory)
                 mol = Chem.MolFromSmiles(smiles)
-                reward = (self.get_qed_reward(smiles) + self.get_fp_reward(mol, X[idx]))/2
+                reward = (self.get_qed_reward(mol) + self.get_fp_reward(mol, X[idx]))/2
             except sf.DecoderError:
                 print('SELFIES decoding error')
                 reward = 0
@@ -262,9 +262,10 @@ class EncoderDecoder(nn.Module):
             reward (float): reward
         """
         score = 0
-        key = pd.read_csv('data/KlekFP_keys.txt')
-        for i in range(4860):
+        key = pd.read_csv('data/KlekFP_keys.txt', header=None)
+        fp_len = fp.shape[0]
+        for i in range(fp_len):
             if fp[i] == 1:
-                frag = Chem.MolFromSmarts(key.iloc[i])
+                frag = Chem.MolFromSmarts(key.iloc[i].values[0])
                 score += mol.HasSubstructMatch(frag)
-        return score/fp.shape[0]
+        return score / fp_len
