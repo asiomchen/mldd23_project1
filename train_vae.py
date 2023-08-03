@@ -8,12 +8,17 @@ import os
 import configparser
 import argparse
 
+
 def main():
     """
     Training script for the VAE model
     """
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default='vae_config.ini', help='Path to config file')
+    parser.add_argument('-c',
+                        '--config',
+                        type=str,
+                        default='config_files/vae_config.ini',
+                        help='Path to config file')
     config_path = parser.parse_args().config
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

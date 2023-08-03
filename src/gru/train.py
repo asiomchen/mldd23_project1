@@ -2,17 +2,29 @@ import torch
 import pandas as pd
 import time
 from src.gru.cce import CCE
+import wandb
 
 
 def train(config, model, train_loader, val_loader):
     """
-    Training loopr fo GRU model
+    Training loop for GRU model
     """
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    epochs = int(config['GRU']['epochs'])
-    run_name = str(config['GRU']['run_name'])
-    learn_rate = float(config['GRU']['learn_rate'])
+    epochs = int(config['RUN']['epochs'])
+    run_name = str(config['RUN']['run_name'])
+    learn_rate = float(config['RUN']['learn_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+
+    # start a new wandb run to track this script
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='gmum-servers',
+            config=log_dict,
+            name=run_name
+        )
 
     # Define dataframe for logging progress
     epochs_range = range(1, epochs + 1)
@@ -47,7 +59,8 @@ def train(config, model, train_loader, val_loader):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
-        # wandb.log(metrics_dict)
+        if use_wandb:
+            wandb.log(metrics_dict)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -60,20 +73,35 @@ def train(config, model, train_loader, val_loader):
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
 
+    wandb.finish()
+    return None
 
 
 def train_rl(config, model, train_loader, val_loader):
     """
-        Training loopr fo GRU model with reinforced learning
+        Training loop for GRU model with RL
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    rl_weight = 1
-    run_name = str(config['RL']['run_name'])
-    learn_rate = float(config['RL']['learn_rate'])
-    epochs = int(config['RL']['epochs'])
+    rl_weight = float(config['RUN']['rl_weight'])
+    run_name = str(config['RUN']['run_name'])
+    learn_rate = float(config['RUN']['learn_rate'])
+    epochs = int(config['RUN']['epochs'])
+    start_epoch = int(config['RUN']['start_epoch'])
+    teacher_ratio = float(config['MODEL']['teacher_ratio'])
+    use_teacher = True if teacher_ratio > 0 else False
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+
+    # start a new wandb run to track this script
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='gmum-servers',
+            config=log_dict,
+            name=run_name
+        )
 
     # Define dataframe for logging progress
-    epochs_range = range(1, epochs + 1)
+    epochs_range = range(start_epoch, epochs + start_epoch)
     metrics = pd.DataFrame(columns=['epoch', 'val_loss', 'rl_loss', 'total_reward'])
 
     # Define loss function and optimizer
@@ -95,14 +123,10 @@ def train_rl(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            if epoch == 1:
-                output = model(X, y, teacher_forcing=True, reinforcement=False)
-                rl_loss = torch.tensor([0]).to(device)
-            else:
-                output, rl_loss, total_reward = model(X, y, teacher_forcing=True, reinforcement=True)
-                rl_loss = rl_loss * rl_weight
-                epoch_rl_loss += rl_loss.item()
-                epoch_total_reward += total_reward
+            output, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
+            rl_loss = rl_loss * rl_weight
+            epoch_rl_loss += rl_loss.item()
+            epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
             # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
@@ -117,6 +141,8 @@ def train_rl(config, model, train_loader, val_loader):
                         'rl_loss': epoch_rl_loss,
                         'total_reward': epoch_total_reward,
                         }
+        if use_wandb:
+            wandb.log(metrics_dict)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -130,20 +156,21 @@ def train_rl(config, model, train_loader, val_loader):
         loop_time = (end_time - start_time) / 60  # in minutes
         print(f'Executed in {loop_time} minutes')
 
-    # wandb.finish()
-    return model
+    wandb.finish()
+    return None
 
 
 def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
-    criterion = CCE()
-    epoch_loss = 0
-    for batch_idx, (X, y) in enumerate(val_loader):
-        X = X.to(device)
-        y = y.to(device)
-        output = model(X, y, teacher_forcing=False, reinforcement=False)
-        loss = criterion(y, output)
-        epoch_loss += loss.item()
-    avg_loss = epoch_loss / len(val_loader)
-    return avg_loss
+    with torch.no_grad():
+        criterion = CCE()
+        epoch_loss = 0
+        for batch_idx, (X, y) in enumerate(val_loader):
+            X = X.to(device)
+            y = y.to(device)
+            output = model(X, y, teacher_forcing=False, reinforcement=False)
+            loss = criterion(y, output)
+            epoch_loss += loss.item()
+        avg_loss = epoch_loss / len(val_loader)
+        return avg_loss
