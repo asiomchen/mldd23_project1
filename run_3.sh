@@ -6,6 +6,4 @@ echo "training VAE"
 python -u train_vae.py -c v_3.ini > log_vae_3.out
 echo "training GRU"
 python -u train_gru.py -c g_3.ini > log_gru_3.out
-echo "training GRU with RL"
-python -u RL.py -c rl_3.ini > log_rl_3.out
 echo "run finished"
