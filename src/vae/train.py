@@ -70,8 +70,10 @@ def train_vae(config, model, train_loader, val_loader):
         metrics.loc[len(metrics)] = metrics_dict
 
         if epoch % 25 == 0:
-            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
+            save_path = f"models/{run_name}/encoder_epoch_{epoch}.pt"
             torch.save(model.encoder.state_dict(), save_path)
+            save_path = f"models/{run_name}/vae_epoch_{epoch}.pt"
+            torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv")
 
@@ -140,8 +142,10 @@ def train_cvae(config, model, train_loader, val_loader):
             wandb.log(metrics_dict)
 
         if epoch % 10 == 0:
-            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
+            save_path = f"models/{run_name}/encoder_epoch_{epoch}.pt"
             torch.save(model.encoder.state_dict(), save_path)
+            save_path = f"models/{run_name}/vae_epoch_{epoch}.pt"
+            torch.save(model.state_dict(), save_path)
 
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
 
