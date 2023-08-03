@@ -120,16 +120,17 @@ def train_cvae(config, model, train_loader, val_loader):
 
 def evaluate(model, val_loader):
     model.eval()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    criterion = vae.VAELoss()
-    epoch_loss = 0
-    for fp in val_loader:
-        fp = fp.to(device)
-        encoded, mu, logvar = model(fp)
-        loss = criterion(encoded, fp, mu, logvar)
-        epoch_loss += loss.item()
-    avg_loss = epoch_loss / len(val_loader)
-    return avg_loss
+    with torch.no_grad():
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        criterion = vae.VAELoss()
+        epoch_loss = 0
+        for fp in val_loader:
+            fp = fp.to(device)
+            encoded, mu, logvar = model(fp)
+            loss = criterion(encoded, fp, mu, logvar)
+            epoch_loss += loss.item()
+        avg_loss = epoch_loss / len(val_loader)
+        return avg_loss
 
 
 def evaluate_cvae(model, val_loader):

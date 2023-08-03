@@ -135,13 +135,14 @@ def train_rl(config, model, train_loader, val_loader):
 def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
-    criterion = CCE()
-    epoch_loss = 0
-    for batch_idx, (X, y) in enumerate(val_loader):
-        X = X.to(device)
-        y = y.to(device)
-        output = model(X, y, teacher_forcing=False, reinforcement=False)
-        loss = criterion(y, output)
-        epoch_loss += loss.item()
-    avg_loss = epoch_loss / len(val_loader)
-    return avg_loss
+    with torch.no_grad():
+        criterion = CCE()
+        epoch_loss = 0
+        for batch_idx, (X, y) in enumerate(val_loader):
+            X = X.to(device)
+            y = y.to(device)
+            output = model(X, y, teacher_forcing=False, reinforcement=False)
+            loss = criterion(y, output)
+            epoch_loss += loss.item()
+        avg_loss = epoch_loss / len(val_loader)
+        return avg_loss
