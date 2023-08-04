@@ -55,13 +55,6 @@ def train_vae(config, model, train_loader, val_loader):
                         'val_loss': val_loss}
 
         if use_wandb:
-            log_dict = {s: dict(config.items(s)) for s in config.sections()}
-            wandb.init(
-                project="vae",
-                config=log_dict
-            )
-
-        if use_wandb:
             wandb.log(metrics_dict)
 
         scheduler.step(avg_loss)
@@ -132,12 +125,6 @@ def train_cvae(config, model, train_loader, val_loader):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
-        if use_wandb:
-            log_dict = {s: dict(config.items(s)) for s in config.sections()}
-            wandb.init(
-                project="cvae",
-                config=log_dict
-            )
 
         scheduler.step(avg_loss)
 
