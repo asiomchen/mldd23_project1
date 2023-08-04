@@ -43,7 +43,7 @@ class VAEEncoder(nn.Module):
 
 
 class DecoderNet(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, output_size, dropout):
+    def __init__(self, hidden_size, num_layers, output_size, dropout):
         super(DecoderNet, self).__init__()
         """
         Decoder class based on GRU.
@@ -56,7 +56,6 @@ class DecoderNet(nn.Module):
             dropout (float):GRU dropout
         """
         # GRU parameters
-        self.input_size = input_size
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
@@ -65,7 +64,7 @@ class DecoderNet(nn.Module):
         self.output_size = output_size
 
         # pytorch.nn
-        self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
+        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=num_layers,
                           dropout=dropout, batch_first=True)
 
     def forward(self, x, h):
@@ -109,7 +108,7 @@ class EncoderDecoder(nn.Module):
         super(EncoderDecoder, self).__init__()
         self.teacher_ratio = teacher_ratio
         self.encoder = VAEEncoder(fp_size, encoding_size)
-        self.decoder = DecoderNet(encoding_size, hidden_size, num_layers, output_size, dropout)
+        self.decoder = DecoderNet(hidden_size, num_layers, output_size, dropout)
         self.encoding_size = encoding_size
         self.hidden_size = hidden_size
         self.device = torch.device('cuda' if use_cuda else 'cpu')
@@ -305,12 +304,11 @@ class EncoderDecoderV2(EncoderDecoder):
         with torch.no_grad():
             mu, logvar = self.encoder(X)
             encoded = self.reparameterize(mu, logvar)
-            x = encoded.unsqueeze(1)
 
-        h1 = self.relu(self.fc11(x))
+        h1 = self.relu(self.fc11(encoded))
         h2 = self.relu(self.fc12(h1))
         h3 = self.relu(self.fc13(h2))
-        x = h3
+        x = h3.unsqueeze(1)
         # generating sequence
 
         for n in range(128):

@@ -84,6 +84,7 @@ def main():
         num_layers=num_layers,
         dropout=dropout,
         teacher_ratio=teacher_ratio,
+        output_size=42  # alphabet length
     ).to(device)
 
     if checkpoint_path != 'None':
