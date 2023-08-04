@@ -90,7 +90,7 @@ class DecoderNet(nn.Module):
 
 class EncoderDecoder(nn.Module):
     def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
-                 teacher_ratio=0.5, random_seed=42, use_cuda=True):
+                 teacher_ratio=0.5, random_seed=42, use_cuda=True, nograd_encoder=False):
         """
         Encoder-Decoder class based on VAE and GRU.
 
@@ -103,6 +103,8 @@ class EncoderDecoder(nn.Module):
             dropout (float): GRU dropout
             teacher_ratio (float): teacher forcing ratio
             random_seed (int): random seed for reproducibility
+            use_cuda (bool): wetter to use cuda
+            nograd_encoder (bool): disable gradient calculation for the encoder
         """
         super(EncoderDecoder, self).__init__()
         self.teacher_ratio = teacher_ratio
@@ -111,6 +113,7 @@ class EncoderDecoder(nn.Module):
         self.encoding_size = encoding_size
         self.hidden_size = hidden_size
         self.device = torch.device('cuda' if use_cuda else 'cpu')
+        self.nograd_encoder = nograd_encoder
         random.seed(random_seed)
 
         # pytorch.nn
@@ -136,9 +139,16 @@ class EncoderDecoder(nn.Module):
         """
         batch_size = X.shape[0]
         hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        mu, logvar = self.encoder(X)
-        encoded = self.reparameterize(mu, logvar)
-        x = encoded.unsqueeze(1)
+
+        if self.nograd_encoder:
+            with torch.no_grad():
+                mu, logvar = self.encoder(X)
+                encoded = self.reparameterize(mu, logvar)
+                x = encoded.unsqueeze(1)
+        else:
+            mu, logvar = self.encoder(X)
+            encoded = self.reparameterize(mu, logvar)
+            x = encoded.unsqueeze(1)
         outputs = []
 
         # generating sequence
@@ -188,7 +198,7 @@ class EncoderDecoder(nn.Module):
             try:
                 smiles = sf.decoder(trajectory)
                 mol = Chem.MolFromSmiles(smiles)
-                reward = (self.get_qed_reward(mol) + self.get_fp_reward(mol, X[idx]))/2
+                reward = (self.get_qed_reward(mol) + self.get_fp_reward(mol, X[idx])) / 2
             except sf.DecoderError:
                 print('SELFIES decoding error')
                 reward = 0
@@ -269,3 +279,52 @@ class EncoderDecoder(nn.Module):
                 frag = Chem.MolFromSmarts(key.iloc[i].values[0])
                 score += mol.HasSubstructMatch(frag)
         return score / fp_len
+
+
+class EncoderDecoderV2(EncoderDecoder):
+    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
+                 teacher_ratio, random_seed=42, use_cuda=True):
+        super().__init__(fp_size=fp_size,
+                         encoding_size=encoding_size,
+                         hidden_size=hidden_size,
+                         num_layers=num_layers,
+                         output_size=output_size,
+                         dropout=dropout,
+                         teacher_ratio=teacher_ratio,
+                         random_seed=random_seed,
+                         use_cuda=use_cuda)
+        self.fc11 = nn.Linear(self.encoding_size, 256)
+        self.fc12 = nn.Linear(256, 256)
+        self.fc13 = nn.Linear(256, 512)
+        self.relu = nn.ReLU()
+
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
+        batch_size = X.shape[0]
+        hidden = self.decoder.init_hidden(batch_size).to(self.device)
+        outputs = []
+        with torch.no_grad():
+            mu, logvar = self.encoder(X)
+            encoded = self.reparameterize(mu, logvar)
+            x = encoded.unsqueeze(1)
+
+        h1 = self.relu(self.fc11(x))
+        h2 = self.relu(self.fc12(h1))
+        h3 = self.relu(self.fc13(h2))
+        x = h3
+        # generating sequence
+
+        for n in range(128):
+            out, hidden = self.decoder(x, hidden)
+            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
+            outputs.append(out)
+            random_float = random.random()
+            if teacher_forcing and random_float < self.teacher_ratio:
+                out = y[:, n, :].unsqueeze(1)
+            x = self.fc2(out)
+        out_cat = torch.cat(outputs, dim=1)
+
+        if reinforcement:
+            rl_loss, total_reward = self.reinforce(out_cat, X)
+            return out_cat, rl_loss, total_reward
+        else:
+            return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]

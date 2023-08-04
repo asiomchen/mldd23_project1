@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator_new import EncoderDecoder
+from src.gru.generator import EncoderDecoderV2
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -77,7 +77,7 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    model = EncoderDecoder(
+    model = EncoderDecoderV2(
         fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
