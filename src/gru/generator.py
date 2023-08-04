@@ -150,7 +150,7 @@ class EncoderDecoder(nn.Module):
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:, n, :].unsqueeze(1)
-            x = self.relu(self.fc2(out))
+            x = self.fc2(out)
         out_cat = torch.cat(outputs, dim=1)
 
         if reinforcement:
