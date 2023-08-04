@@ -135,9 +135,10 @@ class EncoderDecoder(nn.Module):
         """
         batch_size = X.shape[0]
         hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        mu, logvar = self.encoder(X)
-        encoded = self.reparameterize(mu, logvar)
-        x = encoded.unsqueeze(1)
+        with torch.no_grad():
+            mu, logvar = self.encoder(X)
+            encoded = self.reparameterize(mu, logvar)
+            x = encoded.unsqueeze(1)
         outputs = []
 
         # generating sequence
