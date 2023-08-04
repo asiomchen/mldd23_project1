@@ -89,7 +89,7 @@ class DecoderNet(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
-    def __init__(self, fp_size=4860, encoding_size=512, hidden_size=512, num_layers=1, output_size=42, dropout=0,
+    def __init__(self, fp_size=4860, encoding_size=256, hidden_size=256, num_layers=3, output_size=42, dropout=0.2,
                  teacher_ratio=0.5, random_seed=42, use_cuda=True):
         """
         Encoder-Decoder class based on VAE and GRU.
@@ -150,7 +150,7 @@ class EncoderDecoder(nn.Module):
             random_float = random.random()
             if teacher_forcing and random_float < self.teacher_ratio:
                 out = y[:, n, :].unsqueeze(1)
-            x = self.relu(self.fc2(out))
+            x = self.fc2(out)
         out_cat = torch.cat(outputs, dim=1)
 
         if reinforcement:
