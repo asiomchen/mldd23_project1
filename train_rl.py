@@ -41,6 +41,7 @@ def main():
     fp_len = int(config['MODEL']['fp_len'])
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     encoder_path = str(config['MODEL']['encoder_path'])
+    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     # create a directory for this model if not there
@@ -78,7 +79,8 @@ def main():
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
-        teacher_ratio=teacher_ratio
+        teacher_ratio=teacher_ratio,
+        encoder_nograd=encoder_nograd
     ).to(device)
 
     if checkpoint_path != 'None':

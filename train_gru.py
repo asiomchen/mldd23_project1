@@ -43,6 +43,7 @@ def main():
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     fp_len = int(config['MODEL']['fp_len'])
     encoder_path = str(config['MODEL']['encoder_path'])
+    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     dataset = pd.read_parquet(data_path)
@@ -84,7 +85,8 @@ def main():
         num_layers=num_layers,
         dropout=dropout,
         teacher_ratio=teacher_ratio,
-        output_size=42  # alphabet length
+        output_size=42,  # alphabet length
+        encoder_nograd = en
     ).to(device)
 
     if checkpoint_path != 'None':
