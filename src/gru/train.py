@@ -17,6 +17,8 @@ def train(config, model, train_loader, val_loader):
     learn_rate = float(config['RUN']['learn_rate'])
     use_wandb = config.getboolean('RUN', 'use_wandb')
     kld_backward = config.getboolean('RUN', 'kld_backward')
+    start_epoch = int(config['RUN']['start_epoch'])
+    kld_weight = float(config['RUN']['kld_weight'])
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -28,7 +30,7 @@ def train(config, model, train_loader, val_loader):
         )
 
     # Define dataframe for logging progress
-    epochs_range = range(1, epochs + 1)
+    epochs_range = range(start_epoch, epochs + start_epoch)
     metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
@@ -44,12 +46,13 @@ def train(config, model, train_loader, val_loader):
         start_time = time.time()
         print(f'Epoch: {epoch}')
         epoch_loss = 0
+        kld_loss = 0
         for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
-            print(output)
+            kld_loss = kld_loss * kld_weight
             loss = criterion(y, output)
             if kld_backward:
                 (loss + kld_loss).backward()
@@ -97,6 +100,7 @@ def train_rl(config, model, train_loader, val_loader):
     use_teacher = True if teacher_ratio > 0 else False
     use_wandb = config.getboolean('RUN', 'use_wandb')
     kld_backward = config.getboolean('RUN', 'kld_backward')
+    kld_weight = float(config['RUN']['kld_weight'])
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -125,6 +129,7 @@ def train_rl(config, model, train_loader, val_loader):
         epoch_loss = 0
         epoch_rl_loss = 0
         epoch_total_reward = 0
+        kld_loss = 0
         model.train()
         for batch_idx, (X, y) in enumerate(train_loader):
             X = X.to(device)
@@ -132,6 +137,7 @@ def train_rl(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             output, kld_loss, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
             rl_loss = rl_loss * rl_weight
+            kld_loss = kld_loss * kld_weight
             epoch_rl_loss += rl_loss.item()
             epoch_total_reward += total_reward
             loss = criterion(y, output)
