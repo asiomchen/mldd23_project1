@@ -48,9 +48,8 @@ def train(config, model, train_loader, val_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, *kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
-            if kld_loss is None:
-                kld_loss = torch.tensor(0.0)
+            output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
+            print(output)
             loss = criterion(y, output)
             if kld_backward:
                 (loss + kld_loss).backward()
@@ -180,7 +179,7 @@ def evaluate(model, val_loader):
         for batch_idx, (X, y) in enumerate(val_loader):
             X = X.to(device)
             y = y.to(device)
-            output = model(X, y, teacher_forcing=False, reinforcement=False)
+            output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
         avg_loss = epoch_loss / len(val_loader)

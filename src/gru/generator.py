@@ -327,6 +327,6 @@ class EncoderDecoderV2(EncoderDecoder):
 
         if reinforcement:
             rl_loss, total_reward = self.reinforce(out_cat, X)
-            return out_cat, rl_loss, total_reward
+            return out_cat, torch.tensor(0.0), rl_loss, total_reward
         else:
-            return out_cat  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return out_cat, torch.tensor(0.0)  # out_cat.shape [batch_size, selfie_len, alphabet_len]
