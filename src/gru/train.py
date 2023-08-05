@@ -16,6 +16,9 @@ def train(config, model, train_loader, val_loader):
     run_name = str(config['RUN']['run_name'])
     learn_rate = float(config['RUN']['learn_rate'])
     use_wandb = config.getboolean('RUN', 'use_wandb')
+    kld_backward = config.getboolean('RUN', 'kld_backward')
+    start_epoch = int(config['RUN']['start_epoch'])
+    kld_weight = float(config['RUN']['kld_weight'])
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -27,8 +30,8 @@ def train(config, model, train_loader, val_loader):
         )
 
     # Define dataframe for logging progress
-    epochs_range = range(1, epochs + 1)
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
+    epochs_range = range(start_epoch, epochs + start_epoch)
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -43,13 +46,18 @@ def train(config, model, train_loader, val_loader):
         start_time = time.time()
         print(f'Epoch: {epoch}')
         epoch_loss = 0
+        kld_loss = 0
         for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output = model(X, y, teacher_forcing=True, reinforcement=False)
+            output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
+            kld_loss = kld_loss * kld_weight
             loss = criterion(y, output)
-            loss.backward()
+            if kld_backward:
+                (loss + kld_loss).backward()
+            else:
+                loss.backward()
             optimizer.step()
             epoch_loss += loss.item()
 
@@ -57,6 +65,7 @@ def train(config, model, train_loader, val_loader):
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
+                        'kld_loss': kld_loss.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
         if use_wandb:
@@ -90,6 +99,8 @@ def train_rl(config, model, train_loader, val_loader):
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     use_teacher = True if teacher_ratio > 0 else False
     use_wandb = config.getboolean('RUN', 'use_wandb')
+    kld_backward = config.getboolean('RUN', 'kld_backward')
+    kld_weight = float(config['RUN']['kld_weight'])
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -102,7 +113,7 @@ def train_rl(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'val_loss', 'rl_loss', 'total_reward'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'val_loss', 'rl_loss', 'total_reward'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -118,25 +129,30 @@ def train_rl(config, model, train_loader, val_loader):
         epoch_loss = 0
         epoch_rl_loss = 0
         epoch_total_reward = 0
+        kld_loss = 0
         model.train()
         for batch_idx, (X, y) in enumerate(train_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
+            output, kld_loss, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
             rl_loss = rl_loss * rl_weight
+            kld_loss = kld_loss * kld_weight
             epoch_rl_loss += rl_loss.item()
             epoch_total_reward += total_reward
             loss = criterion(y, output)
             epoch_loss += loss.item()
-            # print('loss: ', loss.item(), 'rl_loss: ', rl_loss.item())
-            (loss + rl_loss).backward()
+            if kld_backward:
+                (loss + rl_loss + kld_loss).backward()
+            else:
+                (loss + rl_loss).backward()
             optimizer.step()
 
         epoch_rl_loss = epoch_rl_loss / len(train_loader)
         epoch_total_reward = epoch_total_reward / len(train_loader)
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
+                        'kld_loss': kld_loss.item(),
                         'val_loss': val_loss,
                         'rl_loss': epoch_rl_loss,
                         'total_reward': epoch_total_reward,
@@ -169,7 +185,7 @@ def evaluate(model, val_loader):
         for batch_idx, (X, y) in enumerate(val_loader):
             X = X.to(device)
             y = y.to(device)
-            output = model(X, y, teacher_forcing=False, reinforcement=False)
+            output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
         avg_loss = epoch_loss / len(val_loader)

@@ -1,6 +1,6 @@
 # import packages
 from src.gru.dataset import GRUDataset
-from src.gru.generator_new import EncoderDecoder
+from src.gru.generator import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
@@ -41,6 +41,7 @@ def main():
     fp_len = int(config['MODEL']['fp_len'])
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     encoder_path = str(config['MODEL']['encoder_path'])
+    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     # create a directory for this model if not there
@@ -78,7 +79,8 @@ def main():
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
-        teacher_ratio=teacher_ratio
+        teacher_ratio=teacher_ratio,
+        encoder_nograd=encoder_nograd
     ).to(device)
 
     if checkpoint_path != 'None':

@@ -21,7 +21,7 @@ def train_vae(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='vae',
+            project='gmum-servers',
             config=log_dict,
             name=run_name
         )
@@ -53,6 +53,13 @@ def train_vae(config, model, train_loader, val_loader):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
+
+        if use_wandb:
+            log_dict = {s: dict(config.items(s)) for s in config.sections()}
+            wandb.init(
+                project="vae",
+                config=log_dict
+            )
 
         if use_wandb:
             wandb.log(metrics_dict)
