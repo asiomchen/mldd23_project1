@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator_new import EncoderDecoder
+from src.gru.generator import EncoderDecoder
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -43,6 +43,7 @@ def main():
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     fp_len = int(config['MODEL']['fp_len'])
     encoder_path = str(config['MODEL']['encoder_path'])
+    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     dataset = pd.read_parquet(data_path)
@@ -84,6 +85,9 @@ def main():
         num_layers=num_layers,
         dropout=dropout,
         teacher_ratio=teacher_ratio,
+        output_size=42,  # alphabet length
+        encoder_nograd=encoder_nograd,
+        random_seed=42,
     ).to(device)
 
     if checkpoint_path != 'None':

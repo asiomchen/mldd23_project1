@@ -57,7 +57,7 @@ def train_vae(config, model, train_loader, val_loader):
         if use_wandb:
             log_dict = {s: dict(config.items(s)) for s in config.sections()}
             wandb.init(
-                project="gmum-servers",
+                project="vae",
                 config=log_dict
             )
 
@@ -99,7 +99,7 @@ def train_cvae(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gmum-servers',
+            project='cvae',
             config=log_dict,
             name=run_name
         )
