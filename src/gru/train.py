@@ -1,8 +1,12 @@
+from src.utils.vectorizer import SELFIESVectorizer
 import torch
 import pandas as pd
 import time
 from src.gru.cce import CCE
 import wandb
+import random
+import selfies as sf
+import rdkit.Chem as Chem
 
 
 def train(config, model, train_loader, val_loader):
@@ -31,7 +35,7 @@ def train(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss', 'mean_qed', 'fp_recon_score'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -63,11 +67,13 @@ def train(config, model, train_loader, val_loader):
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
-        val_loss = evaluate(model, val_loader)
+        val_loss, mean_qed, fp_recon_score = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
                         'train_loss': avg_loss,
-                        'val_loss': val_loss}
+                        'val_loss': val_loss,
+                        'mean_qed': mean_qed,
+                        'fp_recon_score': fp_recon_score}
         if use_wandb:
             wandb.log(metrics_dict)
 
@@ -176,17 +182,38 @@ def train_rl(config, model, train_loader, val_loader):
     return None
 
 
-def evaluate(model, val_loader):
+def evaluate(model, val_loader, n_samples=20):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()
     with torch.no_grad():
         criterion = CCE()
         epoch_loss = 0
+        epoch_qed = 0
+        epoch_fp_score = 0
         for batch_idx, (X, y) in enumerate(val_loader):
+            batch_size = X.shape[0]
             X = X.to(device)
             y = y.to(device)
             output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
+
+            sample_idxs = [random.randint(0, batch_size - 1) for _ in range(n_samples)]
+            for idx in sample_idxs:
+                vectorized = output[idx].cpu().numpy()
+                selfies = vectorizer.devectorize(vectorized, remove_special=True)
+                try:
+                    smiles = sf.decoder(selfies)
+                    mol = Chem.MolFromSmiles(smiles)
+                    epoch_qed += model.get_qed_reward(mol)
+                    epoch_fp_score += model.get_fp_reward(mol, X[idx])
+                except sf.DecoderError:
+                    print('SELFIES decoding error')
+            epoch_qed = epoch_qed/n_samples
+            epoch_fp_score = epoch_fp_score/n_samples
+
         avg_loss = epoch_loss / len(val_loader)
-        return avg_loss
+        mean_qed = epoch_qed / len(val_loader)
+        fp_recon_score = epoch_fp_score / len(val_loader)
+        return avg_loss, mean_qed, fp_recon_score
