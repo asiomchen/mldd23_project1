@@ -168,7 +168,7 @@ def train_rl(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if epoch % 10 == 0:
+        if epoch % 25 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(), save_path)
 
