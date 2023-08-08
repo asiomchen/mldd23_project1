@@ -287,7 +287,7 @@ class EncoderDecoder(nn.Module):
 
 class EncoderDecoderV2(EncoderDecoder):
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed=42, use_cuda=True, encoder_nograd=True):
+                 teacher_ratio, random_seed=42, use_cuda=True):
         super().__init__(fp_size=fp_size,
                          encoding_size=encoding_size,
                          hidden_size=hidden_size,
@@ -313,7 +313,7 @@ class EncoderDecoderV2(EncoderDecoder):
 
         h1 = self.relu(self.fc11(encoded))
         h2 = self.relu(self.fc12(h1))
-        h3 = self.relu(self.fc13(h2))
+        h3 = self.fc13(h2)
         x = h3.unsqueeze(1)
 
         for n in range(128):
