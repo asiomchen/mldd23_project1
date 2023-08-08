@@ -282,7 +282,7 @@ class EncoderDecoder(nn.Module):
             if fp[i] == 1:
                 frag = Chem.MolFromSmarts(key.iloc[i].values[0])
                 score += mol.HasSubstructMatch(frag)
-        return score / fp_len
+        return score / torch.sum(fp).item()
 
 
 class EncoderDecoderV2(EncoderDecoder):
@@ -297,7 +297,7 @@ class EncoderDecoderV2(EncoderDecoder):
                          teacher_ratio=teacher_ratio,
                          random_seed=random_seed,
                          use_cuda=use_cuda,
-                         encoder_nograd=True)
+                         encoder_nograd=encoder_nograd)
         self.fc11 = nn.Linear(self.encoding_size, 256)
         self.fc12 = nn.Linear(256, 256)
         self.fc13 = nn.Linear(256, self.hidden_size)
