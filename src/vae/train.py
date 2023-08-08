@@ -4,6 +4,7 @@ import src.vae.vae as vae
 import pandas as pd
 import time
 import wandb
+from src.utils.annealing import Annealing
 
 
 def train_vae(config, model, train_loader, val_loader):
@@ -11,13 +12,16 @@ def train_vae(config, model, train_loader, val_loader):
     Training loop for VAE model
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     epochs = int(config['VAE']['epochs'])
     run_name = config['VAE']['run_name']
     learning_rate = float(config['VAE']['learning_rate'])
     use_wandb = config.getboolean('VAE', 'use_wandb')
     kld_weight = float(config['VAE']['kld_weight'])
     recon_weight = float(config['VAE']['recon_weight'])
+    kld_annealing = config.getboolean('VAE', 'kld_annealing')
+    annealing_epochs = int(config['VAE']['annealing_epochs'])
+    annealing_slope = config['VAE']['annealing_slope']
+    annealing_agent = Annealing(epochs=annealing_epochs, slope=annealing_slope)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -46,7 +50,11 @@ def train_vae(config, model, train_loader, val_loader):
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
             bce = bce * recon_weight
-            kld = kld * kld_weight
+            if kld_annealing:
+                kld = annealing_agent(kld * kld_weight)
+                annealing_agent.step()
+            else:
+                kld = kld * kld_weight
             loss = bce + kld
             optimizer.zero_grad()
             loss.backward()
