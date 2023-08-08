@@ -287,7 +287,7 @@ class EncoderDecoder(nn.Module):
 
 class EncoderDecoderV2(EncoderDecoder):
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed=42, use_cuda=True):
+                 teacher_ratio, random_seed=42, use_cuda=True, encoder_nograd=True):
         super().__init__(fp_size=fp_size,
                          encoding_size=encoding_size,
                          hidden_size=hidden_size,
@@ -297,7 +297,7 @@ class EncoderDecoderV2(EncoderDecoder):
                          teacher_ratio=teacher_ratio,
                          random_seed=random_seed,
                          use_cuda=use_cuda,
-                         encoder_nograd=True)
+                         encoder_nograd=encoder_nograd)
         self.fc11 = nn.Linear(self.encoding_size, 256)
         self.fc12 = nn.Linear(256, 256)
         self.fc13 = nn.Linear(256, self.hidden_size)
