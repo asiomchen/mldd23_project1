@@ -28,7 +28,7 @@ def train_vae(config, model, train_loader, val_loader):
             name=run_name
         )
 
-    criterion = vae.VAELoss(sum_losses=False)
+    criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
@@ -172,7 +172,7 @@ def evaluate(model, val_loader, recon_weight=1.0, kld_weight=1.0):
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        criterion = vae.VAELoss(sum_losses=False)
+        criterion = vae.VAELoss()
         epoch_bce = 0
         epoch_kld = 0
         for fp in val_loader:
