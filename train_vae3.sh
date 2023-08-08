@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=5ht1a_vae
+#SBATCH --job-name=VAE3
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1
@@ -10,6 +10,6 @@ nvidia-smi -L
 source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
-wandb login
-python -u train_vae.py > log_vae.out
+wandb login 505ce3ad45fdf9309c3d8ec1d9764262ae6929c1
+python -u train_vae.py -c vae3.ini > log_vae3.out
 echo done
