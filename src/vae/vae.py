@@ -58,10 +58,14 @@ class VAE(nn.Module):
 
 
 class VAELoss(nn.Module):
-    def __init__(self):
+    def __init__(self, sum_losses=True):
         super(VAELoss, self).__init__()
+        self.sum_losses = sum_losses
 
     def forward(self, recon_x, x, mu, logvar):
         BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return BCE + KLD
+        if self.sum_losses:
+            return BCE + KLD
+        else:
+            return BCE, KLD

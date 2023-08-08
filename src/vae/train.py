@@ -21,38 +21,45 @@ def train_vae(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gmum-servers',
+            project='vae',
             config=log_dict,
             name=run_name
         )
 
-    criterion = vae.VAELoss()
+    criterion = vae.VAELoss(sum_losses=False)
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
+    metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld'])
 
     for epoch in range(1, epochs + 1):
         print(f'Epoch: {epoch}')
-        epoch_loss = 0
+        epoch_bce = 0
+        epoch_kld = 0
         start_time = time.time()
 
         for fp in train_loader:
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
-            loss = criterion(encoded, fp, mu, logvar)
+            bce, kld = criterion(encoded, fp, mu, logvar)
+            loss = bce + kld
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_loss += loss.item()
+            epoch_bce += bce.item()
+            epoch_kld += kld.item()
 
         # calculate loss and log to wandb
-        avg_loss = epoch_loss / len(train_loader)
-        val_loss = evaluate(model, val_loader)
+        avg_bce = epoch_bce / len(train_loader)
+        avg_kld = epoch_kld / len(train_loader)
+        val_bce, val_kld = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
-                        'train_loss': avg_loss,
-                        'val_loss': val_loss}
+                        'train_bce': avg_bce,
+                        'train_kld': avg_kld,
+                        'val_bce': val_bce,
+                        'val_kld': val_kld
+                        }
 
         if use_wandb:
             log_dict = {s: dict(config.items(s)) for s in config.sections()}
@@ -64,7 +71,7 @@ def train_vae(config, model, train_loader, val_loader):
         if use_wandb:
             wandb.log(metrics_dict)
 
-        scheduler.step(avg_loss)
+        scheduler.step(avg_bce + avg_kld)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -141,7 +148,7 @@ def train_cvae(config, model, train_loader, val_loader):
         if use_wandb:
             wandb.log(metrics_dict)
 
-        if epoch % 10 == 0:
+        if epoch % 25 == 0:
             save_path = f"models/{run_name}/encoder_epoch_{epoch}.pt"
             torch.save(model.encoder.state_dict(), save_path)
             save_path = f"models/{run_name}/vae_epoch_{epoch}.pt"
@@ -161,15 +168,18 @@ def evaluate(model, val_loader):
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        criterion = vae.VAELoss()
-        epoch_loss = 0
+        criterion = vae.VAELoss(sum_losses=False)
+        epoch_bce = 0
+        epoch_kld = 0
         for fp in val_loader:
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
-            loss = criterion(encoded, fp, mu, logvar)
-            epoch_loss += loss.item()
-        avg_loss = epoch_loss / len(val_loader)
-        return avg_loss
+            bce, kld = criterion(encoded, fp, mu, logvar)
+            epoch_bce += bce.item()
+            epoch_kld += kld.item()
+        avg_bce = epoch_bce / len(val_loader)
+        avg_kld = epoch_kld / len(val_loader)
+        return avg_bce, avg_kld
 
 
 def evaluate_cvae(model, val_loader):
@@ -181,7 +191,7 @@ def evaluate_cvae(model, val_loader):
         fp = fp.to(device)
         y = y.to(device)
         encoded, mu, logvar = model(fp, y)
-        loss = criterion(encoded, fp, mu, logvar)
+        loss = criterion(encoded, fp, mu, logvar, False)
         epoch_loss += loss.item()
     avg_loss = epoch_loss / len(val_loader)
     return avg_loss
