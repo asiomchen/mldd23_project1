@@ -3,6 +3,15 @@ import torch.nn as nn
 
 
 class VAEEncoder(nn.Module):
+    """
+    Encoder for VAE
+    Args:
+        input_size: size of input
+        output_size: size of latent space
+    Returns:
+        mu: mean of latent space
+        logvar: log variance of latent space
+    """
     def __init__(self, input_size, output_size):
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 2048)
@@ -23,6 +32,14 @@ class VAEEncoder(nn.Module):
 
 
 class VAEDecoder(nn.Module):
+    """
+    Decoder for VAE
+    Args:
+        input_size: size of latent space
+        output_size: size of output
+    Returns:
+        out: reconstructed x
+    """
     def __init__(self, input_size, output_size):
         super(VAEDecoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 512)
@@ -41,6 +58,16 @@ class VAEDecoder(nn.Module):
 
 
 class VAE(nn.Module):
+    """
+    VAE
+    Args:
+        input_size: size of input
+        latent_size: size of latent space
+    Returns:
+        out: reconstructed x
+        mu: mean of latent space
+        logvar: log variance of latent space
+    """
     def __init__(self, input_size, latent_size):
         super(VAE, self).__init__()
         self.encoder = VAEEncoder(input_size, latent_size)
@@ -58,14 +85,21 @@ class VAE(nn.Module):
 
 
 class VAELoss(nn.Module):
-    def __init__(self, sum_losses=True):
+    """
+    Calculates reconstruction loss and KL divergence loss
+    Args:
+        recon_x: reconstructed x
+        x: original x
+        mu: mean of latent space
+        logvar: log variance of latent space
+    Returns:
+        BCE: reconstruction loss
+        KLD: KL divergence loss
+    """
+    def __init__(self):
         super(VAELoss, self).__init__()
-        self.sum_losses = sum_losses
 
     def forward(self, recon_x, x, mu, logvar):
         BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        if self.sum_losses:
-            return BCE + KLD
-        else:
-            return BCE, KLD
+        return BCE, KLD

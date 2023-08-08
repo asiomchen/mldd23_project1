@@ -4,6 +4,7 @@ import src.vae.vae as vae
 import pandas as pd
 import time
 import wandb
+from src.utils.annealing import Annealing
 
 
 def train_vae(config, model, train_loader, val_loader):
@@ -11,11 +12,16 @@ def train_vae(config, model, train_loader, val_loader):
     Training loop for VAE model
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
     epochs = int(config['VAE']['epochs'])
     run_name = config['VAE']['run_name']
     learning_rate = float(config['VAE']['learning_rate'])
     use_wandb = config.getboolean('VAE', 'use_wandb')
+    kld_weight = float(config['VAE']['kld_weight'])
+    recon_weight = float(config['VAE']['recon_weight'])
+    kld_annealing = config.getboolean('VAE', 'kld_annealing')
+    annealing_epochs = int(config['VAE']['annealing_epochs'])
+    annealing_slope = config['VAE']['annealing_slope']
+    annealing_agent = Annealing(epochs=annealing_epochs, slope=annealing_slope)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -26,7 +32,7 @@ def train_vae(config, model, train_loader, val_loader):
             name=run_name
         )
 
-    criterion = vae.VAELoss(sum_losses=False)
+    criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
@@ -43,6 +49,12 @@ def train_vae(config, model, train_loader, val_loader):
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
+            bce = bce * recon_weight
+            if kld_annealing:
+                kld = annealing_agent(kld * kld_weight)
+                annealing_agent.step()
+            else:
+                kld = kld * kld_weight
             loss = bce + kld
             optimizer.zero_grad()
             loss.backward()
@@ -53,7 +65,7 @@ def train_vae(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_bce = epoch_bce / len(train_loader)
         avg_kld = epoch_kld / len(train_loader)
-        val_bce, val_kld = evaluate(model, val_loader)
+        val_bce, val_kld = evaluate(model, val_loader, recon_weight=recon_weight, kld_weight=kld_weight)
         metrics_dict = {'epoch': epoch,
                         'train_bce': avg_bce,
                         'train_kld': avg_kld,
@@ -164,17 +176,19 @@ def train_cvae(config, model, train_loader, val_loader):
     return None
 
 
-def evaluate(model, val_loader):
+def evaluate(model, val_loader, recon_weight=1.0, kld_weight=1.0):
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        criterion = vae.VAELoss(sum_losses=False)
+        criterion = vae.VAELoss()
         epoch_bce = 0
         epoch_kld = 0
         for fp in val_loader:
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
+            bce = bce * recon_weight
+            kld = kld * kld_weight
             epoch_bce += bce.item()
             epoch_kld += kld.item()
         avg_bce = epoch_bce / len(val_loader)
