@@ -26,11 +26,11 @@ def main():
 
     config = configparser.ConfigParser()
     config.read(config_path)
-    run_name = config['VAE']['run_name']
-    batch_size = int(config['VAE']['batch_size'])
-    input_size = int(config['VAE']['input_size'])
-    latent_size = int(config['VAE']['latent_size'])
-    full_path = str(config['VAE']['data_path'])
+    run_name = config['RUN']['run_name']
+    batch_size = int(config['RUN']['batch_size'])
+    input_size = int(config['MODEL']['input_size'])
+    latent_size = int(config['MODEL']['latent_size'])
+    full_path = str(config['RUN']['data_path'])
 
     test_size = 0.8
 

@@ -12,15 +12,15 @@ def train_vae(config, model, train_loader, val_loader):
     Training loop for VAE model
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    epochs = int(config['VAE']['epochs'])
-    run_name = config['VAE']['run_name']
-    learning_rate = float(config['VAE']['learning_rate'])
-    use_wandb = config.getboolean('VAE', 'use_wandb')
-    kld_weight = float(config['VAE']['kld_weight'])
-    recon_weight = float(config['VAE']['recon_weight'])
-    kld_annealing = config.getboolean('VAE', 'kld_annealing')
-    annealing_epochs = int(config['VAE']['annealing_epochs'])
-    annealing_slope = config['VAE']['annealing_slope']
+    epochs = int(config['RUN']['epochs'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+    kld_weight = float(config['RUN']['kld_weight'])
+    recon_weight = float(config['RUN']['recon_weight'])
+    kld_annealing = config.getboolean('RUN', 'kld_annealing')
+    annealing_epochs = int(config['RUN']['annealing_epochs'])
+    annealing_slope = config['RUN']['annealing_slope']
     annealing_agent = Annealing(epochs=annealing_epochs, slope=annealing_slope)
 
     # start a new wandb run to track this script
@@ -109,10 +109,10 @@ def train_cvae(config, model, train_loader, val_loader):
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    epochs = int(config['VAE']['epochs'])
-    run_name = config['VAE']['run_name']
-    learning_rate = float(config['VAE']['learning_rate'])
-    use_wandb = config.getboolean('VAE', 'use_wandb')
+    epochs = int(config['RUN']['epochs'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
 
     # start a new wandb run to track this script
     if use_wandb:
