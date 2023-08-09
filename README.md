@@ -7,7 +7,7 @@
 * [Data sources and tools](#data-sources-and-tools)
 
 ## General info
-TODO
+(W.I.P.)
 
 ## Setup
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
@@ -17,7 +17,7 @@ TODO
 ## Interface
 1. Activate the environment: `conda activate mldd `
 2. (W.I.P.) Generate fingerprints
-3. (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`
+3. (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`  
 
    Required arguments:  
     `-f --file` (str) path to .csv file containing SMILES of molecules; should be put into ./Smiles2Fp/datasets
