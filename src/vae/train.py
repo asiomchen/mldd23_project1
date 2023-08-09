@@ -20,8 +20,8 @@ def train_vae(config, model, train_loader, val_loader):
     recon_weight = float(config['VAE']['recon_weight'])
     kld_annealing = config.getboolean('VAE', 'kld_annealing')
     annealing_epochs = int(config['VAE']['annealing_epochs'])
-    annealing_slope = config['VAE']['annealing_slope']
-    annealing_agent = Annealing(epochs=annealing_epochs, slope=annealing_slope)
+    annealing_shape = config['VAE']['annealing_shape']
+    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -37,7 +37,7 @@ def train_vae(config, model, train_loader, val_loader):
     scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
-    metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld'])
+    metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld', 'kld_annealing'])
 
     for epoch in range(1, epochs + 1):
         print(f'Epoch: {epoch}')
@@ -65,12 +65,13 @@ def train_vae(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_bce = epoch_bce / len(train_loader)
         avg_kld = epoch_kld / len(train_loader)
-        val_bce, val_kld = evaluate(model, val_loader, recon_weight=recon_weight, kld_weight=kld_weight)
+        val_bce, val_kld = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'train_bce': avg_bce,
                         'train_kld': avg_kld,
                         'val_bce': val_bce,
-                        'val_kld': val_kld
+                        'val_kld': val_kld,
+                        'kld_annealing': annealing_agent.slope()
                         }
 
         if use_wandb:
@@ -176,7 +177,7 @@ def train_cvae(config, model, train_loader, val_loader):
     return None
 
 
-def evaluate(model, val_loader, recon_weight=1.0, kld_weight=1.0):
+def evaluate(model, val_loader):
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -187,8 +188,6 @@ def evaluate(model, val_loader, recon_weight=1.0, kld_weight=1.0):
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
-            bce = bce * recon_weight
-            kld = kld * kld_weight
             epoch_bce += bce.item()
             epoch_kld += kld.item()
         avg_bce = epoch_bce / len(val_loader)

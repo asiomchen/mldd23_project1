@@ -1,17 +1,23 @@
+import torch
+
+
 class Annealing:
     """
     Annealing class for KL divergence.
     """
 
-    def __init__(self, epochs: int, slope='linear'):
+    def __init__(self, epochs: int, shape='linear'):
         self.epochs = epochs
         self.current_epoch = 1
-        self.slope = slope
+        self.shape = shape
 
-    def call(self, kld):
-        if self.slope == 'linear':
-            output = kld * (self.current_epoch / self.epochs)
-        return output
+    def __call__(self, kld: torch.tensor):
+        out = kld * self.slope()
+        return out
+
+    def slope(self):
+        if self.shape == 'linear':
+            return self.current_epoch / self.epochs
 
     def step(self):
         if self.current_epoch < self.epochs:
