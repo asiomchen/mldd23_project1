@@ -10,14 +10,13 @@ import pandas as pd
 
 
 class VAEEncoder(nn.Module):
+    """
+    Encoder net, part of VAE.
+    Parameters:
+        input_size (int): size of the fingerprint vector
+        output_size (int): size of the latent vectors mu and logvar
+    """
     def __init__(self, input_size, output_size):
-        """
-        Encoder net, part of VAE.
-
-        Parameters:
-            input_size (int):size of the fingerprint vector
-            output_size (int):size of the latent vectors mu and logvar
-        """
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 2048)
         self.fc2 = nn.Linear(2048, 1024)
@@ -29,7 +28,7 @@ class VAEEncoder(nn.Module):
     def forward(self, x):
         """
         Args:
-            x (torch.tensor):fingerprint vector
+            x (torch.tensor): fingerprint vector
         Returns:
             mu (torch.tensor): mean
             logvar: (torch.tensor): log variance
@@ -48,18 +47,18 @@ class VAEEncoder(nn.Module):
 
 
 class DecoderNet(nn.Module):
+    """
+    Decoder class based on GRU.
+
+    Parameters:
+        hidden_size (int):GRU hidden size
+        num_layers (int):GRU number of layers
+        output_size (int):GRU output size (alphabet size)
+        dropout (float):GRU dropout
+    """
     def __init__(self, hidden_size, num_layers, output_size, dropout):
         super(DecoderNet, self).__init__()
-        """
-        Decoder class based on GRU.
-        
-        Parameters:
-            input_size (int):VAE encoder latent vector size
-            hidden_size (int):GRU hidden size
-            num_layers (int):GRU number of layers
-            output_size (int):GRU output size (alphabet size)
-            dropout (float):GRU dropout
-        """
+
         # GRU parameters
         self.hidden_size = hidden_size
         self.num_layers = num_layers
@@ -93,23 +92,23 @@ class DecoderNet(nn.Module):
 
 
 class EncoderDecoder(nn.Module):
+    """
+    Encoder-Decoder class based on VAE and GRU.
+
+    Parameters:
+        fp_size (int): size of the fingerprint vector
+        encoding_size (int): size of the latent vectors mu and logvar
+        hidden_size (int): GRU hidden size
+        num_layers (int): GRU number of layers
+        output_size (int): GRU output size (alphabet size)
+        dropout (float): GRU dropout
+        teacher_ratio (float): teacher forcing ratio
+        random_seed (int): random seed for reproducibility
+        use_cuda (bool): wetter to use cuda
+        encoder_nograd (bool): disable gradient calculation for the encoder
+    """
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
                  teacher_ratio, random_seed, use_cuda=True, encoder_nograd=False):
-        """
-        Encoder-Decoder class based on VAE and GRU.
-
-        Parameters:
-            fp_size (int): size of the fingerprint vector
-            encoding_size (int): size of the latent vectors mu and logvar
-            hidden_size (int): GRU hidden size
-            num_layers (int): GRU number of layers
-            output_size (int): GRU output size (alphabet size)
-            dropout (float): GRU dropout
-            teacher_ratio (float): teacher forcing ratio
-            random_seed (int): random seed for reproducibility
-            use_cuda (bool): wetter to use cuda
-            encoder_nograd (bool): disable gradient calculation for the encoder
-        """
         super(EncoderDecoder, self).__init__()
         self.teacher_ratio = teacher_ratio
         self.encoder = VAEEncoder(fp_size, encoding_size)
@@ -282,10 +281,14 @@ class EncoderDecoder(nn.Module):
             if fp[i] == 1:
                 frag = Chem.MolFromSmarts(key.iloc[i].values[0])
                 score += mol.HasSubstructMatch(frag)
-        return score / fp_len
+        return score / torch.sum(fp).item()
 
 
 class EncoderDecoderV2(EncoderDecoder):
+    """
+    Encoder-Decoder model with a different architecture.
+    Gradients on encoder are disabled by default. An extra 3-layer MLP is added after the encoder.
+    """
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
                  teacher_ratio, random_seed=42, use_cuda=True, encoder_nograd=True):
         super().__init__(fp_size=fp_size,
@@ -297,7 +300,7 @@ class EncoderDecoderV2(EncoderDecoder):
                          teacher_ratio=teacher_ratio,
                          random_seed=random_seed,
                          use_cuda=use_cuda,
-                         encoder_nograd=True)
+                         encoder_nograd=encoder_nograd)
         self.fc11 = nn.Linear(self.encoding_size, 256)
         self.fc12 = nn.Linear(256, 256)
         self.fc13 = nn.Linear(256, self.hidden_size)

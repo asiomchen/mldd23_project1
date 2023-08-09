@@ -182,7 +182,7 @@ def train_rl(config, model, train_loader, val_loader):
     return None
 
 
-def evaluate(model, val_loader, n_samples=20):
+def evaluate(model, val_loader, n_samples=10):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()
@@ -210,8 +210,8 @@ def evaluate(model, val_loader, n_samples=20):
                     epoch_fp_score += model.get_fp_reward(mol, X[idx])
                 except sf.DecoderError:
                     print('SELFIES decoding error')
-            epoch_qed = epoch_qed/n_samples
-            epoch_fp_score = epoch_fp_score/n_samples
+            epoch_qed = epoch_qed / n_samples
+            epoch_fp_score = epoch_fp_score / n_samples
 
         avg_loss = epoch_loss / len(val_loader)
         mean_qed = epoch_qed / len(val_loader)
