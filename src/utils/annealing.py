@@ -1,4 +1,4 @@
-import torch
+import math
 
 
 class Annealing:
@@ -17,7 +17,7 @@ class Annealing:
             self.shape = shape
         else:
             self.shape = 'none'
-        self.pi = torch.tensor(3.14159265359)
+        self.pi = 3.14159265359
 
     def __call__(self, kld):
         """
@@ -33,13 +33,13 @@ class Annealing:
         if self.slope == 'linear':
             slope = (self.current_epoch / self.epochs)
         elif self.slope == 'cosine':
-            slope = 0.5 + 0.5 * torch.cos(self.pi * self.current_epoch / self.epochs - self.pi)
+            slope = 0.5 + 0.5 * math.cos(self.pi * (self.current_epoch / self.epochs - 1))
         elif self.slope == 'logistic':
-            smoothness = 5
+            smoothness = self.epochs / 10
             exponent = ((self.epochs / 2) - self.current_epoch) / smoothness
-            slope = 1 / (1 + torch.exp(exponent))
+            slope = 1 / (1 + math.exp(exponent))
         elif self.slope == 'none':
-            slope = 1
+            slope = 1.0
         else:
             raise ValueError('Invalid shape for annealing function. Must be linear, cosine, or logistic.')
         return slope
