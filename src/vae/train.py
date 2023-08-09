@@ -20,8 +20,8 @@ def train_vae(config, model, train_loader, val_loader):
     recon_weight = float(config['VAE']['recon_weight'])
     kld_annealing = config.getboolean('VAE', 'kld_annealing')
     annealing_epochs = int(config['VAE']['annealing_epochs'])
-    annealing_shape = config['VAE']['annealing_shape']
-    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape)
+    annealing_shape = str(config['VAE']['annealing_shape'])
+    annealing_agent = Annealing(epochs=annealing_epochs, shape='linear')
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -34,7 +34,6 @@ def train_vae(config, model, train_loader, val_loader):
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld', 'kld_annealing'])
@@ -83,8 +82,6 @@ def train_vae(config, model, train_loader, val_loader):
 
         if use_wandb:
             wandb.log(metrics_dict)
-
-        scheduler.step(avg_bce + avg_kld)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
