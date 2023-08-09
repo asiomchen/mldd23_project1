@@ -1,5 +1,3 @@
-# Dataset class for handling VAE training data
-
 import torch
 import numpy as np
 import pandas as pd
@@ -7,6 +5,12 @@ from torch.utils.data import Dataset
 
 
 class VAEDataset(Dataset):
+    """
+    Dataset for VAE training
+    Args:
+        data_path (str): path to parquet file containing 'fps' column
+        fp_len (int): length of fingerprints
+    """
     def __init__(self, data_path, fp_len):
         self.fps = pd.read_parquet(data_path, columns=['fps'])
         self.fp_len = fp_len

@@ -19,6 +19,13 @@ class Discriminator(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        """
+        Forward pass of the discriminator
+        Args:
+            x (torch.Tensor): input tensor
+        Returns:
+            torch.Tensor: prediction (0.0 to 1.0)
+        """
         h1 = self.relu(self.fc1(x))
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
@@ -29,10 +36,10 @@ def reparameterize(mu, logvar):
     """
     Reparameterization trick for sampling VAE latent space
     Args:
-        mu: tensor of mu values
-        logvar: tensor of logvar values
+        mu (torch.Tensor): tensor of mu values
+        logvar (torch.Tensor): tensor of logvar values
     Returns:
-        tensor of sampled values
+        torch.Tensor: tensor of sampled values
     """
 
     std = torch.exp(0.5 * logvar)

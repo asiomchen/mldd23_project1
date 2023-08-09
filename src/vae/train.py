@@ -10,6 +10,11 @@ from src.utils.annealing import Annealing
 def train_vae(config, model, train_loader, val_loader):
     """
     Training loop for VAE model
+    Args:
+        config: configparser object
+        model: VAE model
+        train_loader: torch DataLoader object for training data
+        val_loader: torch DataLoader object for validation data
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     epochs = int(config['RUN']['epochs'])
@@ -21,7 +26,7 @@ def train_vae(config, model, train_loader, val_loader):
     kld_annealing = config.getboolean('RUN', 'kld_annealing')
     annealing_epochs = int(config['RUN']['annealing_epochs'])
     annealing_shape = config['RUN']['annealing_shape']
-    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape)
+    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape, disable=not kld_annealing)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -50,11 +55,8 @@ def train_vae(config, model, train_loader, val_loader):
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
             bce = bce * recon_weight
-            if kld_annealing:
-                kld = annealing_agent(kld * kld_weight)
-                annealing_agent.step()
-            else:
-                kld = kld * kld_weight
+            kld = annealing_agent(kld * kld_weight)
+            annealing_agent.step()
             loss = bce + kld
             optimizer.zero_grad()
             loss.backward()
@@ -178,6 +180,15 @@ def train_cvae(config, model, train_loader, val_loader):
 
 
 def evaluate(model, val_loader):
+    """
+    Evaluate model on validation set
+    Args:
+        model: VAE model
+        val_loader: validation set dataloader
+    Returns:
+        avg_bce (float): average binary cross entropy loss
+        avg_kld (float): average KL divergence loss
+    """
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
