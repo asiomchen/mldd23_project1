@@ -51,7 +51,6 @@ def train_vae(config, model, train_loader, val_loader):
             bce = bce * recon_weight
             if kld_annealing:
                 kld = annealing_agent(kld * kld_weight)
-                annealing_agent.step()
             else:
                 kld = kld * kld_weight
             loss = bce + kld
@@ -72,6 +71,7 @@ def train_vae(config, model, train_loader, val_loader):
                         'val_kld': val_kld,
                         'kld_annealing': annealing_agent.slope()
                         }
+        annealing_agent.step()
 
         if use_wandb:
             log_dict = {s: dict(config.items(s)) for s in config.sections()}

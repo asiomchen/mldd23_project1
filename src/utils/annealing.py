@@ -18,6 +18,8 @@ class Annealing:
     def slope(self):
         if self.shape == 'linear':
             return self.current_epoch / self.epochs
+        elif self.shape == 'none':
+            return 1.0
 
     def step(self):
         if self.current_epoch < self.epochs:
