@@ -1,4 +1,5 @@
 import torch
+import math
 
 
 class Annealing:
@@ -17,9 +18,12 @@ class Annealing:
 
     def slope(self):
         if self.shape == 'linear':
-            return self.current_epoch / self.epochs
+            slope = self.current_epoch / self.epochs
+        elif self.slope == 'cosine':
+            slope = 0.5 + 0.5 * math.cos(math.pi * (self.current_epoch / self.epochs - 1))
         elif self.shape == 'none':
-            return 1.0
+            slope = 1.0
+        return slope
 
     def step(self):
         if self.current_epoch < self.epochs:
