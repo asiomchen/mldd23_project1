@@ -8,11 +8,11 @@ class VAEDataset(Dataset):
     """
     Dataset for VAE training
     Args:
-        data_path (str): path to parquet file containing 'fps' column
+        df (pd.DataFrame): pandas DataFrame object containing 'fps' column
         fp_len (int): length of fingerprints
     """
-    def __init__(self, data_path, fp_len):
-        self.fps = pd.read_parquet(data_path, columns=['fps'])
+    def __init__(self, df, fp_len):
+        self.fps = df['fps']
         self.fp_len = fp_len
 
     def __len__(self):

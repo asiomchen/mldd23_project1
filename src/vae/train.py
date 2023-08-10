@@ -103,76 +103,6 @@ def train_vae(config, model, train_loader, val_loader):
     return model
 
 
-def train_cvae(config, model, train_loader, val_loader):
-    """
-    Training loop for CVAE model
-    """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    epochs = int(config['RUN']['epochs'])
-    run_name = config['RUN']['run_name']
-    learning_rate = float(config['RUN']['learning_rate'])
-    use_wandb = config.getboolean('RUN', 'use_wandb')
-
-    # start a new wandb run to track this script
-    if use_wandb:
-        log_dict = {s: dict(config.items(s)) for s in config.sections()}
-        wandb.init(
-            project='cvae',
-            config=log_dict,
-            name=run_name
-        )
-
-    criterion = vae.VAELoss()
-    optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-
-    # Define dataframe for logging progress
-    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
-
-    for epoch in range(1, epochs + 1):
-        print(f'Epoch: {epoch}')
-        epoch_loss = 0
-        start_time = time.time()
-
-        for fp, y in train_loader:
-            fp = fp.to(device)
-            y = y.to(device)
-            encoded, mu, logvar = model(fp, y)
-            loss = criterion(encoded, fp, mu, logvar)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            epoch_loss += loss.item()
-
-        # calculate loss and log to wandb
-        avg_loss = epoch_loss / len(train_loader)
-        val_loss = evaluate_cvae(model, val_loader)
-        metrics_dict = {'epoch': epoch,
-                        'train_loss': avg_loss,
-                        'val_loss': val_loss}
-
-        # Update metrics df
-        metrics.loc[len(metrics)] = metrics_dict
-
-        if use_wandb:
-            wandb.log(metrics_dict)
-
-        if epoch % 25 == 0:
-            save_path = f"models/{run_name}/encoder_epoch_{epoch}.pt"
-            torch.save(model.encoder.state_dict(), save_path)
-            save_path = f"models/{run_name}/vae_epoch_{epoch}.pt"
-            torch.save(model.state_dict(), save_path)
-
-        metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-
-        end_time = time.time()
-        loop_time = (end_time - start_time) / 60  # in minutes
-        print(f'Executed in {loop_time} minutes')
-
-    wandb.finish()
-    return None
-
-
 def evaluate(model, val_loader):
     """
     Evaluate model on validation set
@@ -198,18 +128,3 @@ def evaluate(model, val_loader):
         avg_bce = epoch_bce / len(val_loader)
         avg_kld = epoch_kld / len(val_loader)
         return avg_bce, avg_kld
-
-
-def evaluate_cvae(model, val_loader):
-    model.eval()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    criterion = vae.VAELoss()
-    epoch_loss = 0
-    for fp, y in val_loader:
-        fp = fp.to(device)
-        y = y.to(device)
-        encoded, mu, logvar = model(fp, y)
-        loss = criterion(encoded, fp, mu, logvar, False)
-        epoch_loss += loss.item()
-    avg_loss = epoch_loss / len(val_loader)
-    return avg_loss
