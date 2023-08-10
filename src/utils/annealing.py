@@ -30,15 +30,15 @@ class Annealing:
         return out
 
     def slope(self):
-        if self.slope == 'linear':
+        if self.shape == 'linear':
             slope = (self.current_epoch / self.epochs)
-        elif self.slope == 'cosine':
+        elif self.shape == 'cosine':
             slope = 0.5 + 0.5 * math.cos(self.pi * (self.current_epoch / self.epochs - 1))
-        elif self.slope == 'logistic':
+        elif self.shape == 'logistic':
             smoothness = self.epochs / 10
             exponent = ((self.epochs / 2) - self.current_epoch) / smoothness
             slope = 1 / (1 + math.exp(exponent))
-        elif self.slope == 'none':
+        elif self.shape == 'none':
             slope = 1.0
         else:
             raise ValueError('Invalid shape for annealing function. Must be linear, cosine, or logistic.')

@@ -25,7 +25,7 @@ def train_vae(config, model, train_loader, val_loader):
     recon_weight = float(config['RUN']['recon_weight'])
     kld_annealing = config.getboolean('RUN', 'kld_annealing')
     annealing_epochs = int(config['RUN']['annealing_epochs'])
-    annealing_shape = config['RUN']['annealing_shape']
+    annealing_shape = str(config['RUN']['annealing_shape'])
     annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape, disable=not kld_annealing)
 
     # start a new wandb run to track this script
