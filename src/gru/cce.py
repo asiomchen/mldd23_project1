@@ -8,10 +8,8 @@ class CCE(nn.Module):
     def __init__(self, ignore_index=40):
         """
         Conscious Cross-Entropy
-
         Parameters:
-            ignore_index: index of the padding token to ignore
-                          when calculating loss
+            ignore_index: index of the padding token to ignore when calculating loss
         """
         super(CCE, self).__init__()
         self.idx_ignore = ignore_index  # index of token to ignore

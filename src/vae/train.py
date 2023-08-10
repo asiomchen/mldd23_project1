@@ -1,4 +1,3 @@
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
 import src.vae.vae as vae
 import pandas as pd
@@ -10,18 +9,23 @@ from src.utils.annealing import Annealing
 def train_vae(config, model, train_loader, val_loader):
     """
     Training loop for VAE model
+    Args:
+        config: configparser object
+        model: VAE model
+        train_loader: torch DataLoader object for training data
+        val_loader: torch DataLoader object for validation data
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    epochs = int(config['VAE']['epochs'])
-    run_name = config['VAE']['run_name']
-    learning_rate = float(config['VAE']['learning_rate'])
-    use_wandb = config.getboolean('VAE', 'use_wandb')
-    kld_weight = float(config['VAE']['kld_weight'])
-    recon_weight = float(config['VAE']['recon_weight'])
-    kld_annealing = config.getboolean('VAE', 'kld_annealing')
-    annealing_epochs = int(config['VAE']['annealing_epochs'])
-    annealing_shape = str(config['VAE']['annealing_shape'])
-    annealing_agent = Annealing(epochs=annealing_epochs, shape='linear')
+    epochs = int(config['RUN']['epochs'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+    kld_weight = float(config['RUN']['kld_weight'])
+    recon_weight = float(config['RUN']['recon_weight'])
+    kld_annealing = config.getboolean('RUN', 'kld_annealing')
+    annealing_epochs = int(config['RUN']['annealing_epochs'])
+    annealing_shape = str(config['RUN']['annealing_shape'])
+    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape, disable=not kld_annealing)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -48,17 +52,16 @@ def train_vae(config, model, train_loader, val_loader):
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
+            epoch_bce += bce.item()
+            epoch_kld += kld.item()
             bce = bce * recon_weight
-            if kld_annealing:
-                kld = annealing_agent(kld * kld_weight)
-            else:
-                kld = kld * kld_weight
+            kld = annealing_agent(kld * kld_weight)
+            annealing_agent.step()
             loss = bce + kld
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_bce += bce.item()
-            epoch_kld += kld.item()
+
 
         # calculate loss and log to wandb
         avg_bce = epoch_bce / len(train_loader)
@@ -71,7 +74,6 @@ def train_vae(config, model, train_loader, val_loader):
                         'val_kld': val_kld,
                         'kld_annealing': annealing_agent.slope()
                         }
-        annealing_agent.step()
 
         if use_wandb:
             log_dict = {s: dict(config.items(s)) for s in config.sections()}
@@ -107,10 +109,10 @@ def train_cvae(config, model, train_loader, val_loader):
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    epochs = int(config['VAE']['epochs'])
-    run_name = config['VAE']['run_name']
-    learning_rate = float(config['VAE']['learning_rate'])
-    use_wandb = config.getboolean('VAE', 'use_wandb')
+    epochs = int(config['RUN']['epochs'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -123,7 +125,6 @@ def train_cvae(config, model, train_loader, val_loader):
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
@@ -150,8 +151,6 @@ def train_cvae(config, model, train_loader, val_loader):
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
 
-        scheduler.step(avg_loss)
-
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
 
@@ -175,6 +174,15 @@ def train_cvae(config, model, train_loader, val_loader):
 
 
 def evaluate(model, val_loader):
+    """
+    Evaluate model on validation set
+    Args:
+        model: VAE model
+        val_loader: validation set dataloader
+    Returns:
+        avg_bce (float): average binary cross entropy loss
+        avg_kld (float): average KL divergence loss
+    """
     model.eval()
     with torch.no_grad():
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
