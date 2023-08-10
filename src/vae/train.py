@@ -1,4 +1,3 @@
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch
 import src.vae.vae as vae
 import pandas as pd
@@ -39,7 +38,6 @@ def train_vae(config, model, train_loader, val_loader):
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld', 'kld_annealing'])
@@ -54,6 +52,8 @@ def train_vae(config, model, train_loader, val_loader):
             fp = fp.to(device)
             encoded, mu, logvar = model(fp)
             bce, kld = criterion(encoded, fp, mu, logvar)
+            epoch_bce += bce.item()
+            epoch_kld += kld.item()
             bce = bce * recon_weight
             kld = annealing_agent(kld * kld_weight)
             annealing_agent.step()
@@ -61,8 +61,7 @@ def train_vae(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            epoch_bce += bce.item()
-            epoch_kld += kld.item()
+
 
         # calculate loss and log to wandb
         avg_bce = epoch_bce / len(train_loader)
@@ -85,8 +84,6 @@ def train_vae(config, model, train_loader, val_loader):
 
         if use_wandb:
             wandb.log(metrics_dict)
-
-        scheduler.step(avg_bce + avg_kld)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -128,7 +125,6 @@ def train_cvae(config, model, train_loader, val_loader):
 
     criterion = vae.VAELoss()
     optimizer = torch.optim.Adam(model.parameters(), learning_rate)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', patience=50, verbose=True)
 
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss'])
@@ -154,8 +150,6 @@ def train_cvae(config, model, train_loader, val_loader):
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss}
-
-        scheduler.step(avg_loss)
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
