@@ -57,7 +57,7 @@ class GRUDataset(Dataset):
         Args:
             smiles: SMILES string
         Returns:
-            randomized SMILES string
+            str: randomized SMILES string
         """
         m = Chem.MolFromSmiles(smiles)
         ans = list(range(m.GetNumAtoms()))

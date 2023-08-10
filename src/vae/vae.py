@@ -3,6 +3,12 @@ import torch.nn as nn
 
 
 class VAEEncoder(nn.Module):
+    """
+    Encoder for VAE
+    Args:
+        input_size (int): size of input
+        output_size (int): size of latent space
+    """
     def __init__(self, input_size, output_size):
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 2048)
@@ -14,6 +20,13 @@ class VAEEncoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): input tensor of shape (batch_size, input_size)
+        Returns:
+            mu (torch.Tensor): mean of latent space
+            logvar (torch.Tensor): log variance of latent space
+        """
         h1 = self.relu(self.fc1(x))
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
@@ -23,6 +36,12 @@ class VAEEncoder(nn.Module):
 
 
 class VAEDecoder(nn.Module):
+    """
+    Decoder for VAE
+    Args:
+        input_size (int): size of latent space
+        output_size (int): size of output
+    """
     def __init__(self, input_size, output_size):
         super(VAEDecoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 512)
@@ -33,6 +52,12 @@ class VAEDecoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): input tensor of shape (batch_size, input_size)
+        Returns:
+            out (torch.Tensor): reconstructed x
+        """
         h1 = self.relu(self.fc1(x))
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
@@ -41,6 +66,12 @@ class VAEDecoder(nn.Module):
 
 
 class VAE(nn.Module):
+    """
+    VAE
+    Args:
+        input_size (int): size of input
+        latent_size (int): size of latent space
+    """
     def __init__(self, input_size, latent_size):
         super(VAE, self).__init__()
         self.encoder = VAEEncoder(input_size, latent_size)
@@ -52,16 +83,37 @@ class VAE(nn.Module):
         return eps.mul(std).add_(mu)
 
     def forward(self, x):
+        """
+        Args:
+            x (torch.Tensor): input tensor of shape (batch_size, input_size)
+        Returns:
+            out (torch.Tensor): reconstructed x
+            mu (torch.Tensor): mean of latent space
+            logvar (torch.Tensor): log variance of latent space
+        """
         mu, logvar = self.encoder(x)
         z = self.reparameterize(mu, logvar)
         return self.decoder(z), mu, logvar
 
 
 class VAELoss(nn.Module):
+    """
+    Calculates reconstruction loss and KL divergence loss
+    """
     def __init__(self):
         super(VAELoss, self).__init__()
 
     def forward(self, recon_x, x, mu, logvar):
+        """
+        Args:
+            recon_x (torch.Tensor): reconstructed x
+            x (torch.Tensor): original x
+            mu (torch.Tensor): latent space mu
+            logvar (torch.Tensor): latent space log variance
+        Returns:
+            BCE (torch.Tensor): binary cross entropy loss (VAE recon loss)
+            KLD (torch.Tensor): KL divergence loss
+        """
         BCE = nn.functional.binary_cross_entropy(recon_x, x, reduction='sum')
         KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return BCE + KLD
+        return BCE, KLD

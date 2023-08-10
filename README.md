@@ -7,10 +7,7 @@
 * [Data sources and tools](#data-sources-and-tools)
 
 ## General info
-This project is a machine learning model for *de novo* generation of ligands for 
-5HT1A, 5HT7, d2, beta2 and H1 receptors. A chosen number of [Klekota & Roth](https://pubmed.ncbi.nlm.nih.gov/18784118/) molecular fingerprints 
-are encoded into VAE latent space. Next, a recurrent neural network decodes the latent space samples into [SELFIES](https://iopscience.iop.org/article/10.1088/2632-2153/aba947) and SMILES notation.
-The resulting compounds are filtered based on chosen criteria (QED, max ring size, etc.).
+(W.I.P.)
 
 ## Setup
 1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
@@ -19,8 +16,8 @@ The resulting compounds are filtered based on chosen criteria (QED, max ring siz
 
 ## Interface
 1. Activate the environment: `conda activate mldd `
-2. (W.I.P.) Generate samples from VAE latent space
-3. (W.I.P.) Convert SMILES of ligands for any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`
+2. (W.I.P.) Generate fingerprints
+3. (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`  
 
    Required arguments:  
     `-f --file` (str) path to .csv file containing SMILES of molecules; should be put into ./Smiles2Fp/datasets
