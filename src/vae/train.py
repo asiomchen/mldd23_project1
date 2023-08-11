@@ -3,7 +3,7 @@ import src.vae.vae as vae
 import pandas as pd
 import time
 import wandb
-from src.utils.annealing import Annealing
+from src.utils.annealing import Annealer
 
 
 def train_vae(config, model, train_loader, val_loader):
@@ -26,7 +26,7 @@ def train_vae(config, model, train_loader, val_loader):
     kld_annealing = config.getboolean('RUN', 'kld_annealing')
     annealing_epochs = int(config['RUN']['annealing_epochs'])
     annealing_shape = str(config['RUN']['annealing_shape'])
-    annealing_agent = Annealing(epochs=annealing_epochs, shape=annealing_shape, disable=not kld_annealing)
+    annealing_agent = Annealer(total_steps=annealing_epochs, shape=annealing_shape, disable=not kld_annealing)
 
     # start a new wandb run to track this script
     if use_wandb:

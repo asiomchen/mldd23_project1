@@ -11,5 +11,5 @@ source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
 wandb login
-python -u train_vae.py -c vae4.ini > log_vae4.out
+python -u train_vae.py -c vae64.ini > log_vae64.out
 echo done

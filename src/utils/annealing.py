@@ -1,23 +1,22 @@
 import math
 
 
-class Annealing:
+class Annealer:
     """
-    This class is used to anneal the KL divergence loss over the course of training VAE.
+    This class is used to anneal the KL divergence loss over the course of training VAEs.
     After each call, the step() function should be called to update the current epoch.
     Parameters:
-        epochs (int): Number of epochs to reach full KL divergence weight.
+        total_steps (int): Number of epochs to reach full KL divergence weight.
         shape (str): Shape of the annealing function. Can be 'linear', 'cosine', or 'logistic'.
     """
 
-    def __init__(self, epochs: int, shape: str, disable=False):
-        self.epochs = epochs
-        self.current_epoch = 1
+    def __init__(self, total_steps: int, shape: str, disable=False):
+        self.total_steps = total_steps
+        self.current_step = 1
         if not disable:
             self.shape = shape
         else:
             self.shape = 'none'
-        self.pi = 3.14159265359
 
     def __call__(self, kld):
         """
@@ -30,20 +29,21 @@ class Annealing:
         return out
 
     def slope(self):
-        if self.shape == 'linear':
-            slope = (self.current_epoch / self.epochs)
-        elif self.shape == 'cosine':
-            slope = 0.5 + 0.5 * math.cos(self.pi * (self.current_epoch / self.epochs - 1))
-        elif self.shape == 'logistic':
-            smoothness = self.epochs / 10
-            exponent = ((self.epochs / 2) - self.current_epoch) / smoothness
+        if self.slope == 'linear':
+            slope = (self.current_step / self.total_steps)
+        elif self.slope == 'cosine':
+            slope = 0.5 + 0.5 * math.cos(math.pi * (self.current_step / self.total_steps - 1))
+        elif self.slope == 'logistic':
+            exponent = ((self.total_steps / 2) - self.current_step)
             slope = 1 / (1 + math.exp(exponent))
-        elif self.shape == 'none':
+        elif self.slope == 'none':
             slope = 1.0
         else:
             raise ValueError('Invalid shape for annealing function. Must be linear, cosine, or logistic.')
         return slope
 
     def step(self):
-        if self.current_epoch < self.epochs:
-            self.current_epoch += 1
+        if self.current_step < self.total_steps:
+            self.current_step += 1
+        else:
+            pass
