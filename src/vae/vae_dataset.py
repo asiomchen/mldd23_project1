@@ -12,7 +12,7 @@ class VAEDataset(Dataset):
         fp_len (int): length of fingerprints
     """
     def __init__(self, df, fp_len):
-        self.fps = df['fps']
+        self.fps = pd.DataFrame(df['fps'])
         self.fp_len = fp_len
 
     def __len__(self):
