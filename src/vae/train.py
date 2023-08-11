@@ -17,6 +17,7 @@ def train_vae(config, model, train_loader, val_loader):
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     epochs = int(config['RUN']['epochs'])
+    start_epoch = int(config['RUN']['start_epoch'])
     run_name = config['RUN']['run_name']
     learning_rate = float(config['RUN']['learning_rate'])
     use_wandb = config.getboolean('RUN', 'use_wandb')
@@ -42,7 +43,7 @@ def train_vae(config, model, train_loader, val_loader):
     # Define dataframe for logging progress
     metrics = pd.DataFrame(columns=['epoch', 'train_bce', 'train_kld', 'val_bce', 'val_kld', 'kld_annealing'])
 
-    for epoch in range(1, epochs + 1):
+    for epoch in range(start_epoch, epochs + start_epoch):
         print(f'Epoch: {epoch}')
         epoch_bce = 0
         epoch_kld = 0

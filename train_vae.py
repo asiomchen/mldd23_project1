@@ -33,6 +33,7 @@ def main():
     input_size = int(config['MODEL']['input_size'])
     latent_size = int(config['MODEL']['latent_size'])
     data_path = str(config['RUN']['data_path'])
+    checkpoint_path = str(config['RUN']['checkpoint_path'])
 
     test_size = 0.8
 
@@ -53,6 +54,10 @@ def main():
 
     # init model
     model = VAE(input_size=input_size, latent_size=latent_size).to(device)
+
+    # load model if checkpoint exists
+    if checkpoint_path.lower() != 'none':
+        model.load_state_dict(torch.load(checkpoint_path))
 
     # train model
     _ = train_vae(config, model, train_loader, val_loader)
