@@ -57,7 +57,7 @@ def main():
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
-        train_df, val_df = scaffold_split(dataset, train_size)
+        train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
         train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
         val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
         print("Scaffold split complete")

@@ -1,6 +1,6 @@
 # import packages
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator import EncoderDecoderV2
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
@@ -52,7 +52,7 @@ def main():
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
-        train_df, val_df = scaffold_split(dataset, train_size)
+        train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
         train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
         val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
         print("Scaffold split complete")
@@ -73,19 +73,21 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    model = EncoderDecoder(
+    model = EncoderDecoderV2(
         fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
         teacher_ratio=teacher_ratio,
-        encoder_nograd=encoder_nograd
+        encoder_nograd=encoder_nograd,
+        output_size=42,  # alphabet length
+        random_seed=42
     ).to(device)
 
-    if checkpoint_path != 'None':
+    if checkpoint_path.lower() != 'none':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    elif encoder_path != 'None':
+    elif encoder_path.lower() != 'none':
         model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     _ = train_rl(config, model, train_loader, val_loader)
 
