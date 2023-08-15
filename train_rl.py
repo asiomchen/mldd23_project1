@@ -34,6 +34,7 @@ def main():
     run_name = str(config['RUN']['run_name'])
     batch_size = int(config['RUN']['batch_size'])
     data_path = str(config['RUN']['data_path'])
+    encoder_nograd = config.getboolean('RUN', 'encoder_nograd')
     encoding_size = int(config['MODEL']['encoding_size'])
     hidden_size = int(config['MODEL']['hidden_size'])
     num_layers = int(config['MODEL']['num_layers'])
@@ -41,7 +42,6 @@ def main():
     fp_len = int(config['MODEL']['fp_len'])
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     encoder_path = str(config['MODEL']['encoder_path'])
-    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     # create a directory for this model if not there
