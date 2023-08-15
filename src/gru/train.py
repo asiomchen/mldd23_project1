@@ -155,6 +155,11 @@ def train_rl(config, model, train_loader, val_loader):
             else:
                 (loss + rl_loss).backward()
             optimizer.step()
+            if use_wandb:
+                wandb.log(
+                    {'batch_idx': batch_idx,
+                     'batch_rl_loss': rl_loss.item(),
+                     'batch_reward': total_reward})
 
         epoch_rl_loss = epoch_rl_loss / len(train_loader)
         epoch_total_reward = epoch_total_reward / len(train_loader)
