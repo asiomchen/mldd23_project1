@@ -36,5 +36,6 @@ class DiscDataset(Dataset):
     @staticmethod
     def load_logvar(path):
         df = pd.read_parquet(path)
+        df.drop(columns=['label'], inplace=True)
         tensor = torch.tensor(df.to_numpy())
         return tensor
