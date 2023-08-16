@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator import EncoderDecoder, EncoderDecoderV2
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -36,6 +36,7 @@ def main():
     run_name = str(config['RUN']['run_name'])
     batch_size = int(config['RUN']['batch_size'])
     data_path = str(config['RUN']['data_path'])
+    model_type = str(config['MODEL']['model_type'])
     encoding_size = int(config['MODEL']['encoding_size'])
     hidden_size = int(config['MODEL']['hidden_size'])
     num_layers = int(config['MODEL']['num_layers'])
@@ -78,17 +79,33 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    model = EncoderDecoder(
-        fp_size=fp_len,
-        encoding_size=encoding_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        dropout=dropout,
-        teacher_ratio=teacher_ratio,
-        output_size=42,  # alphabet length
-        encoder_nograd=encoder_nograd,
-        random_seed=42,
-    ).to(device)
+    if model_type == 'EncoderDecoder':
+        model = EncoderDecoder(
+            fp_size=fp_len,
+            encoding_size=encoding_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout,
+            teacher_ratio=teacher_ratio,
+            output_size=42,  # alphabet length
+            encoder_nograd=encoder_nograd,
+            random_seed=42,
+        ).to(device)
+
+    elif model_type == 'EncoderDecoderV2':
+        model = EncoderDecoderV2(
+            fp_size=fp_len,
+            encoding_size=encoding_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout,
+            teacher_ratio=teacher_ratio,
+            output_size=42,  # alphabet length
+            random_seed=42,
+        ).to(device)
+
+    else:
+        raise ValueError('Invalid model type')
 
     if checkpoint_path.lower() != 'none':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))

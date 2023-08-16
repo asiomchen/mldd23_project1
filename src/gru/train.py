@@ -34,7 +34,7 @@ def train(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss', 'mean_qed', 'fp_recon_score'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -66,13 +66,12 @@ def train(config, model, train_loader, val_loader):
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
-        val_loss, mean_qed, fp_recon_score = evaluate(model, val_loader)
+        val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
-                        'mean_qed': mean_qed,
-                        'fp_recon_score': fp_recon_score}
+                        }
         if use_wandb:
             wandb.log(metrics_dict)
 
