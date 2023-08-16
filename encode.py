@@ -6,6 +6,7 @@ import torch.utils.data as D
 import numpy as np
 from tqdm import tqdm
 import argparse
+import os
 
 
 def main():
@@ -24,8 +25,9 @@ def main():
     encoder_path = 'models/VAE_64_paprykarz/encoder_epoch_100.pt'
     data_path = 'data/activity_data/d2_klek_100nM.parquet'
 
-    data_name = data_path.split('/')[-1].split('_')[0]
-    model_name = encoder_path.split('/')[-2] + '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0]
+    data_name = (data_path.split('/')[-1].split('_')[0] +
+                 '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0])
+    model_name = encoder_path.split('/')[-2]
     df = pd.read_parquet(data_path)
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
@@ -34,15 +36,23 @@ def main():
     model.load_state_dict(torch.load(encoder_path, map_location=device))
 
     with torch.no_grad():
-        encoded_list = []
+        mu_list = []
+        logvar_list = []
         for batch in tqdm(dataloader):
             batch = batch.to(device)
-            z = model(batch)[0].cpu().numpy()
-            encoded_list.append(z)
-        encoded = pd.DataFrame(np.concatenate(encoded_list, axis=0))
-        encoded.columns = encoded.columns.astype(str)
-        encoded['label'] = df['Class']
-        encoded.to_parquet(f'data/activity_data/{data_name}_encoded_with_{model_name}.parquet', index=False)
+            mu, logvar = model(batch)
+            mu_list.append(mu.cpu().numpy())
+            logvar_list.append(logvar.cpu().numpy())
+        mus = pd.DataFrame(np.concatenate(mu_list, axis=0))
+        logvars = pd.DataFrame(np.concatenate(logvar_list, axis=0))
+        mus.columns = mus.columns.astype(str)
+        logvars.columns = logvars.columns.astype(str)
+        mus['label'] = df['Class']
+        logvars['label'] = df['Class']
+        if not os.path.exists(f'data/encoded_data/{model_name}'):
+            os.mkdir(f'data/encoded_data/{model_name}')
+        mus.to_parquet(f'data/encoded_data/{model_name}/mu_{data_name}.parquet', index=False)
+        logvars.to_parquet(f'data/encoded_data/{model_name}/logvar_{data_name}.parquet', index=False)
 
 
 if __name__ == '__main__':
