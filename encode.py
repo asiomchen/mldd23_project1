@@ -19,12 +19,10 @@ def main():
                         '--data_path',
                         type=str,
                         help='Path to data')
+    data_path = parser.parse_args().data_path
+    encoder_path = parser.parse_args().encoder_path
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    encoder_path = 'models/VAE_16_paprykarz/encoder_epoch_100.pt'
-    data_path = 'data/activity_data/d2_klek_100nM.parquet'
-
     data_name = (data_path.split('/')[-1].split('_')[0] +
                  '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0])
     model_name = encoder_path.split('/')[-2]
