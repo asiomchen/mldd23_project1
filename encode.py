@@ -21,11 +21,11 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    encoder_path = 'models/VAE_64/encoder_epoch_100.pt'
+    encoder_path = 'models/VAE_64_paprykarz/encoder_epoch_100.pt'
     data_path = 'data/activity_data/d2_klek_100nM.parquet'
 
     data_name = data_path.split('/')[-1].split('_')[0]
-    model_name = encoder_path.split('/')[-2]
+    model_name = encoder_path.split('/')[-2] + '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0]
     df = pd.read_parquet(data_path)
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
@@ -35,12 +35,14 @@ def main():
 
     with torch.no_grad():
         encoded_list = []
-        for i, batch in enumerate(tqdm(dataloader)):
+        for batch in tqdm(dataloader):
             batch = batch.to(device)
             z = model(batch)[0].cpu().numpy()
             encoded_list.append(z)
         encoded = pd.DataFrame(np.concatenate(encoded_list, axis=0))
-    encoded.to_parquet(f'data/activity_data/{data_name}_encoded_with_{model_name}.parquet', idx=False)
+        encoded.columns = encoded.columns.astype(str)
+        encoded['label'] = df['Class']
+        encoded.to_parquet(f'data/activity_data/{data_name}_encoded_with_{model_name}.parquet', index=False)
 
 
 if __name__ == '__main__':
