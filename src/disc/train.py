@@ -58,7 +58,7 @@ def train_disc(config, model, train_loader, val_loader):
         if use_wandb:
             wandb.log(metrics_dict)
 
-        if epoch % 100 == 0:
+        if epoch % 20 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(), save_path)
 
