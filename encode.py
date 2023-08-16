@@ -22,7 +22,7 @@ def main():
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    encoder_path = 'models/VAE_64_paprykarz/encoder_epoch_100.pt'
+    encoder_path = 'models/VAE_16_paprykarz/encoder_epoch_100.pt'
     data_path = 'data/activity_data/d2_klek_100nM.parquet'
 
     data_name = (data_path.split('/')[-1].split('_')[0] +
@@ -32,7 +32,7 @@ def main():
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
-    model = VAEEncoder(input_size=4860, output_size=64).to(device)
+    model = VAEEncoder(input_size=4860, output_size=16).to(device)
     model.load_state_dict(torch.load(encoder_path, map_location=device))
 
     with torch.no_grad():
