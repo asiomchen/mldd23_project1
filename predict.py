@@ -1,19 +1,21 @@
+import argparse
+import configparser
+import multiprocessing as mp
+import os
+import queue
+import time
+
+import pandas as pd
+import rdkit.Chem.Draw as Draw
+import selfies as sf
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
 from src.gru.generator import EncoderDecoder
 from src.pred.dataset import PredictionDataset
-from src.utils.vectorizer import SELFIESVectorizer
-from torch.utils.data import DataLoader
-import rdkit.Chem.Draw as Draw
 from src.pred.filter import molecule_filter
-import multiprocessing as mp
-import selfies as sf
-import os
-import torch
-import pandas as pd
-import configparser
-import argparse
-from tqdm import tqdm
-import time
-import queue
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def predict(file_name, is_verbose=True):
@@ -36,7 +38,7 @@ def predict(file_name, is_verbose=True):
     parser.add_argument('--config',
                         '-c',
                         type=str,
-                        default='pred_config.ini',
+                        default='config_files/pred_config.ini',
                         help='Path to config file')
     config_path = parser.parse_args().config
 
@@ -68,13 +70,15 @@ def predict(file_name, is_verbose=True):
         dropout=dropout,
         teacher_ratio=0,
         use_cuda=use_cuda,
+        output_size=42,
+        random_seed=42
     ).to(device)
 
     model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}').sample(n=100000)
+    query_df = pd.read_parquet(f'results/{file_name}').sample(n=10000)
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
@@ -144,8 +148,8 @@ def get_predictions(model,
     with torch.no_grad():
         for n, X in enumerate(tqdm(loader, disable=not progress_bar)):
             X = X.to(device)
-            preds = model(X, None, teacher_forcing=False)
-            preds = preds.detach().cpu().numpy()
+            preds, _ = model(X, None, teacher_forcing=False)
+            preds = preds.cpu().numpy()
             for seq in preds:
                 selfie = vectorizer.devectorize(seq, remove_special=True)
                 try:
