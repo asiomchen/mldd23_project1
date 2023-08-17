@@ -16,6 +16,7 @@ class VAEEncoder(nn.Module):
         input_size (int): size of the fingerprint vector
         output_size (int): size of the latent vectors mu and logvar
     """
+
     def __init__(self, input_size, output_size):
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, 2048)
@@ -56,19 +57,24 @@ class DecoderNet(nn.Module):
         output_size (int):GRU output size (alphabet size)
         dropout (float):GRU dropout
     """
-    def __init__(self, hidden_size, num_layers, output_size, dropout):
+
+    def __init__(self, hidden_size, num_layers, output_size, dropout, input_size=None):
         super(DecoderNet, self).__init__()
 
         # GRU parameters
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
+        if input_size is None:
+            self.input_size = hidden_size
+        else:
+            self.input_size = input_size
 
         # output token count
         self.output_size = output_size
 
         # pytorch.nn
-        self.gru = nn.GRU(input_size=hidden_size, hidden_size=hidden_size, num_layers=num_layers,
+        self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
                           dropout=dropout, batch_first=True)
 
     def forward(self, x, h):
@@ -107,6 +113,7 @@ class EncoderDecoder(nn.Module):
         use_cuda (bool): whether to use cuda
         encoder_nograd (bool): disable gradient calculation for the encoder
     """
+
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
                  teacher_ratio, random_seed, use_cuda=True, encoder_nograd=False):
         super(EncoderDecoder, self).__init__()
@@ -129,7 +136,7 @@ class EncoderDecoder(nn.Module):
         """
         Args:
             X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
-            y (torch.tensor):batched SMILES of target molecules
+            y (torch.tensor):batched SELFIES of target molecules
             teacher_forcing: (bool):enable teacher forcing
             reinforcement: (bool):enable loss calculation for use in reinforcement learning
 
@@ -289,6 +296,7 @@ class EncoderDecoderV2(EncoderDecoder):
     Encoder-Decoder model with a different architecture.
     Gradients on encoder are disabled by default. An extra 3-layer MLP is added after the encoder.
     """
+
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
                  teacher_ratio, encoder_nograd=True, random_seed=42, use_cuda=True):
         super().__init__(fp_size=fp_size,
@@ -337,3 +345,108 @@ class EncoderDecoderV2(EncoderDecoder):
             return out_cat, torch.tensor(0.0), rl_loss, total_reward
         else:
             return out_cat, torch.tensor(0.0)  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+
+
+class EncoderDecoderV3(nn.Module):
+    """
+    Encoder-Decoder class based on VAE and GRU. The samples from VAE latent space are passed
+    to the GRU as initial hidden state.
+
+    Parameters:
+        fp_size (int): size of the fingerprint vector
+        encoding_size (int): size of the latent vectors mu and logvar
+        hidden_size (int): GRU hidden size
+        num_layers (int): GRU number of layers
+        output_size (int): GRU output size (alphabet size)
+        dropout (float): GRU dropout
+        teacher_ratio (float): teacher forcing ratio
+        random_seed (int): random seed for reproducibility
+        use_cuda (bool): whether to use cuda
+        encoder_nograd (bool): disable gradient calculation for the encoder
+    """
+
+    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
+                 teacher_ratio, random_seed, use_cuda=True, encoder_nograd=False):
+        super(EncoderDecoderV3, self).__init__()
+        self.teacher_ratio = teacher_ratio
+        self.encoder = VAEEncoder(fp_size, encoding_size)
+        self.decoder = DecoderNet(hidden_size, num_layers, output_size, dropout, input_size=output_size)
+        self.encoding_size = encoding_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
+        self.encoder_nograd = encoder_nograd
+
+        # start token initialization
+        self.start_ohe = torch.zeros(42, dtype=torch.float32)
+        self.start_ohe[41] = 1.0
+        random.seed(random_seed)
+
+        # pytorch.nn
+        self.fc1 = nn.Linear(hidden_size, 42)
+        self.fc2 = nn.Linear(encoding_size, hidden_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
+        """
+        Args:
+            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
+            y (torch.tensor):batched SELFIES of target molecules
+            teacher_forcing: (bool):enable teacher forcing
+            reinforcement: (bool):enable loss calculation for use in reinforcement learning
+
+        Returns:
+            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
+
+        If reinforcement is enabled, the following tensors are also returned:
+            rl_loss (torch.tensor):loss for use in reinforcement learning
+            total_reward (torch.tensor):total reward for use in reinforcement learning
+        """
+        batch_size = X.shape[0]
+
+        if self.encoder_nograd:
+            with torch.no_grad():
+                mu, logvar = self.encoder(X)
+                encoded = self.reparameterize(mu, logvar)
+            kld_loss = torch.tensor(0.0)
+        else:
+            mu, logvar = self.encoder(X)
+            kld_loss = self.encoder.kld_loss(mu, logvar)
+            encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
+
+        encoded = self.fc2(encoded)  # shape (batch_size, hidden_size)
+
+        # initializing hidden state
+        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
+        hidden[0] = encoded.unsqueeze(0)
+        # shape (num_layers, batch_size, hidden_size)
+
+        # initializing input
+        x = self.start_ohe.repeat(batch_size, 1).unsqueeze(1).to(self.device)  # shape (batch_size, 1, 42)
+
+        # generating sequence
+        outputs = []
+        for n in range(128):
+            out, hidden = self.decoder(x, hidden)
+            out = self.relu(self.fc1(out))
+            outputs.append(out)
+            random_float = random.random()
+            if teacher_forcing and random_float < self.teacher_ratio:
+                out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
+            x = out
+        out_cat = torch.cat(outputs, dim=1)
+        return out_cat, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+
+    @staticmethod
+    def reparameterize(mu, logvar):
+        """
+        Reparametrization trick for sampling from VAE latent space.
+        Args:
+            mu (torch.tensor): mean
+            logvar: (torch.tensor): log variance
+        Returns:
+            z (torch.tensor): latent vector
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps.mul(std).add_(mu)
