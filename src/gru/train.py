@@ -56,6 +56,7 @@ def train(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
             kld_loss = kld_loss * kld_weight
+            print(kld_loss)
             loss = criterion(y, output)
             if kld_backward:
                 (loss + kld_loss).backward()
