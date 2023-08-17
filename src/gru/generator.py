@@ -104,7 +104,7 @@ class EncoderDecoder(nn.Module):
         dropout (float): GRU dropout
         teacher_ratio (float): teacher forcing ratio
         random_seed (int): random seed for reproducibility
-        use_cuda (bool): wetter to use cuda
+        use_cuda (bool): whether to use cuda
         encoder_nograd (bool): disable gradient calculation for the encoder
     """
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
@@ -307,9 +307,12 @@ class EncoderDecoderV2(EncoderDecoder):
 
     def forward(self, X, y, teacher_forcing=False, reinforcement=False):
         batch_size = X.shape[0]
-        hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        outputs = []
-        with torch.no_grad():
+
+        if self.encoder_nograd:
+            with torch.no_grad():
+                mu, logvar = self.encoder(X)
+                encoded = self.reparameterize(mu, logvar)
+        else:
             mu, logvar = self.encoder(X)
             encoded = self.reparameterize(mu, logvar)
 
@@ -317,6 +320,8 @@ class EncoderDecoderV2(EncoderDecoder):
         x = self.fc12(h1)
         x = x.unsqueeze(1)
 
+        hidden = self.decoder.init_hidden(batch_size).to(self.device)
+        outputs = []
         for n in range(128):
             out, hidden = self.decoder(x, hidden)
             out = self.relu(self.fc1(out))  # shape (batch_size, 42)
