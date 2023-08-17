@@ -89,7 +89,7 @@ def main():
             teacher_ratio=teacher_ratio,
             output_size=42,  # alphabet length
             encoder_nograd=encoder_nograd,
-            random_seed=42,
+            random_seed=42
         ).to(device)
 
     elif model_type == 'EncoderDecoderV2':
@@ -101,7 +101,8 @@ def main():
             dropout=dropout,
             teacher_ratio=teacher_ratio,
             output_size=42,  # alphabet length
-            random_seed=42,
+            encoder_nograd=encoder_nograd,
+            random_seed=42
         ).to(device)
 
     else:
