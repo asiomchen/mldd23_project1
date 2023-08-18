@@ -9,6 +9,37 @@ import selfies as sf
 import pandas as pd
 
 
+class FCEncoder(nn.Module):
+    """
+        Encoder net.
+        Parameters:
+            input_size (int): size of the fingerprint vector
+            output_size (int): size of the latent vectors mu and logvar
+        """
+
+    def __init__(self, input_size, output_size):
+        super(FCEncoder, self).__init__()
+        self.fc1 = nn.Linear(input_size, 2048)
+        self.fc2 = nn.Linear(2048, 1024)
+        self.fc3 = nn.Linear(1024, 512)
+        self.fc4 = nn.Linear(512, output_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        """
+        Args:
+            x (torch.tensor): fingerprint vector
+        Returns:
+            mu (torch.tensor): mean
+            logvar: (torch.tensor): log variance
+        """
+        h1 = self.relu(self.fc1(x))
+        h2 = self.relu(self.fc2(h1))
+        h3 = self.relu(self.fc3(h2))
+        out = self.fc4(h3)
+        return out
+
+
 class VAEEncoder(nn.Module):
     """
     Encoder net, part of VAE.
@@ -453,3 +484,84 @@ class EncoderDecoderV3(nn.Module):
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return eps.mul(std).add_(mu)
+
+
+class EncoderDecoderV4(nn.Module):
+    """
+        Encoder-Decoder class based on fc encoder and GRU.
+
+        Parameters:
+            fp_size (int): size of the fingerprint vector
+            encoding_size (int): size of the latent vectors mu and logvar
+            hidden_size (int): GRU hidden size
+            num_layers (int): GRU number of layers
+            output_size (int): GRU output size (alphabet size)
+            dropout (float): GRU dropout
+            teacher_ratio (float): teacher forcing ratio
+            random_seed (int): random seed for reproducibility
+            use_cuda (bool): whether to use cuda
+            encoder_nograd (bool): disable gradient calculation for the encoder
+        """
+
+    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout, teacher_ratio,
+                 random_seed, use_cuda=True, encoder_nograd=False):
+        super(EncoderDecoderV4, self).__init__()
+        super().__init__()
+        self.teacher_ratio = teacher_ratio
+        self.encoder = FCEncoder(fp_size, encoding_size)
+        self.decoder = DecoderNet(hidden_size, num_layers, output_size, dropout, input_size=output_size)
+        self.encoding_size = encoding_size
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.device = torch.device('cuda' if use_cuda else 'cpu')
+        self.encoder_nograd = encoder_nograd
+
+        # start token initialization
+        self.start_ohe = torch.zeros(42, dtype=torch.float32)
+        self.start_ohe[41] = 1.0
+        random.seed(random_seed)
+
+        # pytorch.nn
+        self.fc1 = nn.Linear(hidden_size, 42)
+        self.fc2 = nn.Linear(encoding_size, hidden_size)
+        self.relu = nn.ReLU()
+
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
+        """
+        Args:
+            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
+            y (torch.tensor):batched SELFIES of target molecules
+            teacher_forcing: (bool):enable teacher forcing
+            reinforcement: (bool):enable loss calculation for use in reinforcement learning
+
+        Returns:
+            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
+
+        If reinforcement is enabled, the following tensors are also returned:
+            rl_loss (torch.tensor):loss for use in reinforcement learning
+            total_reward (torch.tensor):total reward for use in reinforcement learning
+        """
+        batch_size = X.shape[0]
+        encoded = self.encoder(X)  # shape (batch_size, encoding_size)
+        encoded = self.fc2(encoded)  # shape (batch_size, hidden_size)
+
+        # initializing hidden state
+        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
+        hidden[0] = encoded.unsqueeze(0)
+        # shape (num_layers, batch_size, hidden_size)
+
+        # initializing input
+        x = self.start_ohe.repeat(batch_size, 1).unsqueeze(1).to(self.device)  # shape (batch_size, 1, 42)
+
+        # generating sequence
+        outputs = []
+        for n in range(128):
+            out, hidden = self.decoder(x, hidden)
+            out = self.relu(self.fc1(out))
+            outputs.append(out)
+            random_float = random.random()
+            if teacher_forcing and random_float < self.teacher_ratio:
+                out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
+            x = out
+        out_cat = torch.cat(outputs, dim=1)
+        return out_cat, torch.tensor(0)
