@@ -74,8 +74,11 @@ class DecoderNet(nn.Module):
         self.output_size = output_size
 
         # pytorch.nn
-        self.gru = nn.GRU(input_size=input_size, hidden_size=hidden_size, num_layers=num_layers,
-                          dropout=dropout, batch_first=True)
+        self.gru = nn.GRU(input_size=self.input_size,
+                          hidden_size=self.hidden_size,
+                          num_layers=self.num_layers,
+                          dropout=self.dropout,
+                          batch_first=True)
 
     def forward(self, x, h):
         """
@@ -114,8 +117,8 @@ class EncoderDecoder(nn.Module):
         encoder_nograd (bool): disable gradient calculation for the encoder
     """
 
-    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed, use_cuda=True, encoder_nograd=False):
+    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, dropout,
+                 teacher_ratio, random_seed=42, output_size=42, use_cuda=True, encoder_nograd=False):
         super(EncoderDecoder, self).__init__()
         self.teacher_ratio = teacher_ratio
         self.encoder = VAEEncoder(fp_size, encoding_size)
