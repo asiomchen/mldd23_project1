@@ -135,10 +135,12 @@ class EncoderDecoder(nn.Module):
         self.relu = nn.ReLU()
         self.softmax2d = nn.Softmax(dim=2)
 
-    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
+    def forward(self, X, y, encode_fist=True, teacher_forcing=False, reinforcement=False):
         """
         Args:
-            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
+            encode_fist:
+            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size] if encode_fist is True
+                or latent vector of size [batch_size, encoding_size] if encode_fist is False
             y (torch.tensor):batched SELFIES of target molecules
             teacher_forcing: (bool):enable teacher forcing
             reinforcement: (bool):enable loss calculation for use in reinforcement learning
@@ -153,15 +155,18 @@ class EncoderDecoder(nn.Module):
         batch_size = X.shape[0]
         hidden = self.decoder.init_hidden(batch_size).to(self.device)
 
-        if self.encoder_nograd:
-            with torch.no_grad():
+        if encode_fist:
+            if self.encoder_nograd:
+                with torch.no_grad():
+                    mu, logvar = self.encoder(X)
+                    encoded = self.reparameterize(mu, logvar)
+                kld_loss = torch.tensor(0.0)
+            else:
                 mu, logvar = self.encoder(X)
+                kld_loss = self.encoder.kld_loss(mu, logvar)
                 encoded = self.reparameterize(mu, logvar)
-            kld_loss = torch.tensor(0.0)
         else:
-            mu, logvar = self.encoder(X)
-            kld_loss = self.encoder.kld_loss(mu, logvar)
-            encoded = self.reparameterize(mu, logvar)
+            encoded = X.to(self.device)
         x = encoded.unsqueeze(1)
 
         # generating sequence
@@ -390,7 +395,7 @@ class EncoderDecoderV3(nn.Module):
         self.fc2 = nn.Linear(encoding_size, hidden_size)
         self.relu = nn.ReLU()
 
-    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False, encode_first=True):
         """
         Args:
             X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
@@ -407,15 +412,18 @@ class EncoderDecoderV3(nn.Module):
         """
         batch_size = X.shape[0]
 
-        if self.encoder_nograd:
-            with torch.no_grad():
+        if encode_first:
+            if self.encoder_nograd:
+                with torch.no_grad():
+                    mu, logvar = self.encoder(X)
+                    encoded = self.reparameterize(mu, logvar)
+                kld_loss = torch.tensor(0.0)
+            else:
                 mu, logvar = self.encoder(X)
-                encoded = self.reparameterize(mu, logvar)
-            kld_loss = torch.tensor(0.0)
+                kld_loss = self.encoder.kld_loss(mu, logvar)
+                encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
         else:
-            mu, logvar = self.encoder(X)
-            kld_loss = self.encoder.kld_loss(mu, logvar)
-            encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
+            encoded = X
 
         encoded = self.fc2(encoded)  # shape (batch_size, hidden_size)
 
@@ -438,7 +446,7 @@ class EncoderDecoderV3(nn.Module):
                 out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
             x = out
         out_cat = torch.cat(outputs, dim=1)
-        return out_cat, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+        return out_cat  # out_cat.shape (batch_size, selfie_len, alphabet_len)
 
     @staticmethod
     def reparameterize(mu, logvar):

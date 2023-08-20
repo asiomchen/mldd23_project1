@@ -9,11 +9,8 @@ import pandas as pd
 import rdkit.Chem.Draw as Draw
 import selfies as sf
 import torch
-from torch.utils.data import DataLoader
-from tqdm import tqdm
 
 from src.gru.generator import EncoderDecoderV3
-from src.pred.dataset import PredictionDataset
 from src.pred.filter import molecule_filter
 from src.utils.vectorizer import SELFIESVectorizer
 
@@ -49,7 +46,6 @@ def predict(file_name, is_verbose=True):
     # load config
     config = configparser.ConfigParser()
     config.read(config_path)
-    batch_size = int(config['MODEL']['batch_size'])
     fp_len = int(config['MODEL']['fp_len'])
     encoding_size = int(config['MODEL']['encoding_size'])
     hidden_size = int(config['MODEL']['hidden_size'])
@@ -57,7 +53,6 @@ def predict(file_name, is_verbose=True):
     dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
     use_cuda = config['SCRIPT'].getboolean('cuda')
-    progress_bar = config['SCRIPT'].getboolean('progress_bar') if is_verbose else False
     device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     print(f'Using {device} device') if is_verbose else None
 
@@ -78,15 +73,13 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}').sample(n=10000)
+    query_df = pd.read_parquet(f'results/{file_name}')
+    input_tensor = torch.tensor(query_df.to_numpy(), dtype=torch.float32)
 
     # get predictions
     print(f'Getting predictions for file {file_name}...') if is_verbose else None
     df = get_predictions(model,
-                         query_df,
-                         fp_len=fp_len,
-                         batch_size=batch_size,
-                         progress_bar=progress_bar,
+                         input_tensor,
                          use_cuda=use_cuda,
                          verbose=is_verbose
                          )
@@ -120,10 +113,7 @@ def predict(file_name, is_verbose=True):
 
 
 def get_predictions(model,
-                    df,
-                    fp_len,
-                    batch_size,
-                    progress_bar=False,
+                    input_tensor,
                     use_cuda=False,
                     verbose=True,
                     ):
@@ -131,35 +121,27 @@ def get_predictions(model,
     Generates predictions for a given model and dataframe.
     Args:
         model (nn.Module): Model to use for predictions.
-        df  (pd.DataFrame): Dataframe containing fingerprints in 'fps' column.
-        fp_len: Fingerprint length.
-        batch_size (int): Batch size.
-        progress_bar (bool): Whether to show progress bar.
+        input_tensor (torch.Tensor) Tensor containing batched latent vectors.
         use_cuda (bool): Whether to use CUDA for predictions.
         verbose (bool): Whether to print progress.
     Returns:
         output (pd.DataFrame): prediction df containing 'smiles' and 'fp' columns
     """
     device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
-    dataset = PredictionDataset(df, fp_len=fp_len)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
-    loader = DataLoader(dataset, shuffle=False, batch_size=batch_size, drop_last=False)
     preds_smiles = []
     with torch.no_grad():
-        for n, X in enumerate(tqdm(loader, disable=not progress_bar)):
-            X = X.to(device)
-            preds, _ = model(X, None, teacher_forcing=False)
-            preds = preds.cpu().numpy()
-            for seq in preds:
-                selfie = vectorizer.devectorize(seq, remove_special=True)
-                try:
-                    preds_smiles.append(sf.decoder(selfie))
-                except sf.DecoderError:
-                    preds_smiles.append('C')  # dummy SMILES
-            if (not progress_bar and verbose) and (n % 10 == 0):
-                print(f'Processed batch {n} of {len(loader)}')
+        X = input_tensor.to(device)
+        preds = model(X, None, teacher_forcing=False, encode_first=False)
+        preds = preds.cpu().numpy()
+        for seq in preds:
+            selfie = vectorizer.devectorize(seq, remove_special=True)
+            try:
+                preds_smiles.append(sf.decoder(selfie))
+            except sf.DecoderError:
+                preds_smiles.append('C')  # dummy SMILES
     print('Predictions complete') if verbose else None
-    output = pd.DataFrame({'smiles': preds_smiles, 'fps': df.fps})
+    output = pd.DataFrame({'smiles': preds_smiles})
     return output
 
 
