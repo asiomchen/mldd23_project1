@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.gru.generator import EncoderDecoder
+from src.gru.generator import EncoderDecoderV3
 from src.pred.dataset import PredictionDataset
 from src.pred.filter import molecule_filter
 from src.utils.vectorizer import SELFIESVectorizer
@@ -62,7 +62,7 @@ def predict(file_name, is_verbose=True):
     print(f'Using {device} device') if is_verbose else None
 
     # load model
-    model = EncoderDecoder(
+    model = EncoderDecoderV3(
         fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
@@ -130,7 +130,7 @@ def get_predictions(model,
     """
     Generates predictions for a given model and dataframe.
     Args:
-        model (EncoderDecoder): Model to use for predictions.
+        model (nn.Module): Model to use for predictions.
         df  (pd.DataFrame): Dataframe containing fingerprints in 'fps' column.
         fp_len: Fingerprint length.
         batch_size (int): Batch size.

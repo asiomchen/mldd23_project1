@@ -8,7 +8,7 @@ class Discriminator(nn.Module):
     Args:
         latent_size (int): size of the latent space
     """
-    def __init__(self, latent_size):
+    def __init__(self, latent_size, use_sigmoid=True):
         super().__init__()
         self.latent_size = latent_size
         self.fc1 = nn.Linear(latent_size, 256)
@@ -16,21 +16,24 @@ class Discriminator(nn.Module):
         self.fc3 = nn.Linear(128, 16)
         self.fc4 = nn.Linear(16, 1)
         self.relu = nn.ReLU()
+        self.use_sigmoid = use_sigmoid
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         """
         Forward pass of the discriminator
         Args:
-            x (torch.Tensor): input tensor
+            x (torch.Tensor): input tensor of size (latent space)
         Returns:
-            torch.Tensor: prediction (0.0 to 1.0)
+            torch.Tensor: prediction (0.0 to 1.0) if use_sigmoid=True, else logits
         """
         h1 = self.relu(self.fc1(x))
         h2 = self.relu(self.fc2(h1))
         h3 = self.relu(self.fc3(h2))
-        return self.sigmoid(self.fc4(h3))
-
+        if self.use_sigmoid:
+            return self.sigmoid(self.fc4(h3))
+        else:
+            return self.fc4(h3)
 
 def reparameterize(mu, logvar):
     """

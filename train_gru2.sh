@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=GRU2
+#SBATCH --job-name=GRU1
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1
