@@ -6,6 +6,8 @@ import argparse
 import numpy as np
 from tqdm import tqdm
 
+device = torch.device('cpu')
+
 parser = argparse.ArgumentParser()
 parser.add_argument('-n', '--n_samples', type=int, default=10)
 parser.add_argument('-p', '--init_points', type=int, default=3)
@@ -16,8 +18,8 @@ init_points = parser.parse_args().init_points
 n_iter = parser.parse_args().n_iter
 
 latent_size = 64
-model = Discriminator(latent_size=latent_size, use_sigmoid=False)
-model.load_state_dict(torch.load('models/discr_d2_mandarynka_epoch_100/epoch_150.pt'))
+model = Discriminator(latent_size=latent_size, use_sigmoid=False).to(device)
+model.load_state_dict(torch.load('models/discr_d2_mandarynka_epoch_100/epoch_150.pt', map_location=device))
 
 args = {str(n): 0.0 for n in range(latent_size)}
 pbounds = {str(p): (-5, 5) for p in range(latent_size)}
