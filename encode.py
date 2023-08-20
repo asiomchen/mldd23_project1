@@ -2,11 +2,13 @@ import torch
 import pandas as pd
 from src.vae.vae import VAEEncoder
 from src.vae.vae_dataset import VAEDataset
+from src.gru.generator import EncoderDecoderV3
 import torch.utils.data as D
 import numpy as np
 from tqdm import tqdm
 import argparse
 import os
+import configparser
 
 
 def main():
@@ -30,8 +32,23 @@ def main():
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
-    model = VAEEncoder(input_size=4860, output_size=16).to(device)
-    model.load_state_dict(torch.load(encoder_path, map_location=device))
+    if model_name.split('_')[0].lower() == 'vae':
+        model = VAEEncoder(input_size=4860, output_size=64).to(device)
+        model.load_state_dict(torch.load(encoder_path, map_location=device))
+    else:
+        config = configparser.ConfigParser()
+        config.read(f'models/{model_name}/hyperparameters.ini')
+        model = EncoderDecoderV3(fp_size=config.getint('MODEL', 'fp_len'),
+                                 hidden_size=config.getint('MODEL', 'hidden_size'),
+                                 encoding_size=config.getint('MODEL', 'encoding_size'),
+                                 num_layers=config.getint('MODEL', 'num_layers'),
+                                 dropout=config.getfloat('MODEL', 'dropout'),
+                                 output_size=42,
+                                 teacher_ratio=0.0,
+                                 random_seed=42,
+                                 ).to(device)
+        model.load_state_dict(torch.load(encoder_path, map_location=device))
+        model = model.encoder
 
     with torch.no_grad():
         mu_list = []

@@ -16,8 +16,7 @@
 
 ## Interface
 1. Activate the environment: `conda activate mldd `
-2. (W.I.P.) Generate fingerprints
-3. (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`  
+2. Optional: (W.I.P.) Convert SMILES of ligands of any target to K&R fingerprints: `python Extract.py --file [filepath.csv]`  
 
    Required arguments:  
     `-f --file` (str) path to .csv file containing SMILES of molecules; should be put into ./Smiles2Fp/datasets
@@ -28,7 +27,7 @@
     `-o --output` (str) name of .csv file to be saved into ./Smiles2Fp/outputs directory  
     `-k --keys` (str) path to SMARTS keys, default file is included in the directory  
    
-4. Generate molecules for fingerprints: `python predict.py`
+3. Generate molecules for fingerprints: `python predict.py`
      
    The script will scan ./results folder for .parquet files generated in previous step. For each one, a new directory 
    in ./results will be generated, containing:  

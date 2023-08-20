@@ -2,14 +2,14 @@ import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from src.vae.vae import VAE
+from src.gru.generator import EncoderDecoderV3
 from src.vae.vae_dataset import VAEDataset
 import torch.utils.data as Data
 from tqdm import tqdm
 from sklearn.decomposition import PCA
-from sklearn.metrics import jaccard_score
 import os
 import argparse
+import configparser
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 parser = argparse.ArgumentParser()
@@ -21,34 +21,24 @@ parser.add_argument('-n', '--name',
                     help='Names of the models to be used for encoding (as in models/ directory).'
                     )
 name_list = parser.parse_args().name
-epoch_list = ['25', '50', '75', '100']
+epoch_list = ['20', '40', '60', '80', '100']
 
 
-def encode(df, model, device, eval_recon=True):
+def encode(df, model, device):
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
-    fps = []
-    reconstructions = []
     mus = []
     logvars = []
     with torch.no_grad():
-        total_jaccard = 0
         for batch in tqdm(dataloader):
             X = batch.to(device)
-            recon, mu, logvar = model(X)
-            X = X.cpu().numpy()
-            fps.append(X)
-            reconstructions.append(recon.cpu().numpy())
-            recon = np.round(recon.cpu().numpy())
-            total_jaccard += jaccard_score(X, recon, average='micro')
+            mu, logvar = model.encoder(X)
             mus.append(mu.cpu().numpy())
             logvars.append(logvar.cpu().numpy())
 
         mus = np.concatenate(mus, axis=0)
         logvars = np.concatenate(logvars, axis=0)
-        fps = np.concatenate(fps, axis=0)
-        mean_distance = total_jaccard / len(dataloader)
-    return mus, logvars, fps, mean_distance
+    return mus, logvars
 
 
 def transform(mu_values, pca_model):
@@ -69,16 +59,32 @@ def read_data(path):
 for name in name_list:
     name = name[0]
     for epoch in epoch_list:
-        model_path = 'models/' + f'{name}/vae_epoch_{epoch}.pt'
+        model_path = 'models/' + f'{name}/epoch_{epoch}.pt'
         print('name:', name, 'epoch:', epoch)
-        model_type, latent_size = name.split('_')[0:1]
-        latent_size = int(latent_size)
+        config = configparser.ConfigParser()
+        config.read(f'models/{name}/hyperparameters.ini')
+        fp_size = int(config['MODEL']['fp_len'])
+        encoding_size = int(config['MODEL']['encoding_size'])
+        hidden_size = int(config['MODEL']['hidden_size'])
+        num_layers = int(config['MODEL']['num_layers'])
+        output_size = 42
+        dropout = float(config['MODEL']['dropout'])
+        teacher_ratio = float(config['MODEL']['teacher_ratio'])
 
-        model = VAE(input_size=4860, latent_size=latent_size).to(device)
+        model = EncoderDecoderV3(fp_size,
+                                 encoding_size,
+                                 hidden_size,
+                                 num_layers,
+                                 output_size,
+                                 dropout,
+                                 teacher_ratio,
+                                 random_seed=42,
+                                 use_cuda=False
+                                 ).to(device)
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
 
         df = pd.read_parquet('data/train_data/combined_dataset.parquet').sample(100000)
-        mus, _, _, _ = encode(df, model, device)
+        mus, _ = encode(df, model, device)
         pca = PCA(n_components=2)
         pca.fit(mus)
         all_results = transform(mus, pca)
@@ -89,19 +95,13 @@ for name in name_list:
         beta2_encoded = encode(read_data('data/activity_data/beta2_klek_100nM.parquet'), model, device)
         h1_encoded = encode(read_data('data/activity_data/h1_klek_100nM.parquet'), model, device)
 
-        mean_jaccard = (ht1a_encoded[3] +
-                        ht7_encoded[3] +
-                        d2_encoded[3] +
-                        beta2_encoded[3] +
-                        h1_encoded[3]) / 5
-
         ht1a_results = transform(ht1a_encoded[0], pca)
         ht7_results = transform(ht7_encoded[0], pca)
         d2_results = transform(d2_encoded[0], pca)
         beta2_results = transform(beta2_encoded[0], pca)
         h1_results = transform(h1_encoded[0], pca)
 
-        marker_size = 10
+        marker_size = 6
         plt.clf()
         fig = plt.figure(figsize=(12, 8))
         plt.scatter(*all_results, marker='o', label='train', s=12, c='lightgrey')
@@ -110,11 +110,11 @@ for name in name_list:
         plt.scatter(*d2_results, marker='o', label='D2', s=marker_size)
         plt.scatter(*beta2_results, marker='o', label='Beta2', s=marker_size)
         plt.scatter(*h1_results, marker='o', label='H1', s=marker_size)
-        plt.title(f'{name} latent space projection at epoch {epoch}. Recon_tanimoto: {mean_jaccard:.3f}')
+        plt.title(f'{name} latent space projection at epoch {epoch}')
         plt.xlabel('PCA-1')
         plt.ylabel('PCA-2')
-        plt.xlim([-3, 3])
-        plt.ylim([-3, 3])
+        plt.xlim([-20, 30])
+        plt.ylim([-20, 30])
         plt.legend(loc='upper left')
         if not os.path.exists(f'results/{name}'):
             os.mkdir(f'results/{name}')
