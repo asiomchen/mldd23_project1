@@ -99,7 +99,7 @@ def predict(file_name, is_verbose=True):
         config.write(configfile)
 
     druglike_df.to_csv(f'results/{name}/{name}.csv',
-                       columns=['fps', 'smiles', 'qed'],
+                       columns=['smiles', 'qed'],
                        index=False)
 
     print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
@@ -132,7 +132,7 @@ def get_predictions(model,
     preds_smiles = []
     with torch.no_grad():
         X = input_tensor.to(device)
-        preds = model(X, None, teacher_forcing=False, encode_first=False)
+        preds, _ = model(X, None, teacher_forcing=False, encode_first=False)
         preds = preds.cpu().numpy()
         for seq in preds:
             selfie = vectorizer.devectorize(seq, remove_special=True)
