@@ -446,7 +446,7 @@ class EncoderDecoderV3(nn.Module):
                 out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
             x = out
         out_cat = torch.cat(outputs, dim=1)
-        return out_cat  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+        return out_cat, torch.tensor(0.0)  # out_cat.shape (batch_size, selfie_len, alphabet_len)
 
     @staticmethod
     def reparameterize(mu, logvar):
