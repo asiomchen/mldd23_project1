@@ -58,10 +58,12 @@ def train(config, model, train_loader, val_loader):
             kld_loss = kld_loss * kld_weight
             loss = criterion(y, output)
             if kld_backward:
-                model.decoder.requires_grad_(False)
-                kld_loss.backward(retain_graph=True)
-                model.decoder.requires_grad_(True)
-                loss.backward()
+                loss_final = loss + kld_loss
+                loss_final.backward()
+                # model.decoder.requires_grad_(False)
+                # kld_loss.backward(retain_graph=True)
+                # model.decoder.requires_grad_(True)
+                # loss.backward()
             else:
                 loss.backward()
             optimizer.step()
