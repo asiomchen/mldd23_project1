@@ -43,8 +43,8 @@ class VAEEncoder(nn.Module):
 
     @staticmethod
     def kld_loss(mu, logvar):
-        KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        return KLD
+        kld = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1), dim=0)
+        return kld
 
 
 class DecoderNet(nn.Module):
@@ -167,6 +167,7 @@ class EncoderDecoder(nn.Module):
                 encoded = self.reparameterize(mu, logvar)
         else:
             encoded = X.to(self.device)
+            kld_loss = torch.tensor(0.0)
         x = encoded.unsqueeze(1)
 
         # generating sequence
@@ -424,6 +425,7 @@ class EncoderDecoderV3(nn.Module):
                 encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
         else:
             encoded = X
+            kld_loss = torch.tensor(0.0)
 
         encoded = self.fc2(encoded)  # shape (batch_size, hidden_size)
 
@@ -446,7 +448,7 @@ class EncoderDecoderV3(nn.Module):
                 out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
             x = out
         out_cat = torch.cat(outputs, dim=1)
-        return out_cat, torch.tensor(0.0)  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+        return out_cat, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
 
     @staticmethod
     def reparameterize(mu, logvar):
