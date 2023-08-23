@@ -1,7 +1,0 @@
-cuda
-Dataset size: 10000
-Train size: 8000
-Val size: 2000
-Starting Training of GRU
-Device: cuda
-Epoch: 1
