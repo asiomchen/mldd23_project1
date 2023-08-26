@@ -6,6 +6,7 @@ from src.gru.cce import CCE
 import wandb
 import selfies as sf
 import rdkit.Chem as Chem
+from src.utils.annealing import Annealer
 
 
 def train(config, model, train_loader, val_loader):
@@ -22,6 +23,11 @@ def train(config, model, train_loader, val_loader):
     kld_backward = config.getboolean('RUN', 'kld_backward')
     start_epoch = int(config['RUN']['start_epoch'])
     kld_weight = float(config['RUN']['kld_weight'])
+    kld_annealing = config.getboolean('RUN', 'kld_annealing')
+    annealing_max_epoch = int(config['RUN']['annealing_max_epoch'])
+    annealing_shape = str(config['RUN']['annealing_shape'])
+
+    annealing_agent = Annealer(annealing_max_epoch, annealing_shape)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -55,15 +61,12 @@ def train(config, model, train_loader, val_loader):
             y = y.to(device)
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
-            kld_loss = kld_loss * kld_weight
             loss = criterion(y, output)
+            kld_loss = kld_loss * kld_weight
+            if kld_annealing:
+                kld_loss = annealing_agent(kld_loss)
             if kld_backward:
-                loss_final = loss + kld_loss
-                loss_final.backward()
-                # model.decoder.requires_grad_(False)
-                # kld_loss.backward(retain_graph=True)
-                # model.decoder.requires_grad_(True)
-                # loss.backward()
+                (loss + kld_loss).backward()
             else:
                 loss.backward()
             optimizer.step()
@@ -79,6 +82,9 @@ def train(config, model, train_loader, val_loader):
                         }
         if use_wandb:
             wandb.log(metrics_dict)
+
+        if kld_annealing:
+            annealing_agent.step()
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
