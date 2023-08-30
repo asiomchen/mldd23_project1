@@ -21,7 +21,7 @@ parser.add_argument('-n', '--name',
                     help='Names of the models to be used for encoding (as in models/ directory).'
                     )
 name_list = parser.parse_args().name
-epoch_list = ['20', '40', '60', '80', '100']
+epoch_list = range(10, 71, 10)
 
 
 def encode(df, model, device):
@@ -113,8 +113,8 @@ for name in name_list:
         plt.title(f'{name} latent space projection at epoch {epoch}')
         plt.xlabel('PCA-1')
         plt.ylabel('PCA-2')
-        plt.xlim([-20, 30])
-        plt.ylim([-20, 30])
+        plt.xlim([-10, 10])
+        plt.ylim([-10, 10])
         plt.legend(loc='upper left')
         if not os.path.exists(f'results/{name}'):
             os.mkdir(f'results/{name}')
