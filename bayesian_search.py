@@ -12,7 +12,7 @@ class Scorer():
     def __init__(self, latent_size, device):
         self.model = Discriminator(latent_size=latent_size, use_sigmoid=False).to(device)
         self.model.load_state_dict(
-            torch.load('models/discr_d2_mandarynka_epoch_100/epoch_150.pt', map_location=device)
+            torch.load('models/discr_d2_ananas_epoch_60/epoch_200.pt', map_location=device)
         )
 
     def __call__(self, **args) -> float:
@@ -23,19 +23,19 @@ class Scorer():
         return output
 
 
-def search(n_samples, init_points, n_iter, return_list, random_state=42):
+def search(n_samples, init_points, n_iter, return_list, verbose, random_state=42):
 
     device = torch.device('cpu')
-    latent_size = 64
+    latent_size = 32
     scorer = Scorer(latent_size, device)
 
-    pbounds = {str(p): (-10, 10) for p in range(latent_size)}
+    pbounds = {str(p): (-5, 5) for p in range(latent_size)}
 
     optimizer = BayesianOptimization(
         f=scorer,
         pbounds=pbounds,
         random_state=random_state,
-        verbose=0
+        verbose=verbose
     )
     vector_list = []
     for _ in range(n_samples):
@@ -58,52 +58,58 @@ if __name__ == '__main__':
     parser.add_argument('-n', '--n_samples', type=int, default=10)
     parser.add_argument('-p', '--init_points', type=int, default=1)
     parser.add_argument('-i', '--n_iter', type=int, default=8)
+    parser.add_argument('-d', '--device', type=str, default='cpu')
     n_samples = parser.parse_args().n_samples
     init_points = parser.parse_args().init_points
     n_iter = parser.parse_args().n_iter
+    device = parser.parse_args().device
+    samples = pd.DataFrame()
 
-    manager = mp.Manager()
-    return_list = manager.list()
+    if device == 'cpu':
+        manager = mp.Manager()
+        return_list = manager.list()
 
-    cpus = mp.cpu_count()
-    print("Number of cpus: ", cpus)
+        cpus = mp.cpu_count()
+        print("Number of cpus: ", cpus)
 
-    queue = queue.Queue()
-    verbose = True
+        queue = queue.Queue()
 
-    # prepare a process for each file and add to queue
+        # prepare a process for each file and add to queue
 
-    if n_samples < cpus:
-        for i in range(n_samples):
-            proc = mp.Process(target=search, args=(n_samples, init_points, n_iter, return_list))
-            queue.put(proc)
-    else:
-        chunk_size = n_samples // cpus
-        remainder = n_samples % cpus
-        for i in range(cpus):
-            if i > cpus - remainder:
-                proc = mp.Process(target=search, args=(chunk_size + 1, init_points, n_iter, return_list))
-            else:
-                proc = mp.Process(target=search, args=(chunk_size, init_points, n_iter, return_list))
-            queue.put(proc)
+        if n_samples < cpus:
+            for i in range(n_samples):
+                verbose = True if i == 0 else False
+                proc = mp.Process(target=search, args=(n_samples, init_points, n_iter, return_list, verbose))
+                queue.put(proc)
+        else:
+            chunk_size = n_samples // cpus
+            remainder = n_samples % cpus
+            for i in range(cpus):
+                verbose = True if i == 0 else False
+                if i > cpus - remainder:
+                    proc = mp.Process(target=search, args=(chunk_size + 1, init_points, n_iter, return_list, verbose))
+                else:
+                    proc = mp.Process(target=search, args=(chunk_size, init_points, n_iter, return_list, verbose))
+                queue.put(proc)
 
-    # handle the queue
-    processes = []
-    while True:
-        if queue.empty():
-            print("(mp) Queue handled successfully")
-            break
-        if len(mp.active_children()) < cpus:
-            proc = queue.get()
-            print("(mp) Starting:", proc.name)
-            proc.start()
-            processes.append(proc)
-        time.sleep(1)
+        # handle the queue
+        processes = []
+        while True:
+            if queue.empty():
+                print("(mp) Queue handled successfully")
+                break
+            if len(mp.active_children()) < cpus:
+                proc = queue.get()
+                print("(mp) Starting:", proc.name)
+                proc.start()
+                processes.append(proc)
+            time.sleep(1)
 
-    # complete the processes
-    for proc in processes:
-        proc.join()
+        # complete the processes
+        for proc in processes:
+            proc.join()
+
+        samples = pd.concat(return_list)
 
     # save the results
-    samples = pd.concat(return_list)
-    samples.to_parquet('data/samples.parquet', index=False)
+    samples.to_parquet('results/samples.parquet', index=False)

@@ -47,11 +47,17 @@ def main(encoder_path, data_path):
         mus.columns = mus.columns.astype(str)
         logvars.columns = logvars.columns.astype(str)
         mus['label'] = df['Class']
-        logvars['label'] = df['Class']
+        mus['smiles'] = df['smiles']
         if not os.path.exists(f'data/encoded_data/{model_name}'):
             os.mkdir(f'data/encoded_data/{model_name}')
         mus.to_parquet(f'data/encoded_data/{model_name}/mu_{data_name}.parquet', index=False)
-        logvars.to_parquet(f'data/encoded_data/{model_name}/logvar_{data_name}.parquet', index=False)
+        # logvars.to_parquet(f'data/encoded_data/{model_name}/logvar_{data_name}.parquet', index=False)
+
+        out_config = configparser.ConfigParser()
+        out_config['INFO'] = {'model_path': encoder_path,
+                                  'encoding_size': config.getint('MODEL', 'encoding_size')}
+        with open(f'data/encoded_data/{model_name}/info.ini', 'x') as file:
+            out_config.write(file)
 
 
 if __name__ == '__main__':
@@ -70,10 +76,10 @@ if __name__ == '__main__':
     if data_path == 'all':
         paths = [
             'data/activity_data/5ht1a_klek_100nM.parquet',
-             'data/activity_data/5ht7_klek_100nM.parquet',
-             'data/activity_data/beta2_klek_100nM.parquet',
-             'data/activity_data/d2_klek_100nM.parquet',
-             'data/activity_data/h1_klek_100nM.parquet'
+            'data/activity_data/5ht7_klek_100nM.parquet',
+            'data/activity_data/beta2_klek_100nM.parquet',
+            'data/activity_data/d2_klek_100nM.parquet',
+            'data/activity_data/h1_klek_100nM.parquet'
                  ]
     else:
         paths = [data_path]
