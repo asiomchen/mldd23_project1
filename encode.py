@@ -1,6 +1,5 @@
 import torch
 import pandas as pd
-from src.vae.vae import VAEEncoder
 from src.vae.vae_dataset import VAEDataset
 from src.gru.generator import EncoderDecoderV3
 import torch.utils.data as D
@@ -11,19 +10,7 @@ import os
 import configparser
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-e',
-                        '--encoder_path',
-                        type=str,
-                        help='Path to encoder model')
-    parser.add_argument('-d',
-                        '--data_path',
-                        type=str,
-                        help='Path to data')
-    data_path = parser.parse_args().data_path
-    encoder_path = parser.parse_args().encoder_path
-
+def main(encoder_path, data_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data_name = (data_path.split('/')[-1].split('_')[0] +
                  '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0])
@@ -32,23 +19,20 @@ def main():
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
-    if model_name.split('_')[0].lower() == 'vae':
-        model = VAEEncoder(input_size=4860, output_size=64).to(device)
-        model.load_state_dict(torch.load(encoder_path, map_location=device))
-    else:
-        config = configparser.ConfigParser()
-        config.read(f'models/{model_name}/hyperparameters.ini')
-        model = EncoderDecoderV3(fp_size=config.getint('MODEL', 'fp_len'),
-                                 hidden_size=config.getint('MODEL', 'hidden_size'),
-                                 encoding_size=config.getint('MODEL', 'encoding_size'),
-                                 num_layers=config.getint('MODEL', 'num_layers'),
-                                 dropout=config.getfloat('MODEL', 'dropout'),
-                                 output_size=42,
-                                 teacher_ratio=0.0,
-                                 random_seed=42,
-                                 ).to(device)
-        model.load_state_dict(torch.load(encoder_path, map_location=device))
-        model = model.encoder
+
+    config = configparser.ConfigParser()
+    config.read(f'models/{model_name}/hyperparameters.ini')
+    model = EncoderDecoderV3(fp_size=config.getint('MODEL', 'fp_len'),
+                             hidden_size=config.getint('MODEL', 'hidden_size'),
+                             encoding_size=config.getint('MODEL', 'encoding_size'),
+                             num_layers=config.getint('MODEL', 'num_layers'),
+                             dropout=config.getfloat('MODEL', 'dropout'),
+                             output_size=42,
+                             teacher_ratio=0.0,
+                             random_seed=42,
+                             ).to(device)
+    model.load_state_dict(torch.load(encoder_path, map_location=device))
+    model = model.encoder
 
     with torch.no_grad():
         mu_list = []
@@ -71,4 +55,27 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m',
+                        '--model_path',
+                        type=str,
+                        help='Path to encoder model')
+    parser.add_argument('-d',
+                        '--data_path',
+                        type=str,
+                        help='Path to data',
+                        default='all')
+    encoder_path = parser.parse_args().model_path
+    data_path = parser.parse_args().data_path
+    if data_path == 'all':
+        paths = [
+            'data/activity_data/5ht1a_klek_100nM.parquet',
+             'data/activity_data/5ht7_klek_100nM.parquet',
+             'data/activity_data/beta2_klek_100nM.parquet',
+             'data/activity_data/d2_klek_100nM.parquet',
+             'data/activity_data/h1_klek_100nM.parquet'
+                 ]
+    else:
+        paths = [data_path]
+    for data_path in paths:
+        main(encoder_path, data_path)
