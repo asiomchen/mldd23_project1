@@ -116,7 +116,7 @@ for name in name_list:
         plt.xlim([-10, 10])
         plt.ylim([-10, 10])
         plt.legend(loc='upper left')
-        if not os.path.exists(f'results/{name}'):
-            os.mkdir(f'results/{name}')
-        fig.savefig(f'results/{name}/{name}_epoch_{epoch}.png', dpi=300)
-        print(f'Saved successfully to results/{name}/{name}_epoch_{epoch}.png')
+        if not os.path.exists(f'PCAs/{name}'):
+            os.mkdir(f'PCAs/{name}')
+        fig.savefig(f'PCAs/{name}/{name}_epoch_{epoch}.png', dpi=300)
+        print(f'Saved successfully to PCAs/{name}/{name}_epoch_{epoch}.png')
