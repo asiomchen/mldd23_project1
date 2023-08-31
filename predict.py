@@ -73,7 +73,7 @@ def predict(file_name, is_verbose=True):
     print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}')
+    query_df = pd.read_parquet(f'results/{file_name}')['fp']
     input_tensor = torch.tensor(query_df.to_numpy(), dtype=torch.float32)
 
     # get predictions
