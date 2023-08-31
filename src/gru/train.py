@@ -4,9 +4,9 @@ import pandas as pd
 import time
 from src.gru.cce import CCE
 import wandb
-import random
 import selfies as sf
 import rdkit.Chem as Chem
+from src.utils.annealing import Annealer
 
 
 def train(config, model, train_loader, val_loader):
@@ -23,6 +23,11 @@ def train(config, model, train_loader, val_loader):
     kld_backward = config.getboolean('RUN', 'kld_backward')
     start_epoch = int(config['RUN']['start_epoch'])
     kld_weight = float(config['RUN']['kld_weight'])
+    kld_annealing = config.getboolean('RUN', 'kld_annealing')
+    annealing_max_epoch = int(config['RUN']['annealing_max_epoch'])
+    annealing_shape = str(config['RUN']['annealing_shape'])
+
+    annealing_agent = Annealer(annealing_max_epoch, annealing_shape)
 
     # start a new wandb run to track this script
     if use_wandb:
@@ -35,7 +40,7 @@ def train(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss', 'mean_qed', 'fp_recon_score'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -56,8 +61,10 @@ def train(config, model, train_loader, val_loader):
             y = y.to(device)
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
-            kld_loss = kld_loss * kld_weight
             loss = criterion(y, output)
+            kld_loss = kld_loss * kld_weight
+            if kld_annealing:
+                kld_loss = annealing_agent(kld_loss)
             if kld_backward:
                 (loss + kld_loss).backward()
             else:
@@ -67,15 +74,17 @@ def train(config, model, train_loader, val_loader):
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
-        val_loss, mean_qed, fp_recon_score = evaluate(model, val_loader)
+        val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
-                        'mean_qed': mean_qed,
-                        'fp_recon_score': fp_recon_score}
+                        }
         if use_wandb:
             wandb.log(metrics_dict)
+
+        if kld_annealing:
+            annealing_agent.step()
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -97,6 +106,7 @@ def train_rl(config, model, train_loader, val_loader):
         Training loop for GRU model with RL
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    supervised = config.getboolean('RUN', 'supervised')
     rl_weight = float(config['RUN']['rl_weight'])
     run_name = str(config['RUN']['run_name'])
     learn_rate = float(config['RUN']['learn_rate'])
@@ -138,21 +148,28 @@ def train_rl(config, model, train_loader, val_loader):
         kld_loss = 0
         model.train()
         for batch_idx, (X, y) in enumerate(train_loader):
+            optimizer.zero_grad()
             X = X.to(device)
             y = y.to(device)
-            optimizer.zero_grad()
             output, kld_loss, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
             rl_loss = rl_loss * rl_weight
             kld_loss = kld_loss * kld_weight
             epoch_rl_loss += rl_loss.item()
             epoch_total_reward += total_reward
-            loss = criterion(y, output)
-            epoch_loss += loss.item()
+            loss = torch.tensor(0)
+            if supervised:
+                loss = criterion(y, output)
+                epoch_loss += loss.item()
             if kld_backward:
                 (loss + rl_loss + kld_loss).backward()
             else:
                 (loss + rl_loss).backward()
             optimizer.step()
+            if use_wandb:
+                wandb.log(
+                    {'batch_idx': batch_idx,
+                     'batch_rl_loss': rl_loss.item(),
+                     'batch_reward': total_reward})
 
         epoch_rl_loss = epoch_rl_loss / len(train_loader)
         epoch_total_reward = epoch_total_reward / len(train_loader)
@@ -168,7 +185,7 @@ def train_rl(config, model, train_loader, val_loader):
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
-        if epoch % 25 == 0:
+        if epoch % 5 == 0:
             save_path = f"./models/{run_name}/epoch_{epoch}.pt"
             torch.save(model.state_dict(), save_path)
 
@@ -182,24 +199,35 @@ def train_rl(config, model, train_loader, val_loader):
     return None
 
 
-def evaluate(model, val_loader, n_samples=10):
+def evaluate(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()
     with torch.no_grad():
         criterion = CCE()
         epoch_loss = 0
-        epoch_qed = 0
-        epoch_fp_score = 0
         for batch_idx, (X, y) in enumerate(val_loader):
-            batch_size = X.shape[0]
             X = X.to(device)
             y = y.to(device)
             output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
+        avg_loss = epoch_loss / len(val_loader)
+        return avg_loss
 
-            sample_idxs = [random.randint(0, batch_size - 1) for _ in range(n_samples)]
+
+def eval_properties(model, val_loader):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
+    model.eval()
+    with torch.no_grad():
+        epoch_qed = 0
+        epoch_fp_score = 0
+        for batch_idx, (X, y) in enumerate(val_loader):
+            X = X.to(device)
+            y = y.to(device)
+            output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
+
+            sample_idxs = [0]
             for idx in sample_idxs:
                 vectorized = output[idx].cpu().numpy()
                 selfies = vectorizer.devectorize(vectorized, remove_special=True)
@@ -209,11 +237,10 @@ def evaluate(model, val_loader, n_samples=10):
                     epoch_qed += model.get_qed_reward(mol)
                     epoch_fp_score += model.get_fp_reward(mol, X[idx])
                 except sf.DecoderError:
-                    print('SELFIES decoding error')
-            epoch_qed = epoch_qed / n_samples
-            epoch_fp_score = epoch_fp_score / n_samples
+                    print('SELFIES decoding error during evaluation')
+            epoch_qed = epoch_qed / len(sample_idxs)
+            epoch_fp_score = epoch_fp_score / len(sample_idxs)
 
-        avg_loss = epoch_loss / len(val_loader)
         mean_qed = epoch_qed / len(val_loader)
         fp_recon_score = epoch_fp_score / len(val_loader)
-        return avg_loss, mean_qed, fp_recon_score
+        return mean_qed, fp_recon_score

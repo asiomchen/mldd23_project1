@@ -16,7 +16,7 @@ def main():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     NUM_WORKERS = 3
-    train_size = 0.8
+    train_size = 0.9
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-c',

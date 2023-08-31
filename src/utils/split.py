@@ -1,4 +1,6 @@
 from rdkit.Chem.Scaffolds import MurckoScaffold
+import random
+
 
 # scaffold split
 
@@ -14,20 +16,22 @@ def get_scaffold(smiles, include_chirality=False):
     scaffold = MurckoScaffold.MurckoScaffoldSmiles(smiles=smiles, includeChirality=include_chirality)
     return scaffold
 
-def scaffold_split(df, frac_train):
 
+def scaffold_split(df, frac_train, shuffle=False, seed=42):
     """
     Splits a dataframe into train and validation sets by scaffold
     Args:
         df (pandas.DataFrame): dataframe to split
         frac_train (float): fraction of data to use for training
+        shuffle (bool): whether to shuffle the scaffold sets before splitting
+        seed (int): random seed for shuffling
     Returns:
         train_df (pandas.DataFrame): training set dataframe
         val_df (pandas.DataFrame): validation set dataframe
     """
     print('Grouping compounds by murcko scaffold...')
     # create dict of the form {scaffold_i: [idx1, idx....]}
-    
+
     all_scaffolds = {}
     for i, smiles in enumerate(df.smiles):
         scaffold = get_scaffold(smiles, include_chirality=True)
@@ -48,7 +52,12 @@ def scaffold_split(df, frac_train):
     cutoff = frac_train * len(df)
 
     train_idx, valid_idx = [], []
-    
+
+    if shuffle:
+        print('Shuffling...')
+        random.seed(seed)
+        all_scaffold_sets = random.sample(all_scaffold_sets, len(all_scaffold_sets))
+
     print('Splitting...')
     for scaffold_set in all_scaffold_sets:
         if len(train_idx) + len(scaffold_set) > cutoff:

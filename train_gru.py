@@ -1,7 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoder
+from src.gru.generator import EncoderDecoder, EncoderDecoderV2, EncoderDecoderV3
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -36,6 +36,7 @@ def main():
     run_name = str(config['RUN']['run_name'])
     batch_size = int(config['RUN']['batch_size'])
     data_path = str(config['RUN']['data_path'])
+    model_type = str(config['MODEL']['model_type'])
     encoding_size = int(config['MODEL']['encoding_size'])
     hidden_size = int(config['MODEL']['hidden_size'])
     num_layers = int(config['MODEL']['num_layers'])
@@ -57,7 +58,7 @@ def main():
 
     # if train_dataset not generated, perform scaffold split
     if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
-        train_df, val_df = scaffold_split(dataset, train_size)
+        train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
         train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
         val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
         print("Scaffold split complete")
@@ -78,21 +79,51 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    model = EncoderDecoder(
-        fp_size=fp_len,
-        encoding_size=encoding_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        dropout=dropout,
-        teacher_ratio=teacher_ratio,
-        output_size=42,  # alphabet length
-        encoder_nograd=encoder_nograd,
-        random_seed=42,
-    ).to(device)
+    if model_type == 'EncoderDecoder':
+        model = EncoderDecoder(
+            fp_size=fp_len,
+            encoding_size=encoding_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout,
+            teacher_ratio=teacher_ratio,
+            output_size=42,  # alphabet length
+            encoder_nograd=encoder_nograd,
+            random_seed=42
+        ).to(device)
 
-    if checkpoint_path != 'None':
+    elif model_type == 'EncoderDecoderV2':
+        model = EncoderDecoderV2(
+            fp_size=fp_len,
+            encoding_size=encoding_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout,
+            teacher_ratio=teacher_ratio,
+            output_size=42,  # alphabet length
+            encoder_nograd=encoder_nograd,
+            random_seed=42
+        ).to(device)
+
+    elif model_type == 'EncoderDecoderV3':
+        model = EncoderDecoderV3(
+            fp_size=fp_len,
+            encoding_size=encoding_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            dropout=dropout,
+            teacher_ratio=teacher_ratio,
+            output_size=42,  # alphabet length
+            encoder_nograd=encoder_nograd,
+            random_seed=42
+        ).to(device)
+
+    else:
+        raise ValueError('Invalid model type')
+
+    if checkpoint_path.lower() != 'none':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
-    elif encoder_path != 'None':
+    elif encoder_path.lower() != 'none':
         model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
     _ = train(config, model, train_loader, val_loader)
     return None

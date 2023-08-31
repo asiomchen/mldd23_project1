@@ -1,3 +1,5 @@
+import pandas as pd
+
 from src.vae.vae_dataset import VAEDataset
 from src.vae.train import train_vae
 from src.vae.vae import VAE
@@ -30,12 +32,14 @@ def main():
     batch_size = int(config['RUN']['batch_size'])
     input_size = int(config['MODEL']['input_size'])
     latent_size = int(config['MODEL']['latent_size'])
-    full_path = str(config['RUN']['data_path'])
+    data_path = str(config['RUN']['data_path'])
+    checkpoint_path = str(config['RUN']['checkpoint_path'])
 
     test_size = 0.8
 
     # load data
-    dataset = VAEDataset(full_path, fp_len=input_size)
+    dataframe = pd.read_parquet(data_path)
+    dataset = VAEDataset(dataframe, fp_len=input_size)
 
     # create a directory for this model if not there
     if not os.path.isdir(f'./models/{run_name}'):
@@ -50,6 +54,10 @@ def main():
 
     # init model
     model = VAE(input_size=input_size, latent_size=latent_size).to(device)
+
+    # load model if checkpoint exists
+    if checkpoint_path.lower() != 'none':
+        model.load_state_dict(torch.load(checkpoint_path))
 
     # train model
     _ = train_vae(config, model, train_loader, val_loader)
