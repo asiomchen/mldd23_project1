@@ -44,7 +44,7 @@ def predict(file_path, is_verbose=True):
     dir_name, file_name = file_path.split('/')
     name, _ = file_name.split('.')
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    name += '_' + timestamp
+    name = '_'.join([dir_name, name, timestamp])
 
     # load config
     config = configparser.ConfigParser()
