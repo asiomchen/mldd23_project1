@@ -300,62 +300,6 @@ class EncoderDecoder(nn.Module):
         return score / torch.sum(fp).item()
 
 
-class EncoderDecoderV2(EncoderDecoder):
-    """
-    Encoder-Decoder model with a different architecture.
-    Gradients on encoder are disabled by default. An extra 3-layer MLP is added after the encoder.
-    """
-
-    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, encoder_nograd=True, random_seed=42, use_cuda=True):
-        super().__init__(fp_size=fp_size,
-                         encoding_size=encoding_size,
-                         hidden_size=hidden_size,
-                         num_layers=num_layers,
-                         output_size=output_size,
-                         dropout=dropout,
-                         teacher_ratio=teacher_ratio,
-                         random_seed=random_seed,
-                         use_cuda=use_cuda,
-                         encoder_nograd=encoder_nograd)
-        self.fc11 = nn.Linear(self.encoding_size, 256)
-        self.fc12 = nn.Linear(256, self.hidden_size)
-        self.relu = nn.ReLU()
-
-    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
-        batch_size = X.shape[0]
-
-        if self.encoder_nograd:
-            with torch.no_grad():
-                mu, logvar = self.encoder(X)
-                encoded = self.reparameterize(mu, logvar)
-        else:
-            mu, logvar = self.encoder(X)
-            encoded = self.reparameterize(mu, logvar)
-
-        h1 = self.relu(self.fc11(encoded))
-        x = self.fc12(h1)
-        x = x.unsqueeze(1)
-
-        hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        outputs = []
-        for n in range(128):
-            out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
-            outputs.append(out)
-            random_float = random.random()
-            if teacher_forcing and random_float < self.teacher_ratio:
-                out = y[:, n, :].unsqueeze(1)
-            x = self.fc2(out)
-        out_cat = torch.cat(outputs, dim=1)
-
-        if reinforcement:
-            rl_loss, total_reward = self.reinforce(out_cat, X)
-            return out_cat, torch.tensor(0.0), rl_loss, total_reward
-        else:
-            return out_cat, torch.tensor(0.0)  # out_cat.shape [batch_size, selfie_len, alphabet_len]
-
-
 class EncoderDecoderV3(nn.Module):
     """
     Encoder-Decoder class based on VAE and GRU. The samples from VAE latent space are passed
