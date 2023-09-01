@@ -1,10 +1,7 @@
 # import packages
 from src.gru.train import train
 from src.gru.dataset import GRUDataset
-from src.gru.generator import (EncoderDecoder,
-                               EncoderDecoderV2,
-                               EncoderDecoderV3,
-                               EncoderDecoderV4)
+from src.gru.generator import EncoderDecoderV3
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -32,7 +29,7 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     NUM_WORKERS = 3
-    train_size = 0.8
+    train_size = 0.9
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -82,33 +79,7 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    if model_type == 'EncoderDecoder':
-        model = EncoderDecoder(
-            fp_size=fp_len,
-            encoding_size=encoding_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout,
-            teacher_ratio=teacher_ratio,
-            output_size=42,  # alphabet length
-            encoder_nograd=encoder_nograd,
-            random_seed=42
-        ).to(device)
-
-    elif model_type == 'EncoderDecoderV2':
-        model = EncoderDecoderV2(
-            fp_size=fp_len,
-            encoding_size=encoding_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout,
-            teacher_ratio=teacher_ratio,
-            output_size=42,  # alphabet length
-            encoder_nograd=encoder_nograd,
-            random_seed=42
-        ).to(device)
-
-    elif model_type == 'EncoderDecoderV3':
+    if model_type == 'EncoderDecoderV3':
         model = EncoderDecoderV3(
             fp_size=fp_len,
             encoding_size=encoding_size,
@@ -117,21 +88,6 @@ def main():
             dropout=dropout,
             teacher_ratio=teacher_ratio,
             output_size=42,  # alphabet length
-            encoder_nograd=encoder_nograd,
-            random_seed=42
-        ).to(device)
-
-    elif model_type == 'EncoderDecoderV4':
-        model = EncoderDecoderV4(
-            fp_size=fp_len,
-            encoding_size=encoding_size,
-            hidden_size=hidden_size,
-            num_layers=num_layers,
-            dropout=dropout,
-            teacher_ratio=teacher_ratio,
-            output_size=42,  # alphabet length
-            encoder_nograd=encoder_nograd,
-            random_seed=42
         ).to(device)
 
     else:

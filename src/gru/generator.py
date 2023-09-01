@@ -9,52 +9,29 @@ import selfies as sf
 import pandas as pd
 
 
-class FCEncoder(nn.Module):
-    """
-        Encoder net.
-        Parameters:
-            input_size (int): size of the fingerprint vector
-            output_size (int): size of the latent vectors mu and logvar
-        """
-
-    def __init__(self, input_size, output_size):
-        super(FCEncoder, self).__init__()
-        self.fc1 = nn.Linear(input_size, 2048)
-        self.fc2 = nn.Linear(2048, 1024)
-        self.fc3 = nn.Linear(1024, 512)
-        self.fc4 = nn.Linear(512, output_size)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        """
-        Args:
-            x (torch.tensor): fingerprint vector
-        Returns:
-            mu (torch.tensor): mean
-            logvar: (torch.tensor): log variance
-        """
-        h1 = self.relu(self.fc1(x))
-        h2 = self.relu(self.fc2(h1))
-        h3 = self.relu(self.fc3(h2))
-        out = self.fc4(h3)
-        return out
-
-
 class VAEEncoder(nn.Module):
     """
     Encoder net, part of VAE.
     Parameters:
         input_size (int): size of the fingerprint vector
         output_size (int): size of the latent vectors mu and logvar
+        fc1_size (int): size of the first fully connected layer
+        fc2_size (int): size of the second fully connected layer
+        fc3_size (int): size of the third fully connected layer
     """
 
-    def __init__(self, input_size, output_size):
+    def __init__(self,
+                 input_size,
+                 output_size,
+                 fc1_size,
+                 fc2_size,
+                 fc3_size):
         super(VAEEncoder, self).__init__()
-        self.fc1 = nn.Linear(input_size, 2048)
-        self.fc2 = nn.Linear(2048, 1024)
-        self.fc3 = nn.Linear(1024, 512)
-        self.fc41 = nn.Linear(512, output_size)
-        self.fc42 = nn.Linear(512, output_size)
+        self.fc1 = nn.Linear(input_size, fc1_size)
+        self.fc2 = nn.Linear(fc1_size, fc2_size)
+        self.fc3 = nn.Linear(fc2_size, fc3_size)
+        self.fc41 = nn.Linear(fc3_size, output_size)
+        self.fc42 = nn.Linear(fc3_size, output_size)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -78,31 +55,34 @@ class VAEEncoder(nn.Module):
         return kld
 
 
-class DecoderNet(nn.Module):
+class GRUDecoder(nn.Module):
     """
     Decoder class based on GRU.
 
     Parameters:
-        hidden_size (int):GRU hidden size
-        num_layers (int):GRU number of layers
-        output_size (int):GRU output size (alphabet size)
-        dropout (float):GRU dropout
+        hidden_size (int): GRU hidden size
+        num_layers (int): GRU number of layers
+        output_size (int): GRU output size (alphabet size)
+        dropout (float): GRU dropout
     """
 
-    def __init__(self, hidden_size, num_layers, output_size, dropout, input_size=None):
-        super(DecoderNet, self).__init__()
+    def __init__(self, hidden_size, num_layers, output_size, dropout, input_size, encoding_size,
+                 teacher_ratio, device):
+        super(GRUDecoder, self).__init__()
 
         # GRU parameters
         self.hidden_size = hidden_size
         self.num_layers = num_layers
         self.dropout = dropout
-        if input_size is None:
-            self.input_size = hidden_size
-        else:
-            self.input_size = input_size
-
-        # output token count
+        self.input_size = input_size
+        self.device = device
+        self.teacher_ratio = teacher_ratio
+        self.encoding_size = encoding_size
         self.output_size = output_size
+
+        # start token initialization
+        self.start_ohe = torch.zeros(42, dtype=torch.float32)
+        self.start_ohe[41] = 1.0
 
         # pytorch.nn
         self.gru = nn.GRU(input_size=self.input_size,
@@ -110,30 +90,51 @@ class DecoderNet(nn.Module):
                           num_layers=self.num_layers,
                           dropout=self.dropout,
                           batch_first=True)
+        self.fc1 = nn.Linear(self.encoding_size, self.hidden_size)
+        self.fc2 = nn.Linear(self.hidden_size, self.output_size)
 
-    def forward(self, x, h):
+    def forward(self, latent_vector, y_true=None, teacher_forcing=False):
         """
         Args:
-            x (torch.tensor):latent vector of size [batch_size, 1, input_size]
-            h (torch.tensor):GRU hidden state of size [num_layers, batch_size, hidden_size]
+            latent_vector (torch.tensor): latent vector of size [batch_size, encoding_size]
+            y_true (torch.tensor): batched SELFIES of target molecules
+            teacher_forcing: (bool): whether to use teacher forcing (training only)
 
         Returns:
-            out (torch.tensor):GRU output of size [batch_size, 1, output_size]
+            out (torch.tensor): GRU output of size [batch_size, seq_len, alphabet_size]
         """
-        out, h = self.gru(x, h)
-        return out, h
+        batch_size = latent_vector.shape[0]
 
-    def init_hidden(self, batch_size, batched=True):
-        if batched:
-            h0 = torch.zeros(self.num_layers, batch_size, self.hidden_size)
-        else:
-            h0 = torch.zeros(self.num_layers, self.hidden_size)
-        return h0
+        # matching GRU hidden state shape
+        latent_transformed = self.fc1(latent_vector)  # shape (batch_size, hidden_size)
+
+        # initializing hidden state
+        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
+        hidden[0] = latent_transformed.unsqueeze(0)  # shape (num_layers, batch_size, hidden_size)
+
+        # initializing input (batched start token)
+        x = self.start_ohe.repeat(batch_size, 1).unsqueeze(1).to(self.device)  # shape (batch_size, 1, 42)
+
+        # generating sequence
+        outputs = []
+        for n in range(128):
+            out, hidden = self.gru(x, hidden)
+            out = (self.fc2(out))
+            outputs.append(out)
+            random_float = random.random()
+            if (teacher_forcing and
+                    random_float < self.teacher_ratio and
+                    y_true is not None):
+                out = y_true[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
+            x = out
+        out_cat = torch.cat(outputs, dim=1)
+        return out_cat
 
 
-class EncoderDecoder(nn.Module):
+class EncoderDecoderV3(nn.Module):
     """
-    Encoder-Decoder class based on VAE and GRU.
+    Encoder-Decoder class based on VAE and GRU. The samples from VAE latent space are passed
+    to the GRU decoder as initial hidden state.
 
     Parameters:
         fp_size (int): size of the fingerprint vector
@@ -145,79 +146,74 @@ class EncoderDecoder(nn.Module):
         teacher_ratio (float): teacher forcing ratio
         random_seed (int): random seed for reproducibility
         use_cuda (bool): whether to use cuda
-        encoder_nograd (bool): disable gradient calculation for the encoder
     """
 
-    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, dropout,
-                 teacher_ratio, random_seed=42, output_size=42, use_cuda=True, encoder_nograd=False):
-        super(EncoderDecoder, self).__init__()
-        self.teacher_ratio = teacher_ratio
-        self.encoder = VAEEncoder(fp_size, encoding_size)
-        self.decoder = DecoderNet(hidden_size, num_layers, output_size, dropout)
-        self.encoding_size = encoding_size
-        self.hidden_size = hidden_size
-        self.device = torch.device('cuda' if use_cuda else 'cpu')
-        self.encoder_nograd = encoder_nograd
+    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
+                 teacher_ratio, random_seed=42, use_cuda=True, fc1_size=2048, fc2_size=1024, fc3_size=512):
+        super(EncoderDecoderV3, self).__init__()
+        self.encoder = VAEEncoder(fp_size,
+                                  encoding_size,
+                                  fc1_size,
+                                  fc2_size,
+                                  fc3_size)
+        self.decoder = GRUDecoder(hidden_size,
+                                  num_layers,
+                                  output_size,
+                                  dropout,
+                                  input_size=output_size,
+                                  teacher_ratio=teacher_ratio,
+                                  encoding_size=encoding_size,
+                                  device=torch.device('cuda' if (use_cuda and torch.cuda.is_available()) else 'cpu'))
+
         random.seed(random_seed)
 
-        # pytorch.nn
-        self.fc1 = nn.Linear(hidden_size, 42)
-        self.fc2 = nn.Linear(42, hidden_size)
-        self.relu = nn.ReLU()
-        self.softmax2d = nn.Softmax(dim=2)
-
-    def forward(self, X, y, encode_fist=True, teacher_forcing=False, reinforcement=False):
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False, omit_encoder=False):
         """
         Args:
-            encode_fist:
-            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size] if encode_fist is True
-                or latent vector of size [batch_size, encoding_size] if encode_fist is False
-            y (torch.tensor):batched SELFIES of target molecules
-            teacher_forcing: (bool):enable teacher forcing
-            reinforcement: (bool):enable loss calculation for use in reinforcement learning
+            X (torch.tensor): batched fingerprint vector of size [batch_size, fp_size]
+            y (torch.tensor): batched SELFIES of target molecules
+            teacher_forcing: (bool): whether to use teacher forcing
+            reinforcement: (bool): whether to use reinforcement learning
+            omit_encoder (bool): if true, the encoder is omitted and the input is passed directly to the decoder
 
         Returns:
-            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
+            out_cat (torch.tensor): batched prediction tensor [batch_size, seq_len, alphabet_size]
 
         If reinforcement is enabled, the following tensors are also returned:
-            rl_loss (torch.tensor):loss for use in reinforcement learning
-            total_reward (torch.tensor):total reward for use in reinforcement learning
+            rl_loss (torch.tensor): loss for use in reinforcement learning
+            total_reward (torch.tensor): total reward for use in reinforcement learning
         """
-        batch_size = X.shape[0]
-        hidden = self.decoder.init_hidden(batch_size).to(self.device)
-
-        if encode_fist:
-            if self.encoder_nograd:
-                with torch.no_grad():
-                    mu, logvar = self.encoder(X)
-                    encoded = self.reparameterize(mu, logvar)
-                kld_loss = torch.tensor(0.0)
-            else:
-                mu, logvar = self.encoder(X)
-                kld_loss = self.encoder.kld_loss(mu, logvar)
-                encoded = self.reparameterize(mu, logvar)
-        else:
-            encoded = X.to(self.device)
+        if omit_encoder:
+            encoded = X
             kld_loss = torch.tensor(0.0)
-        x = encoded.unsqueeze(1)
+        else:
+            mu, logvar = self.encoder(X)
+            kld_loss = self.encoder.kld_loss(mu, logvar)
+            encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
 
-        # generating sequence
-        outputs = []
-        for n in range(128):
-            out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
-            outputs.append(out)
-            random_float = random.random()
-            if teacher_forcing and random_float < self.teacher_ratio:
-                out = y[:, n, :].unsqueeze(1)
-            x = self.fc2(out)
-        out_cat = torch.cat(outputs, dim=1)
+        decoded = self.decoder(latent_vector=encoded, y_true=y, teacher_forcing=teacher_forcing)
+        # shape (batch_size, selfie_len, alphabet_len)
 
         if reinforcement:
-            rl_loss, total_reward = self.reinforce(out_cat, X)
-            return out_cat, kld_loss, rl_loss, total_reward
+            rl_loss, total_reward = self.reinforce(decoded, X)
+            return decoded, kld_loss, rl_loss, total_reward
+
         else:
-            return out_cat, kld_loss  # out_cat.shape [batch_size, selfie_len, alphabet_len]
+            return decoded, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+
+    @staticmethod
+    def reparameterize(mu, logvar):
+        """
+        Reparametrization trick for sampling from VAE latent space.
+        Args:
+            mu (torch.tensor): mean
+            logvar: (torch.tensor): log variance
+        Returns:
+            z (torch.tensor): latent vector
+        """
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return eps.mul(std).add_(mu)
 
     def reinforce(self, out_cat, X, n_samples=10):
         """
@@ -283,20 +279,6 @@ class EncoderDecoder(nn.Module):
         return rl_loss, total_reward
 
     @staticmethod
-    def reparameterize(mu, logvar):
-        """
-        Reparametrization trick for sampling from VAE latent space.
-        Args:
-            mu (torch.tensor): mean
-            logvar: (torch.tensor): log variance
-        Returns:
-            z (torch.tensor): latent vector
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps.mul(std).add_(mu)
-
-    @staticmethod
     def get_qed_reward(mol):
         """
         Calculates the QED reward for a given SMILES string
@@ -329,168 +311,3 @@ class EncoderDecoder(nn.Module):
                 frag = Chem.MolFromSmarts(key.iloc[i].values[0])
                 score += mol.HasSubstructMatch(frag)
         return score / torch.sum(fp).item()
-
-
-class EncoderDecoderV2(EncoderDecoder):
-    """
-    Encoder-Decoder model with a different architecture.
-    Gradients on encoder are disabled by default. An extra 3-layer MLP is added after the encoder.
-    """
-
-    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, encoder_nograd=True, random_seed=42, use_cuda=True):
-        super().__init__(fp_size=fp_size,
-                         encoding_size=encoding_size,
-                         hidden_size=hidden_size,
-                         num_layers=num_layers,
-                         output_size=output_size,
-                         dropout=dropout,
-                         teacher_ratio=teacher_ratio,
-                         random_seed=random_seed,
-                         use_cuda=use_cuda,
-                         encoder_nograd=encoder_nograd)
-        self.fc11 = nn.Linear(self.encoding_size, 256)
-        self.fc12 = nn.Linear(256, self.hidden_size)
-        self.relu = nn.ReLU()
-
-    def forward(self, X, y, teacher_forcing=False, reinforcement=False):
-        batch_size = X.shape[0]
-
-        if self.encoder_nograd:
-            with torch.no_grad():
-                mu, logvar = self.encoder(X)
-                encoded = self.reparameterize(mu, logvar)
-        else:
-            mu, logvar = self.encoder(X)
-            encoded = self.reparameterize(mu, logvar)
-
-        h1 = self.relu(self.fc11(encoded))
-        x = self.fc12(h1)
-        x = x.unsqueeze(1)
-
-        hidden = self.decoder.init_hidden(batch_size).to(self.device)
-        outputs = []
-        for n in range(128):
-            out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))  # shape (batch_size, 42)
-            outputs.append(out)
-            random_float = random.random()
-            if teacher_forcing and random_float < self.teacher_ratio:
-                out = y[:, n, :].unsqueeze(1)
-            x = self.fc2(out)
-        out_cat = torch.cat(outputs, dim=1)
-
-        if reinforcement:
-            rl_loss, total_reward = self.reinforce(out_cat, X)
-            return out_cat, torch.tensor(0.0), rl_loss, total_reward
-        else:
-            return out_cat, torch.tensor(0.0)  # out_cat.shape [batch_size, selfie_len, alphabet_len]
-
-
-class EncoderDecoderV3(nn.Module):
-    """
-    Encoder-Decoder class based on VAE and GRU. The samples from VAE latent space are passed
-    to the GRU as initial hidden state.
-
-    Parameters:
-        fp_size (int): size of the fingerprint vector
-        encoding_size (int): size of the latent vectors mu and logvar
-        hidden_size (int): GRU hidden size
-        num_layers (int): GRU number of layers
-        output_size (int): GRU output size (alphabet size)
-        dropout (float): GRU dropout
-        teacher_ratio (float): teacher forcing ratio
-        random_seed (int): random seed for reproducibility
-        use_cuda (bool): whether to use cuda
-        encoder_nograd (bool): disable gradient calculation for the encoder
-    """
-
-    def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed, use_cuda=True, encoder_nograd=False):
-        super(EncoderDecoderV3, self).__init__()
-        self.teacher_ratio = teacher_ratio
-        self.encoder = VAEEncoder(fp_size, encoding_size)
-        self.decoder = DecoderNet(hidden_size, num_layers, output_size, dropout, input_size=output_size)
-        self.encoding_size = encoding_size
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
-        self.device = torch.device('cuda' if use_cuda else 'cpu')
-        self.encoder_nograd = encoder_nograd
-
-        # start token initialization
-        self.start_ohe = torch.zeros(42, dtype=torch.float32)
-        self.start_ohe[41] = 1.0
-        random.seed(random_seed)
-
-        # pytorch.nn
-        self.fc1 = nn.Linear(hidden_size, 42)
-        self.fc2 = nn.Linear(encoding_size, hidden_size)
-        self.relu = nn.ReLU()
-
-    def forward(self, X, y, teacher_forcing=False, reinforcement=False, encode_first=True):
-        """
-        Args:
-            X (torch.tensor):batched fingerprint vector of size [batch_size, fp_size]
-            y (torch.tensor):batched SELFIES of target molecules
-            teacher_forcing: (bool):enable teacher forcing
-            reinforcement: (bool):enable loss calculation for use in reinforcement learning
-
-        Returns:
-            out_cat (torch.tensor):batched prediction tensor [batch_size, seq_len, alphabet_size]
-
-        If reinforcement is enabled, the following tensors are also returned:
-            rl_loss (torch.tensor):loss for use in reinforcement learning
-            total_reward (torch.tensor):total reward for use in reinforcement learning
-        """
-        batch_size = X.shape[0]
-
-        if encode_first:
-            if self.encoder_nograd:
-                with torch.no_grad():
-                    mu, logvar = self.encoder(X)
-                    encoded = self.reparameterize(mu, logvar)
-                kld_loss = torch.tensor(0.0)
-            else:
-                mu, logvar = self.encoder(X)
-                kld_loss = self.encoder.kld_loss(mu, logvar)
-                encoded = self.reparameterize(mu, logvar)  # shape (batch_size, encoding_size)
-        else:
-            encoded = X
-            kld_loss = torch.tensor(0.0)
-
-        encoded = self.fc2(encoded)  # shape (batch_size, hidden_size)
-
-        # initializing hidden state
-        hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
-        hidden[0] = encoded.unsqueeze(0)
-        # shape (num_layers, batch_size, hidden_size)
-
-        # initializing input
-        x = self.start_ohe.repeat(batch_size, 1).unsqueeze(1).to(self.device)  # shape (batch_size, 1, 42)
-
-        # generating sequence
-        outputs = []
-        for n in range(128):
-            out, hidden = self.decoder(x, hidden)
-            out = self.relu(self.fc1(out))
-            outputs.append(out)
-            random_float = random.random()
-            if teacher_forcing and random_float < self.teacher_ratio:
-                out = y[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
-            x = out
-        out_cat = torch.cat(outputs, dim=1)
-        return out_cat, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
-
-    @staticmethod
-    def reparameterize(mu, logvar):
-        """
-        Reparametrization trick for sampling from VAE latent space.
-        Args:
-            mu (torch.tensor): mean
-            logvar: (torch.tensor): log variance
-        Returns:
-            z (torch.tensor): latent vector
-        """
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return eps.mul(std).add_(mu)
