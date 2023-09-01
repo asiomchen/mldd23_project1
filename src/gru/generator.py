@@ -66,7 +66,7 @@ class GRUDecoder(nn.Module):
         dropout (float): GRU dropout
     """
 
-    def __init__(self, hidden_size, num_layers, output_size, dropout, input_size,
+    def __init__(self, hidden_size, num_layers, output_size, dropout, input_size, encoding_size,
                  teacher_ratio, device):
         super(GRUDecoder, self).__init__()
 
@@ -77,9 +77,12 @@ class GRUDecoder(nn.Module):
         self.input_size = input_size
         self.device = device
         self.teacher_ratio = teacher_ratio
-
-        # output token count
+        self.encoding_size = encoding_size
         self.output_size = output_size
+
+        # start token initialization
+        self.start_ohe = torch.zeros(42, dtype=torch.float32)
+        self.start_ohe[41] = 1.0
 
         # pytorch.nn
         self.gru = nn.GRU(input_size=self.input_size,
@@ -87,7 +90,8 @@ class GRUDecoder(nn.Module):
                           num_layers=self.num_layers,
                           dropout=self.dropout,
                           batch_first=True)
-        self.fc1 = nn.Linear(self.hidden_size, self.output_size)
+        self.fc1 = nn.Linear(self.encoding_size, self.hidden_size)
+        self.fc2 = nn.Linear(self.hidden_size, self.output_size)
 
     def forward(self, latent_vector, y_true=None, teacher_forcing=False):
         """
@@ -102,7 +106,7 @@ class GRUDecoder(nn.Module):
         batch_size = latent_vector.shape[0]
 
         # matching GRU hidden state shape
-        latent_transformed = self.fc2(latent_vector)  # shape (batch_size, hidden_size)
+        latent_transformed = self.fc1(latent_vector)  # shape (batch_size, hidden_size)
 
         # initializing hidden state
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
@@ -115,7 +119,7 @@ class GRUDecoder(nn.Module):
         outputs = []
         for n in range(128):
             out, hidden = self.gru(x, hidden)
-            out = (self.fc1(out))
+            out = (self.fc2(out))
             outputs.append(out)
             random_float = random.random()
             if (teacher_forcing and
@@ -158,21 +162,18 @@ class EncoderDecoderV3(nn.Module):
                                   dropout,
                                   input_size=output_size,
                                   teacher_ratio=teacher_ratio,
-                                  device=self.device)
-        self.device = torch.device('cuda' if use_cuda and torch.cuda.is_available() else 'cpu')
+                                  encoding_size=encoding_size,
+                                  device=torch.device('cuda' if (use_cuda and torch.cuda.is_available()) else 'cpu'))
 
-        # start token initialization
-        self.start_ohe = torch.zeros(42, dtype=torch.float32)
-        self.start_ohe[41] = 1.0
         random.seed(random_seed)
 
-    def forward(self, X, y, teacher_forcing=False, reinforce=False, omit_encoder=False):
+    def forward(self, X, y, teacher_forcing=False, reinforcement=False, omit_encoder=False):
         """
         Args:
             X (torch.tensor): batched fingerprint vector of size [batch_size, fp_size]
             y (torch.tensor): batched SELFIES of target molecules
             teacher_forcing: (bool): whether to use teacher forcing
-            reinforce: (bool): whether to use reinforcement learning
+            reinforcement: (bool): whether to use reinforcement learning
             omit_encoder (bool): if true, the encoder is omitted and the input is passed directly to the decoder
 
         Returns:
@@ -193,7 +194,7 @@ class EncoderDecoderV3(nn.Module):
         decoded = self.decoder(latent_vector=encoded, y_true=y, teacher_forcing=teacher_forcing)
         # shape (batch_size, selfie_len, alphabet_len)
 
-        if reinforce:
+        if reinforcement:
             rl_loss, total_reward = self.reinforce(decoded, X)
             return decoded, kld_loss, rl_loss, total_reward
 
