@@ -92,6 +92,7 @@ class GRUDecoder(nn.Module):
                           batch_first=True)
         self.fc1 = nn.Linear(self.encoding_size, self.hidden_size)
         self.fc2 = nn.Linear(self.hidden_size, self.output_size)
+        self.softmax = nn.Softmax(dim=2)
 
     def forward(self, latent_vector, y_true=None, teacher_forcing=False):
         """
@@ -121,6 +122,7 @@ class GRUDecoder(nn.Module):
             out, hidden = self.gru(x, hidden)
             out = (self.fc2(out))
             outputs.append(out)
+            out = self.softmax(out)
             random_float = random.random()
             if (teacher_forcing and
                     random_float < self.teacher_ratio and
