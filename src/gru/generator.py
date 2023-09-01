@@ -120,8 +120,9 @@ class GRUDecoder(nn.Module):
         outputs = []
         for n in range(128):
             out, hidden = self.gru(x, hidden)
+            out = self.fc2(out)  # shape (batch_size, 1, 42
             outputs.append(out)
-            out = self.softmax(self.fc2(out))  # shape (batch_size, 1, 42)
+            out = self.softmax(out)  # shape (batch_size, 1, 42)
             random_float = random.random()
             if (teacher_forcing and
                     random_float < self.teacher_ratio and
