@@ -23,9 +23,9 @@ class VAEEncoder(nn.Module):
     def __init__(self,
                  input_size,
                  output_size,
-                 fc1_size=2048,
-                 fc2_size=1024,
-                 fc3_size=512):
+                 fc1_size,
+                 fc2_size,
+                 fc3_size):
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, fc1_size)
         self.fc2 = nn.Linear(fc1_size, fc2_size)
@@ -60,14 +60,14 @@ class GRUDecoder(nn.Module):
     Decoder class based on GRU.
 
     Parameters:
-        hidden_size (int):GRU hidden size
-        num_layers (int):GRU number of layers
-        output_size (int):GRU output size (alphabet size)
-        dropout (float):GRU dropout
+        hidden_size (int): GRU hidden size
+        num_layers (int): GRU number of layers
+        output_size (int): GRU output size (alphabet size)
+        dropout (float): GRU dropout
     """
 
     def __init__(self, hidden_size, num_layers, output_size, dropout, input_size,
-                 teacher_ratio, device=torch.device('cpu')):
+                 teacher_ratio, device):
         super(GRUDecoder, self).__init__()
 
         # GRU parameters
@@ -92,11 +92,12 @@ class GRUDecoder(nn.Module):
     def forward(self, latent_vector, y_true=None, teacher_forcing=False):
         """
         Args:
-            latent_vector (torch.tensor):latent vector of size [batch_size, encoding_size]
-            y_true (torch.tensor):batched SELFIES of target molecules
+            latent_vector (torch.tensor): latent vector of size [batch_size, encoding_size]
+            y_true (torch.tensor): batched SELFIES of target molecules
+            teacher_forcing: (bool): whether to use teacher forcing (training only)
 
         Returns:
-            out (torch.tensor):GRU output of size [batch_size, seq_len, alphabet_size]
+            out (torch.tensor): GRU output of size [batch_size, seq_len, alphabet_size]
         """
         batch_size = latent_vector.shape[0]
 
@@ -129,7 +130,7 @@ class GRUDecoder(nn.Module):
 class EncoderDecoderV3(nn.Module):
     """
     Encoder-Decoder class based on VAE and GRU. The samples from VAE latent space are passed
-    to the GRU as initial hidden state.
+    to the GRU decoder as initial hidden state.
 
     Parameters:
         fp_size (int): size of the fingerprint vector
@@ -144,9 +145,13 @@ class EncoderDecoderV3(nn.Module):
     """
 
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed, use_cuda=True):
+                 teacher_ratio, random_seed=42, use_cuda=True, fc1_size=2048, fc2_size=1024, fc3_size=512):
         super(EncoderDecoderV3, self).__init__()
-        self.encoder = VAEEncoder(fp_size, encoding_size)
+        self.encoder = VAEEncoder(fp_size,
+                                  encoding_size,
+                                  fc1_size,
+                                  fc2_size,
+                                  fc3_size)
         self.decoder = GRUDecoder(hidden_size,
                                   num_layers,
                                   output_size,
@@ -161,12 +166,13 @@ class EncoderDecoderV3(nn.Module):
         self.start_ohe[41] = 1.0
         random.seed(random_seed)
 
-    def forward(self, X, y, teacher_forcing=False, omit_encoder=False):
+    def forward(self, X, y, teacher_forcing=False, reinforce=False, omit_encoder=False):
         """
         Args:
             X (torch.tensor): batched fingerprint vector of size [batch_size, fp_size]
             y (torch.tensor): batched SELFIES of target molecules
-            teacher_forcing: (bool): use teacher forcing
+            teacher_forcing: (bool): whether to use teacher forcing
+            reinforce: (bool): whether to use reinforcement learning
             omit_encoder (bool): if true, the encoder is omitted and the input is passed directly to the decoder
 
         Returns:
@@ -187,7 +193,12 @@ class EncoderDecoderV3(nn.Module):
         decoded = self.decoder(latent_vector=encoded, y_true=y, teacher_forcing=teacher_forcing)
         # shape (batch_size, selfie_len, alphabet_len)
 
-        return decoded, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
+        if reinforce:
+            rl_loss, total_reward = self.reinforce(decoded, X)
+            return decoded, kld_loss, rl_loss, total_reward
+
+        else:
+            return decoded, kld_loss  # out_cat.shape (batch_size, selfie_len, alphabet_len)
 
     @staticmethod
     def reparameterize(mu, logvar):
