@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=GRU0
+#SBATCH --job-name=GRU2
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1
@@ -11,5 +11,5 @@ source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
 wandb login
-python -u train_gru.py -c gru_config0.ini > log_gru0.out
+python -u train_gru.py -c gru_config2.ini > log_gru2.out
 echo done
