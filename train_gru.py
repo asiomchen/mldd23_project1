@@ -29,7 +29,7 @@ def main():
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     NUM_WORKERS = 3
-    train_size = 0.8
+    train_size = 0.9
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -88,7 +88,6 @@ def main():
             dropout=dropout,
             teacher_ratio=teacher_ratio,
             output_size=42,  # alphabet length
-            random_seed=42
         ).to(device)
 
     else:

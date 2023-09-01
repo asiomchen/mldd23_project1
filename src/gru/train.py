@@ -40,7 +40,7 @@ def train(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'kld_weighted', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -62,11 +62,11 @@ def train(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
-            kld_loss = kld_loss * kld_weight
+            kld_weighted = kld_loss * kld_weight
             if kld_annealing:
-                kld_loss = annealing_agent(kld_loss)
+                kld_weighted = annealing_agent(kld_weighted)
             if kld_backward:
-                (loss + kld_loss).backward()
+                (loss + kld_weighted).backward()
             else:
                 loss.backward()
             optimizer.step()
@@ -77,6 +77,7 @@ def train(config, model, train_loader, val_loader):
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
+                        'kld_weighted': kld_weighted.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
                         }
