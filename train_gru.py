@@ -44,7 +44,6 @@ def main():
     teacher_ratio = float(config['MODEL']['teacher_ratio'])
     fp_len = int(config['MODEL']['fp_len'])
     encoder_path = str(config['MODEL']['encoder_path'])
-    encoder_nograd = config.getboolean('MODEL', 'encoder_nograd')
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
     dataset = pd.read_parquet(data_path)
@@ -57,14 +56,14 @@ def main():
         config.write(configfile)
 
     # if train_dataset not generated, perform scaffold split
-    if not os.path.isfile(data_path.split('.')[0] + '_train.parquet'):
+    if not os.path.isfile(data_path.split('.')[0] + f'_train_{train_size}.parquet'):
         train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
-        train_df.to_parquet(data_path.split('.')[0] + '_train.parquet')
-        val_df.to_parquet(data_path.split('.')[0] + '_val.parquet')
+        train_df.to_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
         print("Scaffold split complete")
     else:
-        train_df = pd.read_parquet(data_path.split('.')[0] + '_train.parquet')
-        val_df = pd.read_parquet(data_path.split('.')[0] + '_val.parquet')
+        train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
 
     train_dataset = GRUDataset(train_df, vectorizer, fp_len)
     val_dataset = GRUDataset(val_df, vectorizer, fp_len)
