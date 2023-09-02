@@ -120,9 +120,9 @@ class GRUDecoder(nn.Module):
         outputs = []
         for n in range(128):
             out, hidden = self.gru(x, hidden)
-            out = self.fc2(out)  # shape (batch_size, 1, 42
+            out = self.fc2(out)  # shape (batch_size, 1, 42)
             outputs.append(out)
-            out = self.softmax(out)  # shape (batch_size, 1, 42)
+            out = self.softmax(out)
             random_float = random.random()
             if (teacher_forcing and
                     random_float < self.teacher_ratio and
@@ -166,7 +166,6 @@ class EncoderDecoderV3(nn.Module):
                                   teacher_ratio=teacher_ratio,
                                   encoding_size=encoding_size,
                                   device=torch.device('cuda' if (use_cuda and torch.cuda.is_available()) else 'cpu'))
-
         random.seed(random_seed)
 
     def forward(self, X, y, teacher_forcing=False, reinforcement=False, omit_encoder=False):

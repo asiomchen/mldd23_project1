@@ -1,7 +1,7 @@
 # import packages
-from src.gru.train import train
-from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoderV3
+from src.generator.train import train
+from src.generator.dataset import GRUDataset
+from src.generator.generator import EncoderDecoderV3
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -25,7 +25,7 @@ def main():
     config_path = parser.parse_args().config
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    print(device)
+    print('Using device:', device)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     NUM_WORKERS = 3
@@ -36,6 +36,7 @@ def main():
     run_name = str(config['RUN']['run_name'])
     batch_size = int(config['RUN']['batch_size'])
     data_path = str(config['RUN']['data_path'])
+    smiles_enum = config.getboolean('RUN', 'smiles_enum')
     model_type = str(config['MODEL']['model_type'])
     encoding_size = int(config['MODEL']['encoding_size'])
     hidden_size = int(config['MODEL']['hidden_size'])
@@ -59,13 +60,13 @@ def main():
     if not os.path.isfile(data_path.split('.')[0] + f'_train_{train_size}.parquet'):
         train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
         train_df.to_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df.to_parquet(data_path.split('.')[0] + f'_val_{1-train_size}.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
         print("Scaffold split complete")
     else:
         train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{1-train_size}.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
 
-    train_dataset = GRUDataset(train_df, vectorizer, fp_len)
+    train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum)
     val_dataset = GRUDataset(val_df, vectorizer, fp_len)
 
     print("Dataset size:", len(dataset))
