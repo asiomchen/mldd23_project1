@@ -6,11 +6,13 @@ from torch.utils.data import Dataset
 
 class VAEDataset(Dataset):
     """
-    Dataset for VAE training
+    Dataset for variational autoencoder
     Args:
-        df (pd.DataFrame): pandas DataFrame object containing 'fps' column
+        df (pd.DataFrame): pandas DataFrame object containing 'fps' column, which contains fingerprints
+        in the form of lists of integers (dense representation)
         fp_len (int): length of fingerprints
     """
+
     def __init__(self, df, fp_len):
         self.fps = pd.DataFrame(df['fps'])
         self.fp_len = fp_len

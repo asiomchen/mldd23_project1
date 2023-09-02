@@ -2,7 +2,7 @@ from src.utils.vectorizer import SELFIESVectorizer
 import torch
 import pandas as pd
 import time
-from src.gru.cce import CCE
+from src.generator.cce import CCE
 import wandb
 import selfies as sf
 import rdkit.Chem as Chem
@@ -11,7 +11,7 @@ from src.utils.annealing import Annealer
 
 def train(config, model, train_loader, val_loader):
     """
-    Training loop for GRU model
+        Training loop for the model consisting of a VAE encoder and GRU decoder
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -33,7 +33,7 @@ def train(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gru',
+            project='generator',
             config=log_dict,
             name=run_name
         )
@@ -123,7 +123,7 @@ def train_rl(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gru-rl',
+            project='generator-rl',
             config=log_dict,
             name=run_name
         )
