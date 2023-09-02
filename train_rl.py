@@ -1,10 +1,10 @@
 # import packages
-from src.gru.dataset import GRUDataset
-from src.gru.generator import EncoderDecoderV2
+from src.generator.dataset import GRUDataset
+from src.generator.generator import EncoderDecoderV3
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 from torch.utils.data import DataLoader
-from src.gru.train import train_rl
+from src.generator.train import train_rl
 import torch
 import os
 import pandas as pd
@@ -73,14 +73,13 @@ def main():
                             drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
-    model = EncoderDecoderV2(
+    model = EncoderDecoderV3(
         fp_size=fp_len,
         encoding_size=encoding_size,
         hidden_size=hidden_size,
         num_layers=num_layers,
         dropout=dropout,
         teacher_ratio=teacher_ratio,
-        encoder_nograd=encoder_nograd,
         output_size=42,  # alphabet length
         random_seed=42
     ).to(device)

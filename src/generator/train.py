@@ -2,7 +2,7 @@ from src.utils.vectorizer import SELFIESVectorizer
 import torch
 import pandas as pd
 import time
-from src.gru.cce import CCE
+from src.generator.cce import CCE
 import wandb
 import selfies as sf
 import rdkit.Chem as Chem
@@ -11,7 +11,7 @@ from src.utils.annealing import Annealer
 
 def train(config, model, train_loader, val_loader):
     """
-    Training loop for GRU model
+        Training loop for the model consisting of a VAE encoder and GRU decoder
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -33,14 +33,14 @@ def train(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gru',
+            project='generator',
             config=log_dict,
             name=run_name
         )
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'train_loss', 'val_loss'])
+    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'kld_weighted', 'train_loss', 'val_loss'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -62,11 +62,11 @@ def train(config, model, train_loader, val_loader):
             optimizer.zero_grad()
             output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
             loss = criterion(y, output)
-            kld_loss = kld_loss * kld_weight
+            kld_weighted = kld_loss * kld_weight
             if kld_annealing:
-                kld_loss = annealing_agent(kld_loss)
+                kld_weighted = annealing_agent(kld_weighted)
             if kld_backward:
-                (loss + kld_loss).backward()
+                (loss + kld_weighted).backward()
             else:
                 loss.backward()
             optimizer.step()
@@ -77,6 +77,7 @@ def train(config, model, train_loader, val_loader):
         val_loss = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
+                        'kld_weighted': kld_weighted.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
                         }
@@ -122,7 +123,7 @@ def train_rl(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='gru-rl',
+            project='generator-rl',
             config=log_dict,
             name=run_name
         )

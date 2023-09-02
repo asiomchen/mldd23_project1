@@ -7,15 +7,16 @@ import time
 
 import pandas as pd
 import rdkit.Chem.Draw as Draw
+import rdkit.Chem as Chem
 import selfies as sf
 import torch
 
-from src.gru.generator import EncoderDecoderV3
+from src.generator.generator import EncoderDecoderV3
 from src.pred.filter import molecule_filter
 from src.utils.vectorizer import SELFIESVectorizer
 
 
-def predict(file_name, is_verbose=True):
+def predict(file_path, is_verbose=True):
     """
     Predicting molecules using the trained model.
 
@@ -39,9 +40,11 @@ def predict(file_name, is_verbose=True):
                         help='Path to config file')
     config_path = parser.parse_args().config
 
+    # get file name
+    dir_name, file_name = file_path.split('/')
     name, _ = file_name.split('.')
     timestamp = time.strftime("%Y%m%d-%H%M%S")
-    name += '_' + timestamp
+    name = '_'.join([dir_name, name, timestamp])
 
     # load config
     config = configparser.ConfigParser()
@@ -69,11 +72,22 @@ def predict(file_name, is_verbose=True):
         random_seed=42
     ).to(device)
 
-    model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
-    print(f'Loaded model from {model_path}') if is_verbose else None
+    if model_path.lower() == 'auto':
+        encoder_config = configparser.ConfigParser()
+        encoder_config.read(f'data/encoded_data/{dir_name}/info.ini')
+        model_path = encoder_config['INFO']['model_path']
+        model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+
+    elif model_path.lower() != 'auto':
+        model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
+        print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'results/{file_name}').sample(10000) # TODO: remove sample
+    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}')
+    target_smiles = query_df['smiles'].values
+    for col in ['smiles', 'label']:
+        if col in query_df.columns:
+            query_df = query_df.drop(columns=[col])
     input_tensor = torch.tensor(query_df.to_numpy(), dtype=torch.float32)
 
     # get predictions
@@ -83,6 +97,7 @@ def predict(file_name, is_verbose=True):
                          use_cuda=use_cuda,
                          verbose=is_verbose
                          )
+    df['target_smiles'] = target_smiles
 
     # pred out non-druglike molecules
     print('Filtering out non-druglike molecules...') if is_verbose else None
@@ -102,12 +117,25 @@ def predict(file_name, is_verbose=True):
                        columns=['smiles', 'qed'],
                        index=False)
 
-    print(f'Saved data to results/{name}/{name}.csv') if is_verbose else None
+    print(f'Saved data to results/{name}') if is_verbose else None
 
     # save images
     os.mkdir(f'results/{name}/imgs')
-    for i, mol in enumerate(druglike_df.mols):
-        Draw.MolToFile(mol, f'results/{name}/imgs/{i}.png', size=(300, 300))
+
+    if 'target_smiles' in druglike_df.columns:
+        for i, tuple in enumerate(zip(druglike_df.mols, druglike_df.target_smiles)):
+            mol, target_smile = tuple
+            target_mol = Chem.MolFromSmiles(target_smile)
+            img = Draw.MolsToGridImage([mol, target_mol],
+                                       legends=['pred', 'target'],
+                                       molsPerRow=2,
+                                       subImgSize=(300, 300)
+                                       )
+            img.save(f'results/{name}/imgs/{i}.png')
+    else:
+        for i, mol in enumerate(druglike_df.mols):
+            Draw.MolToFile(mol, f'results/{name}/imgs/{i}.png', size=(300, 300))
+
     time_elapsed = time.time() - start_time
     print(f'{name} processed in {(time_elapsed / 60):.2f} minutes')
 
@@ -152,26 +180,30 @@ if __name__ == '__main__':
     cpus = mp.cpu_count()
     print("Number of cpus: ", cpus)
 
-    # get list of files and dirs in results folder
-    if not os.path.isdir('results'):
-        os.mkdir('results')
+    # get list of files and dirs in data/encoded_data directory
+    if not os.path.isdir('data/encoded_data'):
+        os.mkdir('data/encoded_data')
 
-    dir_list = os.listdir('results')
-    files = [name for name in dir_list if name.split('.')[-1] == 'parquet']
-    if not files:
+    encoded_data_directories = os.listdir('data/encoded_data')
+    parquet_files = []
+    for dir_name in encoded_data_directories:
+        dir_list = os.listdir(f'data/encoded_data/{dir_name}')
+        files = [f'{dir_name}/{name}' for name in dir_list if name.split('.')[-1] == 'parquet']
+        parquet_files.extend(files)
+    if not parquet_files:
         print('No .parquet files found')
 
     # prepare a process for each file and add to queue
     queue = queue.Queue()
     verbose = True
-    for i, name in enumerate(files):
-        print(f'Processing file {name}')
+    for i, file_path in enumerate(parquet_files):
+        print(f'Processing file {file_path}')
         # make only the first process verbose
         if i == 0:
             verbose = True
         else:
             verbose = False
-        proc = mp.Process(target=predict, args=(name, verbose))
+        proc = mp.Process(target=predict, args=(file_path, verbose))
         queue.put(proc)
 
     # handle the queue

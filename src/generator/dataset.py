@@ -8,7 +8,7 @@ import rdkit.Chem as Chem
 
 
 class GRUDataset(Dataset):
-    def __init__(self, df, vectorizer, fp_len):
+    def __init__(self, df, vectorizer, fp_len, smiles_enum=False):
         """
         Dataset class for handling GRU training data.
         Args:
@@ -24,6 +24,7 @@ class GRUDataset(Dataset):
         self.smiles = self.prepare_y(self.smiles)
         self.vectorizer = vectorizer
         self.fp_len = fp_len
+        self.smiles_enum = smiles_enum
 
     def __len__(self):
         return len(self.fps)
@@ -39,7 +40,10 @@ class GRUDataset(Dataset):
         """
         raw_smile = self.smiles[idx]
         try:
-            randomized_smile = self.randomize_smiles(raw_smile)
+            if self.smiles_enum:
+                randomized_smile = self.randomize_smiles(raw_smile)
+            else:
+                randomized_smile = raw_smile
             raw_selfie = sf.encoder(randomized_smile, strict=False)
             vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         except sf.EncoderError:
@@ -49,7 +53,6 @@ class GRUDataset(Dataset):
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)
         return torch.from_numpy(X_reconstructed).float(), torch.from_numpy(vectorized_selfie).float()
-
 
     def randomize_smiles(self, smiles):
         """
@@ -63,7 +66,7 @@ class GRUDataset(Dataset):
         ans = list(range(m.GetNumAtoms()))
         np.random.shuffle(ans)
         nm = Chem.RenumberAtoms(m, ans)
-        return Chem.MolToSmiles(nm, canonical=True, isomericSmiles=False)
+        return Chem.MolToSmiles(nm, canonical=False)
 
     def reconstruct_fp(self, fp):
         fp_rec = np.zeros(self.fp_len)
