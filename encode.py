@@ -28,10 +28,13 @@ def main(encoder_path, data_path):
                              hidden_size=config.getint('MODEL', 'hidden_size'),
                              encoding_size=config.getint('MODEL', 'encoding_size'),
                              num_layers=config.getint('MODEL', 'num_layers'),
-                             dropout=config.getfloat('MODEL', 'dropout'),
+                             dropout=0.0,
                              output_size=42,
                              teacher_ratio=0.0,
                              random_seed=42,
+                             fc1_size=config.getint('MODEL', 'fc1_size'),
+                             fc2_size=config.getint('MODEL', 'fc2_size'),
+                             fc3_size=config.getint('MODEL', 'fc3_size')
                              ).to(device)
     model.load_state_dict(torch.load(encoder_path, map_location=device))
     model = model.encoder
@@ -58,8 +61,9 @@ def main(encoder_path, data_path):
         out_config = configparser.ConfigParser()
         out_config['INFO'] = {'model_path': encoder_path,
                                   'encoding_size': config.getint('MODEL', 'encoding_size')}
-        with open(f'data/encoded_data/{model_name}/info.ini', 'x') as file:
-            out_config.write(file)
+        if not os.path.exists(f'data/encoded_data/{model_name}/info.ini'):
+            with open(f'data/encoded_data/{model_name}/info.ini', 'x') as file:
+                out_config.write(file)
 
 
 if __name__ == '__main__':
