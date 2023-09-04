@@ -3,8 +3,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import Descriptors, Lipinski, QED, Crippen
 from rdkit.Chem.FilterCatalog import FilterCatalog, FilterCatalogParams
-from src.pred.tanimoto import closest_in_train
-from tqdm import tqdm
+from src.pred.tanimoto import TanimotoSearch
 
 
 def get_largest_ring(mol):
@@ -95,7 +94,8 @@ def molecule_filter(df, config):
         print(f"Dataset size after QED check: {len(df)}")
 
     if tanimoto is not None and calc_tanimoto and len(df) > 0:
-        df['tanimoto'] = [closest_in_train(mol) for mol in tqdm(df.mols, disable=not progress_bar)]
+        search_agent = TanimotoSearch(return_smiles=False, progress_bar=progress_bar)
+        df['tanimoto'] = df['mols'].apply(search_agent)
         df = df[df['tanimoto'] < tanimoto].reset_index(drop=True)
         print(f"Dataset size after Tanimoto check: {len(df)}")
 
