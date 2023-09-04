@@ -47,6 +47,9 @@ def main():
     fp_len = int(config['MODEL']['fp_len'])
     encoder_path = str(config['MODEL']['encoder_path'])
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
+    fc1_size = int(config['MODEL']['fc1_size'])
+    fc2_size = int(config['MODEL']['fc2_size'])
+    fc3_size = int(config['MODEL']['fc3_size'])
 
     dataset = pd.read_parquet(data_path)
 
@@ -89,6 +92,9 @@ def main():
             dropout=dropout,
             teacher_ratio=teacher_ratio,
             output_size=42,  # alphabet length
+            fc1_size=fc1_size,
+            fc2_size=fc2_size,
+            fc3_size=fc3_size
         ).to(device)
 
     else:
