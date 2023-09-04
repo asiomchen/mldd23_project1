@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import re
 
@@ -80,6 +79,6 @@ class SELFIESVectorizer:
 
     @staticmethod
     def read_alphabet():
-        with open('alphabet.txt', 'r') as f:
+        with open('data/alphabet.txt', 'r') as f:
             alphabet = f.read().splitlines()
         return alphabet
