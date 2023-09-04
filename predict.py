@@ -20,12 +20,8 @@ def predict(file_path, is_verbose=True):
     """
     Predicting molecules using the trained model.
 
-    Model parameters are loaded from pred_config.ini file.
-    The script scans the results folder for parquet files generated earlier using generate.py.
-    For each parquet file, the script generates predictions and saves them in a new directory.
-
     Args:
-        file_name (str): Name of the parquet file to process.
+        file_path (str): Path to the file containing latent vectors.
         is_verbose (bool): Whether to print progress.
     Returns: None
     """
@@ -160,7 +156,7 @@ def get_predictions(model,
     preds_smiles = []
     with torch.no_grad():
         X = input_tensor.to(device)
-        preds, _ = model(X, None, teacher_forcing=False, encode_first=False)
+        preds, _ = model(X, None, teacher_forcing=False, omit_encoder=True)
         preds = preds.cpu().numpy()
         for seq in preds:
             selfie = vectorizer.devectorize(seq, remove_special=True)

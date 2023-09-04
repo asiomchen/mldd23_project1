@@ -19,6 +19,8 @@ def main(encoder_path, data_path):
     dataset = VAEDataset(df, fp_len=4860)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
+    if not os.path.exists(f'data/encoded_data'):
+        os.mkdir(f'data/encoded_data')
 
     config = configparser.ConfigParser()
     config.read(f'models/{model_name}/hyperparameters.ini')
