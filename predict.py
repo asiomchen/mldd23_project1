@@ -81,7 +81,7 @@ def predict(file_path, is_verbose=True):
         print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}')
+    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}').sample(1000)
     target_smiles = query_df['smiles'].values
     for col in ['smiles', 'label']:
         if col in query_df.columns:
