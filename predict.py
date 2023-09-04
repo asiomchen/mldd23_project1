@@ -45,33 +45,35 @@ def predict(file_path, is_verbose=True):
     # load config
     config = configparser.ConfigParser()
     config.read(config_path)
-    fp_len = int(config['MODEL']['fp_len'])
-    encoding_size = int(config['MODEL']['encoding_size'])
-    hidden_size = int(config['MODEL']['hidden_size'])
-    num_layers = int(config['MODEL']['num_layers'])
-    dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
     use_cuda = config['SCRIPT'].getboolean('cuda')
     device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     print(f'Using {device} device') if is_verbose else None
 
+    if model_path.lower() == 'auto':
+        model_config_path = f'models/{dir_name}/hyperparameters.ini'
+        config.read(model_config_path)
+
     # load model
     model = EncoderDecoderV3(
-        fp_size=fp_len,
-        encoding_size=encoding_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        dropout=dropout,
-        teacher_ratio=0,
+        fp_size=int(config['MODEL']['fp_len']),
+        encoding_size=int(config['MODEL']['encoding_size']),
+        hidden_size=int(config['MODEL']['hidden_size']),
+        num_layers=int(config['MODEL']['num_layers']),
+        dropout=0.0,
+        teacher_ratio=0.0,
         use_cuda=use_cuda,
         output_size=42,
-        random_seed=42
+        random_seed=42,
+        fc1_size=int(config['MODEL']['fc1_size']),
+        fc2_size=int(config['MODEL']['fc2_size']),
+        fc3_size=int(config['MODEL']['fc3_size'])
     ).to(device)
 
     if model_path.lower() == 'auto':
-        encoder_config = configparser.ConfigParser()
-        encoder_config.read(f'data/encoded_data/{dir_name}/info.ini')
-        model_path = encoder_config['INFO']['model_path']
+        info = configparser.ConfigParser()
+        info.read(f'data/encoded_data/{dir_name}/info.ini')
+        model_path = info['INFO']['model_path']
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
 
     elif model_path.lower() != 'auto':
@@ -196,6 +198,7 @@ if __name__ == '__main__':
         print(f'Processing file {file_path}')
         # make only the first process verbose
         if i == 0:
+            print('Verbose for process 0')
             verbose = True
         else:
             verbose = False
@@ -211,7 +214,7 @@ if __name__ == '__main__':
             proc = queue.get()
             proc.start()
             processes.append(proc)
-        time.sleep(10)
+        time.sleep(1)
 
     # complete the processes
     for proc in processes:
