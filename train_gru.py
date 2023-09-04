@@ -31,6 +31,8 @@ def main():
     NUM_WORKERS = 3
     train_size = 0.9
     val_size = round(1 - train_size, 1)
+    train_percent = int(train_size * 100)
+    val_percent = int(val_size * 100)
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -61,15 +63,15 @@ def main():
         config.write(configfile)
 
     # if train_dataset not generated, perform scaffold split
-    if (not os.path.isfile(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-            or not os.path.isfile(data_path.split('.')[0] + f'_val_{val_size}.parquet')):
+    if (not os.path.isfile(data_path.split('.')[0] + f'_train_{train_percent}.parquet')
+            or not os.path.isfile(data_path.split('.')[0] + f'_val_{val_percent}.parquet')):
         train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
-        train_df.to_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df.to_parquet(data_path.split('.')[0] + f'_val_{val_size}.parquet')
+        train_df.to_parquet(data_path.split('.')[0] + f'_train_{train_percent}.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + f'_val_{val_percent}.parquet')
         print("Scaffold split complete")
     else:
-        train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{val_size}.parquet')
+        train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_percent}.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{val_percent}.parquet')
 
     train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum)
     val_dataset = GRUDataset(val_df, vectorizer, fp_len, smiles_enum=False)
