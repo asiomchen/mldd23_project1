@@ -30,7 +30,7 @@ def main():
 
     NUM_WORKERS = 3
     train_size = 0.9
-    val_size = 1 - train_size
+    val_size = (1.0 - train_size)
 
     config = configparser.ConfigParser()
     config.read(config_path)
