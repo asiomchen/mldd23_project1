@@ -1,5 +1,19 @@
 # module for fingerprint manipulation
 import numpy as np
+from rdkit import Chem
+
+def smiles2dense(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    keys = 'data/KlekFP_keys.txt'
+    klek_keys = [line.strip() for line in open(keys)]
+    klek_keys_mols = list(map(Chem.MolFromSmarts, klek_keys))
+    fp_list = []
+    for i, key in enumerate(klek_keys_mols):
+        if mol.HasSubstructMatch(key):
+            fp_list.append(1)
+        else:
+            fp_list.append(0)
+    return fp_list
 
 def sparse2dense(sparse):
     """

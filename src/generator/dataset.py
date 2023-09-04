@@ -39,16 +39,12 @@ class GRUDataset(Dataset):
             y (torch.Tensor): vectorized SELFIES
         """
         raw_smile = self.smiles[idx]
-        try:
-            if self.smiles_enum:
-                randomized_smile = self.randomize_smiles(raw_smile)
-            else:
-                randomized_smile = raw_smile
-            raw_selfie = sf.encoder(randomized_smile, strict=False)
-            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
-        except sf.EncoderError:
-            raw_selfie = sf.encoder(raw_smile, strict=False)
-            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
+        if self.smiles_enum:
+            randomized_smile = self.randomize_smiles(raw_smile)
+        else:
+            randomized_smile = raw_smile
+        raw_selfie = sf.encoder(randomized_smile, strict=False)
+        vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)

@@ -30,6 +30,7 @@ def main():
 
     NUM_WORKERS = 3
     train_size = 0.9
+    val_size = 1 - train_size
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -60,11 +61,11 @@ def main():
     if not os.path.isfile(data_path.split('.')[0] + f'_train_{train_size}.parquet'):
         train_df, val_df = scaffold_split(dataset, train_size, seed=42, shuffle=True)
         train_df.to_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df.to_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
+        val_df.to_parquet(data_path.split('.')[0] + f'_val_{val_size}.parquet')
         print("Scaffold split complete")
     else:
         train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_size}.parquet')
-        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{1 - train_size}.parquet')
+        val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{val_size}.parquet')
 
     train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum)
     val_dataset = GRUDataset(val_df, vectorizer, fp_len)

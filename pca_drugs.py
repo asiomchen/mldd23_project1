@@ -4,22 +4,12 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from gru_pca import encode, transform, read_data
 from sklearn.decomposition import PCA
+import rdkit.Chem.Draw as Draw
 import rdkit.Chem as Chem
 from src.utils.vectorizer import SELFIESVectorizer
 import argparse
 import selfies as sf
-
-def calculate_sparse_fingerprint(mol):
-    keys = 'data/KlekFP_keys.txt'
-    klek_keys = [line.strip() for line in open(keys)]
-    klek_keys_mols = list(map(Chem.MolFromSmarts, klek_keys))
-    mol_list = []
-    for i, key in enumerate(klek_keys_mols):
-        if mol.HasSubstructMatch(key):
-            mol_list.append(1)
-        else:
-            mol_list.append(0)
-    return mol_list
+from src.utils.finger import smiles2dense
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-m', '--model', type=str, help='Path to model')
@@ -36,44 +26,49 @@ model = EncoderDecoderV3(fp_size=4860,
                          num_layers=3,
                          output_size=42,
                          dropout=0,
-                         teacher_ratio = 0.0,
+                         teacher_ratio=0.0,
                          random_seed=42).to(device)
 model.load_state_dict(torch.load(model_path, map_location=device))
 vectorizer = SELFIESVectorizer()
 
 smiles = [
-    'CN(C)CCCN1C2=CC=CC=C2SC3=CC=CC=C31', # promazine
-    'CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21', # chlorpromazine
-    'CN(C)CCCN1c2ccccc2Sc2ccc(cc12)C(F)(F)F', # triflupromazine
-    'FC(F)(F)c2cc1N(c3c(Sc1cc2)cccc3)CCCN4CCN(CCO)CC4', # fluphenazine
-    'CN1CCN(CC1)CCCN2C3=CC=CC=C3SC4=CC=CC=C42', # perazine
-    'CN1CCN(CC1)CCCN2C3=CC=CC=C3SC4=C2C=C(C=C4)C(F)(F)F' # trifluperazine
+    'CN(C)CCCN1C2=CC=CC=C2SC3=CC=CC=C31',  # promazine
+    'CN(C)CCCN1c2ccccc2Sc2ccc(Cl)cc21',  # chlorpromazine
+    'CN(C)CCCN1c2ccccc2Sc2ccc(cc12)C(F)(F)F',  # triflupromazine
+    'CN1CCN(CC1)CCCN2C3=CC=CC=C3SC4=CC=CC=C42',  # perazine
+    'CC1=CC2=C(NC3=CC=CC=C3N=C2S1)N4CCN(CC4)C',  # olanzapine
+    'CN1CCN(CC1)C2=C3C=CC=CC3=NC4=C(N2)C=C(C=C4)Cl',  # clozapine
+    'FC1=CC=C(C=C1)C(=O)CCCN1CCC(=CC1)N1C(=O)NC2=CC=CC=C12',  # droperidol
+    'OC1(CCN(CCCC(=O)C2=CC=C(F)C=C2)CC1)C1=CC=C(Cl)C=C1',  # haloperidol
+    'OCCOCCN1CCN(CC1)C1=NC2=CC=CC=C2SC2=CC=CC=C12'  # quetiapine
 ]
 
 molecule_names = [
     'promazine',
     'chlorpromazine',
     'triflupromazine',
-    'fluphenazine',
     'perazine',
-    'trifluperazine'
+    'olanzapine',
+    'clozapine',
+    'droperidol',
+    'haloperidol',
+    'quetiapine'
 ]
 
-mols = [Chem.MolFromSmiles(x) for x in smiles]
-fps = [torch.Tensor(calculate_sparse_fingerprint(mol)) for mol in mols]
+fps = [torch.Tensor(smiles2dense(x)) for x in smiles]
 fps = [fp.unsqueeze(0).to(device) for fp in fps]
 fps_tensor = torch.cat(fps, dim=0)
 fp_encoded, _ = model.encoder(fps_tensor)
 
-preds, _ = model(fp_encoded, None, encode_first=False, )
+preds, _ = model(fp_encoded, _, omit_encoder=True)
 preds = preds.detach().cpu().numpy()
 preds = [vectorizer.devectorize(pred, remove_special=True) for pred in preds]
 preds = [sf.decoder(x) for x in preds]
 preds = [Chem.MolFromSmiles(pred) for pred in preds]
-img = Chem.Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
+img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
 img.save(f'PCAs/{model_name}_epoch_{epoch}_drugs.png')
 
-df = pd.read_parquet('data/train_data/combined_dataset.parquet').sample(100000)
+df = pd.read_parquet('data/train_data/combined_dataset.parquet').sample(10000)
 mus, _ = encode(df, model, device)
 
 pca = PCA(n_components=2, random_state=42)
