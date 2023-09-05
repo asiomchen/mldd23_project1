@@ -1,6 +1,6 @@
 import torch
 import pandas as pd
-from src.generator.vae_dataset import VAEDataset
+from src.generator.dataset import VAEDataset
 from src.generator.generator import EncoderDecoderV3
 import torch.utils.data as D
 import numpy as np

@@ -75,7 +75,7 @@ class SELFIESVectorizer:
         pattern = r'(\[[^\[\]]*\])'
         return re.findall(pattern, selfie)
         
-        # Read alphabet of permitted SELFIES tokens from file
+    # Read alphabet of permitted SELFIES tokens from file
 
     @staticmethod
     def read_alphabet():
