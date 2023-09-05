@@ -7,7 +7,7 @@ import pandas as pd
 
 
 class GRUDataset(Dataset):
-    def __init__(self, df, vectorizer, fp_len, smiles_enum=False):
+    def __init__(self, df, vectorizer, fp_len=4860, smiles_enum=False):
         """
         Dataset class for handling GRU training data.
         Args:
@@ -21,6 +21,7 @@ class GRUDataset(Dataset):
         self.fps = df['fps']
         self.fps = self.prepare_X(self.fps)
         self.smiles = self.prepare_y(self.smiles)
+        self.alphabet = vectorizer.read_alphabet()
         self.vectorizer = vectorizer
         self.fp_len = fp_len
         self.smiles_enum = smiles_enum
@@ -42,14 +43,19 @@ class GRUDataset(Dataset):
         if self.smiles_enum:
             successful = False
             n_tries = 0
-            while not successful or n_tries < 3:
+            while not successful and n_tries < 3:
                 randomized_smile = self.randomize_smiles(raw_smile)
                 raw_selfie = sf.encoder(randomized_smile, strict=False)
                 tokens = self.vectorizer.split_selfi(raw_selfie)
-                if tokens in self.vectorizer.alphabet:
+                all_good = True
+                for token in tokens:
+                    if token not in self.alphabet:
+                        all_good = False
+                if all_good:
                     successful = True
                 else:
                     n_tries += 1
+                    print('error')
             if n_tries == 3:
                 raw_selfie = sf.encoder(raw_smile, strict=False)
         else:
