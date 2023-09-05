@@ -1,10 +1,9 @@
-# Dataset class for handling GRU data
-
 import torch
 import selfies as sf
 import numpy as np
 from torch.utils.data import Dataset
 import rdkit.Chem as Chem
+import pandas as pd
 
 
 class GRUDataset(Dataset):
@@ -39,11 +38,22 @@ class GRUDataset(Dataset):
             y (torch.Tensor): vectorized SELFIES
         """
         raw_smile = self.smiles[idx]
+        raw_selfie = ''  # placeholder
         if self.smiles_enum:
-            randomized_smile = self.randomize_smiles(raw_smile)
+            successful = False
+            n_tries = 0
+            while not successful or n_tries < 3:
+                randomized_smile = self.randomize_smiles(raw_smile)
+                raw_selfie = sf.encoder(randomized_smile, strict=False)
+                tokens = self.vectorizer.split_selfi(raw_selfie)
+                if tokens in self.vectorizer.alphabet:
+                    successful = True
+                else:
+                    n_tries += 1
+            if n_tries == 3:
+                raw_selfie = sf.encoder(raw_smile, strict=False)
         else:
-            randomized_smile = raw_smile
-        raw_selfie = sf.encoder(randomized_smile, strict=False)
+            raw_selfie = sf.encoder(raw_smile, strict=False)
         vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
@@ -77,3 +87,37 @@ class GRUDataset(Dataset):
     @staticmethod
     def prepare_y(selfies):
         return selfies.values
+
+
+class VAEDataset(Dataset):
+    """
+    Dataset for variational autoencoder
+    Args:
+        df (pd.DataFrame): pandas DataFrame object containing 'fps' column, which contains fingerprints
+        in the form of lists of integers (dense representation)
+        fp_len (int): length of fingerprints
+    """
+
+    def __init__(self, df, fp_len):
+        self.fps = pd.DataFrame(df['fps'])
+        self.fp_len = fp_len
+
+    def __len__(self):
+        return len(self.fps)
+
+    def __getitem__(self, idx):
+        raw_X = self.fps.iloc[idx]
+        X_prepared = self.prepare_X(raw_X).values[0]
+        X = np.array(X_prepared, dtype=int)
+        X_reconstructed = self.reconstruct_fp(X)
+        return torch.from_numpy(X_reconstructed).float()
+
+    def reconstruct_fp(self, fp):
+        fp_rec = np.zeros(self.fp_len)
+        fp_rec[fp] = 1
+        return fp_rec
+
+    @staticmethod
+    def prepare_X(fps):
+        fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
+        return fps

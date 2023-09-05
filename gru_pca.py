@@ -3,7 +3,7 @@ import torch
 import pandas as pd
 import matplotlib.pyplot as plt
 from src.generator.generator import EncoderDecoderV3
-from src.generator.vae_dataset import VAEDataset
+from src.generator.dataset import VAEDataset
 import torch.utils.data as Data
 from tqdm import tqdm
 from sklearn.decomposition import PCA

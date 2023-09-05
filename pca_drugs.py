@@ -68,7 +68,7 @@ preds = [Chem.MolFromSmiles(pred) for pred in preds]
 img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
 img.save(f'PCAs/{model_name}_epoch_{epoch}_drugs.png')
 
-df = pd.read_parquet('data/train_data/combined_dataset.parquet').sample(10000)
+df = pd.read_parquet('data/train_data/combined_dataset.parquet').sample(100000)
 mus, _ = encode(df, model, device)
 
 pca = PCA(n_components=2, random_state=42)

@@ -20,12 +20,8 @@ def predict(file_path, is_verbose=True):
     """
     Predicting molecules using the trained model.
 
-    Model parameters are loaded from pred_config.ini file.
-    The script scans the results folder for parquet files generated earlier using generate.py.
-    For each parquet file, the script generates predictions and saves them in a new directory.
-
     Args:
-        file_name (str): Name of the parquet file to process.
+        file_path (str): Path to the file containing latent vectors.
         is_verbose (bool): Whether to print progress.
     Returns: None
     """
@@ -49,33 +45,35 @@ def predict(file_path, is_verbose=True):
     # load config
     config = configparser.ConfigParser()
     config.read(config_path)
-    fp_len = int(config['MODEL']['fp_len'])
-    encoding_size = int(config['MODEL']['encoding_size'])
-    hidden_size = int(config['MODEL']['hidden_size'])
-    num_layers = int(config['MODEL']['num_layers'])
-    dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
     use_cuda = config['SCRIPT'].getboolean('cuda')
     device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     print(f'Using {device} device') if is_verbose else None
 
+    if model_path.lower() == 'auto':
+        model_config_path = f'models/{dir_name}/hyperparameters.ini'
+        config.read(model_config_path)
+
     # load model
     model = EncoderDecoderV3(
-        fp_size=fp_len,
-        encoding_size=encoding_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        dropout=dropout,
-        teacher_ratio=0,
+        fp_size=int(config['MODEL']['fp_len']),
+        encoding_size=int(config['MODEL']['encoding_size']),
+        hidden_size=int(config['MODEL']['hidden_size']),
+        num_layers=int(config['MODEL']['num_layers']),
+        dropout=0.0,
+        teacher_ratio=0.0,
         use_cuda=use_cuda,
         output_size=42,
-        random_seed=42
+        random_seed=42,
+        fc1_size=int(config['MODEL']['fc1_size']),
+        fc2_size=int(config['MODEL']['fc2_size']),
+        fc3_size=int(config['MODEL']['fc3_size'])
     ).to(device)
 
     if model_path.lower() == 'auto':
-        encoder_config = configparser.ConfigParser()
-        encoder_config.read(f'data/encoded_data/{dir_name}/info.ini')
-        model_path = encoder_config['INFO']['model_path']
+        info = configparser.ConfigParser()
+        info.read(f'data/encoded_data/{dir_name}/info.ini')
+        model_path = info['INFO']['model_path']
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
 
     elif model_path.lower() != 'auto':
@@ -83,7 +81,7 @@ def predict(file_path, is_verbose=True):
         print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}')
+    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}').sample(1000)
     target_smiles = query_df['smiles'].values
     for col in ['smiles', 'label']:
         if col in query_df.columns:
@@ -160,7 +158,7 @@ def get_predictions(model,
     preds_smiles = []
     with torch.no_grad():
         X = input_tensor.to(device)
-        preds, _ = model(X, None, teacher_forcing=False, encode_first=False)
+        preds, _ = model(X, None, teacher_forcing=False, omit_encoder=True)
         preds = preds.cpu().numpy()
         for seq in preds:
             selfie = vectorizer.devectorize(seq, remove_special=True)
@@ -200,6 +198,7 @@ if __name__ == '__main__':
         print(f'Processing file {file_path}')
         # make only the first process verbose
         if i == 0:
+            print('Verbose for process 0')
             verbose = True
         else:
             verbose = False
@@ -215,7 +214,7 @@ if __name__ == '__main__':
             proc = queue.get()
             proc.start()
             processes.append(proc)
-        time.sleep(10)
+        time.sleep(1)
 
     # complete the processes
     for proc in processes:
