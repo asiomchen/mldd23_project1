@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 import re
 
@@ -76,9 +75,10 @@ class SELFIESVectorizer:
         pattern = r'(\[[^\[\]]*\])'
         return re.findall(pattern, selfie)
         
-        # Read alphabet of permitted SELFIES tokens from file
+    # Read alphabet of permitted SELFIES tokens from file
 
     @staticmethod
     def read_alphabet():
-        alphabet = pd.read_csv('data/alphabet.txt', header=None).values.flatten()
+        with open('data/alphabet.txt', 'r') as f:
+            alphabet = f.read().splitlines()
         return alphabet

@@ -3,19 +3,6 @@ from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
 
-
-def load_data():
-    """
-    Loads the dataset needed for comparison
-
-    Returns:
-        train_morgan_fps (pd.DataFrame): df containing processed train dataset
-    """
-    data_path = 'data/train_data/train_morgan_512bits.parquet'
-    train_morgan_fps = pd.read_parquet(data_path).fps.apply(eval).tolist()
-    return train_morgan_fps
-
-
 def fp2bitstring(fp):
     """
     Changes the molecules fingerprint into a bitstring.
@@ -50,33 +37,40 @@ def get_smiles_from_train(idx):
     return smiles
 
 
-def closest_in_train(mol, return_smiles=False):
+class TanimotoSearch():
     """
     Returns the highest tanimoto score between given molecule
     and all the molecules from the training set
 
     Args:
-        mol (rdkit.Chem.Mol): molecule to compare
-        return_smiles (bool): marks whether to return the smiles of molecule as well
+        return_smiles (bool): if True, returns the smiles of the molecule
+        progress_bar (bool): if True, shows the progress bar
 
     Returns:
         high_tan (float): highest tanimoto score
 
     """
-    train_morgan_fps = load_data()
-    high_tan = 0
-    high_idx = 0
-    query_fp = Chem.rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=512)
 
-    for idx, fp in enumerate(train_morgan_fps):
-        bitstring = fp2bitstring(fp)
-        ebv = DataStructs.CreateFromBitString(bitstring)
-        tan = DataStructs.TanimotoSimilarity(query_fp, ebv)
-        if tan > high_tan:
-            high_tan, high_idx = tan, idx
+    def __init__(self, return_smiles=False, progress_bar=True):
+        data_path = 'data/train_data/train_morgan_512bits.parquet'
+        self.train_morgan_fps = pd.read_parquet(data_path).fps.apply(eval).tolist()
+        self.return_smiles = return_smiles
+        self.progress_bar = progress_bar
 
-    if return_smiles:
-        high_smiles = get_smiles_from_train(high_idx)
-        return high_tan, high_smiles
-    else:
-        return high_tan
+    def __call__(self, mol):
+
+        high_tan = 0
+        high_idx = 0
+        query_fp = Chem.rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=512)
+        for idx, fp in enumerate(self.train_morgan_fps):
+            bitstring = fp2bitstring(fp)
+            ebv = DataStructs.CreateFromBitString(bitstring)
+            tan = DataStructs.TanimotoSimilarity(query_fp, ebv)
+            if tan > high_tan:
+                high_tan, high_idx = tan, idx
+
+        if self.return_smiles:
+            high_smiles = get_smiles_from_train(high_idx)
+            return high_tan, high_smiles
+        else:
+            return high_tan

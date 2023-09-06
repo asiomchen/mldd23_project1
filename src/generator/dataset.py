@@ -1,14 +1,13 @@
-# Dataset class for handling GRU data
-
 import torch
 import selfies as sf
 import numpy as np
 from torch.utils.data import Dataset
 import rdkit.Chem as Chem
+import pandas as pd
 
 
 class GRUDataset(Dataset):
-    def __init__(self, df, vectorizer, fp_len, smiles_enum=False):
+    def __init__(self, df, vectorizer, fp_len=4860, smiles_enum=False):
         """
         Dataset class for handling GRU training data.
         Args:
@@ -22,6 +21,7 @@ class GRUDataset(Dataset):
         self.fps = df['fps']
         self.fps = self.prepare_X(self.fps)
         self.smiles = self.prepare_y(self.smiles)
+        self.alphabet = vectorizer.read_alphabet()
         self.vectorizer = vectorizer
         self.fp_len = fp_len
         self.smiles_enum = smiles_enum
@@ -39,16 +39,28 @@ class GRUDataset(Dataset):
             y (torch.Tensor): vectorized SELFIES
         """
         raw_smile = self.smiles[idx]
-        try:
-            if self.smiles_enum:
+        raw_selfie = ''  # placeholder
+        if self.smiles_enum:
+            successful = False
+            n_tries = 0
+            while not successful and n_tries < 3:
                 randomized_smile = self.randomize_smiles(raw_smile)
-            else:
-                randomized_smile = raw_smile
-            raw_selfie = sf.encoder(randomized_smile, strict=False)
-            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
-        except sf.EncoderError:
+                raw_selfie = sf.encoder(randomized_smile, strict=False)
+                tokens = self.vectorizer.split_selfi(raw_selfie)
+                all_good = True
+                for token in tokens:
+                    if token not in self.alphabet:
+                        all_good = False
+                if all_good:
+                    successful = True
+                else:
+                    n_tries += 1
+                    print('error')
+            if n_tries == 3:
+                raw_selfie = sf.encoder(raw_smile, strict=False)
+        else:
             raw_selfie = sf.encoder(raw_smile, strict=False)
-            vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
+        vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)
@@ -81,3 +93,37 @@ class GRUDataset(Dataset):
     @staticmethod
     def prepare_y(selfies):
         return selfies.values
+
+
+class VAEDataset(Dataset):
+    """
+    Dataset for variational autoencoder
+    Args:
+        df (pd.DataFrame): pandas DataFrame object containing 'fps' column, which contains fingerprints
+        in the form of lists of integers (dense representation)
+        fp_len (int): length of fingerprints
+    """
+
+    def __init__(self, df, fp_len):
+        self.fps = pd.DataFrame(df['fps'])
+        self.fp_len = fp_len
+
+    def __len__(self):
+        return len(self.fps)
+
+    def __getitem__(self, idx):
+        raw_X = self.fps.iloc[idx]
+        X_prepared = self.prepare_X(raw_X).values[0]
+        X = np.array(X_prepared, dtype=int)
+        X_reconstructed = self.reconstruct_fp(X)
+        return torch.from_numpy(X_reconstructed).float()
+
+    def reconstruct_fp(self, fp):
+        fp_rec = np.zeros(self.fp_len)
+        fp_rec[fp] = 1
+        return fp_rec
+
+    @staticmethod
+    def prepare_X(fps):
+        fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
+        return fps

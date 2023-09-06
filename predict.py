@@ -20,12 +20,8 @@ def predict(file_path, is_verbose=True):
     """
     Predicting molecules using the trained model.
 
-    Model parameters are loaded from pred_config.ini file.
-    The script scans the results folder for parquet files generated earlier using generate.py.
-    For each parquet file, the script generates predictions and saves them in a new directory.
-
     Args:
-        file_name (str): Name of the parquet file to process.
+        file_path (str): Path to the file containing latent vectors.
         is_verbose (bool): Whether to print progress.
     Returns: None
     """
@@ -49,33 +45,35 @@ def predict(file_path, is_verbose=True):
     # load config
     config = configparser.ConfigParser()
     config.read(config_path)
-    fp_len = int(config['MODEL']['fp_len'])
-    encoding_size = int(config['MODEL']['encoding_size'])
-    hidden_size = int(config['MODEL']['hidden_size'])
-    num_layers = int(config['MODEL']['num_layers'])
-    dropout = float(config['MODEL']['dropout'])
     model_path = str(config['MODEL']['model_path'])
     use_cuda = config['SCRIPT'].getboolean('cuda')
     device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
     print(f'Using {device} device') if is_verbose else None
 
+    if model_path.lower() == 'auto':
+        model_config_path = f'models/{dir_name}/hyperparameters.ini'
+        config.read(model_config_path)
+
     # load model
     model = EncoderDecoderV3(
-        fp_size=fp_len,
-        encoding_size=encoding_size,
-        hidden_size=hidden_size,
-        num_layers=num_layers,
-        dropout=dropout,
-        teacher_ratio=0,
+        fp_size=int(config['MODEL']['fp_len']),
+        encoding_size=int(config['MODEL']['encoding_size']),
+        hidden_size=int(config['MODEL']['hidden_size']),
+        num_layers=int(config['MODEL']['num_layers']),
+        dropout=0.0,
+        teacher_ratio=0.0,
         use_cuda=use_cuda,
         output_size=42,
-        random_seed=42
+        random_seed=42,
+        fc1_size=int(config['MODEL']['fc1_size']),
+        fc2_size=int(config['MODEL']['fc2_size']),
+        fc3_size=int(config['MODEL']['fc3_size'])
     ).to(device)
 
     if model_path.lower() == 'auto':
-        encoder_config = configparser.ConfigParser()
-        encoder_config.read(f'data/encoded_data/{dir_name}/info.ini')
-        model_path = encoder_config['INFO']['model_path']
+        info = configparser.ConfigParser()
+        info.read(f'data/encoded_data/{dir_name}/info.ini')
+        model_path = info['INFO']['model_path']
         model.load_state_dict(torch.load(model_path, map_location=torch.device(device)))
 
     elif model_path.lower() != 'auto':
@@ -91,7 +89,7 @@ def predict(file_path, is_verbose=True):
     input_tensor = torch.tensor(query_df.to_numpy(), dtype=torch.float32)
 
     # get predictions
-    print(f'Getting predictions for file {file_name}...') if is_verbose else None
+    print(f'Getting predictions for file {file_path}...') if is_verbose else None
     df = get_predictions(model,
                          input_tensor,
                          use_cuda=use_cuda,
@@ -101,7 +99,41 @@ def predict(file_path, is_verbose=True):
 
     # pred out non-druglike molecules
     print('Filtering out non-druglike molecules...') if is_verbose else None
-    druglike_df = molecule_filter(df, config=config)
+
+    manager = mp.Manager()
+    return_list = manager.list()
+
+    cpus = mp.cpu_count()
+    print("Number of cpus: ", cpus)
+
+    q = queue.Queue()
+
+    # prepare a process for each file and add to queue
+    chunk_size = len(df) // cpus + 1 if len(df) % cpus != 0 else len(df) // cpus
+    n_chunks = int(len(df) / chunk_size) + 1 if len(df) % chunk_size != 0 else int(len(df) / chunk_size)
+    chunks = [df[i * chunk_size:(i + 1) * chunk_size] for i in range(n_chunks)]
+    for chunk in chunks:
+        proc = mp.Process(target=molecule_filter, args=(chunk, config, return_list))
+        q.put(proc)
+
+    # handle the queue
+    processes = []
+    while True:
+        if q.empty():
+            print("(mp) Queue handled successfully")
+            break
+        if len(mp.active_children()) < cpus:
+            proc = q.get()
+            print("(mp) Starting:", proc.name)
+            proc.start()
+            processes.append(proc)
+        time.sleep(1)
+
+    # complete the processes
+    for proc in processes:
+        proc.join()
+
+    druglike_df = pd.concat(return_list)
 
     if len(druglike_df) == 0:
         print('None of predicted molecules meets the filter criteria')
@@ -123,15 +155,26 @@ def predict(file_path, is_verbose=True):
     os.mkdir(f'results/{name}/imgs')
 
     if 'target_smiles' in druglike_df.columns:
-        for i, tuple in enumerate(zip(druglike_df.mols, druglike_df.target_smiles)):
-            mol, target_smile = tuple
-            target_mol = Chem.MolFromSmiles(target_smile)
-            img = Draw.MolsToGridImage([mol, target_mol],
-                                       legends=['pred', 'target'],
-                                       molsPerRow=2,
-                                       subImgSize=(300, 300)
-                                       )
-            img.save(f'results/{name}/imgs/{i}.png')
+        if 'tanimoto' in druglike_df.columns:
+            for i, tuple in enumerate(zip(druglike_df.mols, druglike_df.target_smiles, druglike_df.tanimoto)):
+                mol, target_smile, tanimoto = tuple
+                target_mol = Chem.MolFromSmiles(target_smile)
+                img = Draw.MolsToGridImage([mol, target_mol],
+                                           legends=[f'pred', f'target\nclosest in train: {tanimoto}'],
+                                           molsPerRow=2,
+                                           subImgSize=(300, 300)
+                                           )
+                img.save(f'results/{name}/imgs/{i}.png')
+        else:
+            for i, tuple in enumerate(zip(druglike_df.mols, druglike_df.target_smiles)):
+                mol, target_smile = tuple
+                target_mol = Chem.MolFromSmiles(target_smile)
+                img = Draw.MolsToGridImage([mol, target_mol],
+                                           legends=['pred', 'target'],
+                                           molsPerRow=2,
+                                           subImgSize=(300, 300)
+                                           )
+                img.save(f'results/{name}/imgs/{i}.png')
     else:
         for i, mol in enumerate(druglike_df.mols):
             Draw.MolToFile(mol, f'results/{name}/imgs/{i}.png', size=(300, 300))
@@ -160,7 +203,7 @@ def get_predictions(model,
     preds_smiles = []
     with torch.no_grad():
         X = input_tensor.to(device)
-        preds, _ = model(X, None, teacher_forcing=False, encode_first=False)
+        preds, _ = model(X, None, teacher_forcing=False, omit_encoder=True)
         preds = preds.cpu().numpy()
         for seq in preds:
             selfie = vectorizer.devectorize(seq, remove_special=True)
@@ -174,11 +217,6 @@ def get_predictions(model,
 
 
 if __name__ == '__main__':
-    """
-    Multiprocessing support and queue handling
-    """
-    cpus = mp.cpu_count()
-    print("Number of cpus: ", cpus)
 
     # get list of files and dirs in data/encoded_data directory
     if not os.path.isdir('data/encoded_data'):
@@ -193,30 +231,5 @@ if __name__ == '__main__':
     if not parquet_files:
         print('No .parquet files found')
 
-    # prepare a process for each file and add to queue
-    queue = queue.Queue()
-    verbose = True
-    for i, file_path in enumerate(parquet_files):
-        print(f'Processing file {file_path}')
-        # make only the first process verbose
-        if i == 0:
-            verbose = True
-        else:
-            verbose = False
-        proc = mp.Process(target=predict, args=(file_path, verbose))
-        queue.put(proc)
-
-    # handle the queue
-    processes = []
-    while True:
-        if queue.empty():
-            break
-        if len(mp.active_children()) < cpus:
-            proc = queue.get()
-            proc.start()
-            processes.append(proc)
-        time.sleep(10)
-
-    # complete the processes
-    for proc in processes:
-        proc.join()
+    for file in parquet_files:
+        predict(file, is_verbose=True)

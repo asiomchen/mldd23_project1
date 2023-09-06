@@ -1,5 +1,31 @@
 # module for fingerprint manipulation
 import numpy as np
+from rdkit import Chem
+
+
+def smiles2sparse(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    keys = 'data/KlekFP_keys.txt'
+    klek_keys = [line.strip() for line in open(keys)]
+    klek_keys_mols = list(map(Chem.MolFromSmarts, klek_keys))
+    fp_list = []
+    for i, key in enumerate(klek_keys_mols):
+        if mol.HasSubstructMatch(key):
+            fp_list.append(1)
+        else:
+            fp_list.append(0)
+    return fp_list
+
+def smiles2dense(smiles):
+    mol = Chem.MolFromSmiles(smiles)
+    keys = 'data/KlekFP_keys.txt'
+    klek_keys = [line.strip() for line in open(keys)]
+    klek_keys_mols = list(map(Chem.MolFromSmarts, klek_keys))
+    fp_list = []
+    for i, key in enumerate(klek_keys_mols):
+        if mol.HasSubstructMatch(key):
+            fp_list.append(i)
+    return fp_list
 
 def sparse2dense(sparse):
     """
@@ -14,7 +40,8 @@ def sparse2dense(sparse):
         if value == 1:
             dense.append(idx)
     return np.array(dense)
-    
+
+
 def dense2sparse(dense, fp_len=4860):
     """
     Convert dense fingerprint to sparse fingerprint
