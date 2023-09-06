@@ -9,7 +9,7 @@ import rdkit.Chem as Chem
 from src.utils.vectorizer import SELFIESVectorizer
 import argparse
 import selfies as sf
-from src.utils.finger import smiles2dense
+from src.utils.finger import smiles2sparse
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('-m', '--model', type=str, help='Path to model')
@@ -23,7 +23,7 @@ print(f'Using device: {device}')
 model = EncoderDecoderV3(fp_size=4860,
                          encoding_size=32,
                          hidden_size=512,
-                         num_layers=3,
+                         num_layers=2,
                          output_size=42,
                          dropout=0,
                          teacher_ratio=0.0,
@@ -55,7 +55,7 @@ molecule_names = [
     'quetiapine'
 ]
 
-fps = [torch.Tensor(smiles2dense(x)) for x in smiles]
+fps = [torch.Tensor(smiles2sparse(x)) for x in smiles]
 fps = [fp.unsqueeze(0).to(device) for fp in fps]
 fps_tensor = torch.cat(fps, dim=0)
 fp_encoded, _ = model.encoder(fps_tensor)

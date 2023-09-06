@@ -20,7 +20,7 @@ def main():
     parser.add_argument('-c',
                         '--config',
                         type=str,
-                        default='config_files/gru_config.ini',
+                        default='config_files/gru_config0.ini',
                         help='Path to config file')
     config_path = parser.parse_args().config
 
