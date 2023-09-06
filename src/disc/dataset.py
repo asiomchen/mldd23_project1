@@ -12,13 +12,21 @@ class DiscDataset(Dataset):
         logvar_path (str): path to the logvar parquet file
     """
 
-    def __init__(self, mu_path, logvar_path):
+    def __init__(self, mu_path, logvar_path=None):
         super().__init__()
         self.mu, self.activity = self.load_mu_n_labels(mu_path)
-        self.logvar = self.load_logvar(logvar_path)
+        if logvar_path is not None:
+            self.use_logvar = True
+            self.logvar = self.load_logvar(logvar_path)
+        else:
+            self.use_logvar = False
+            self.logvar = torch.zeros(self.mu.shape)
 
     def __getitem__(self, idx):
-        encoding = reparameterize(self.mu[idx], self.logvar[idx])
+        if self.use_logvar:
+            encoding = reparameterize(self.mu[idx], self.logvar[idx])
+        else:
+            encoding = self.mu[idx]
         activity = self.activity[idx].float()
         return encoding, activity
 
@@ -29,13 +37,12 @@ class DiscDataset(Dataset):
     def load_mu_n_labels(path):
         df = pd.read_parquet(path)
         labels = torch.tensor(df.label.to_numpy())
-        df = df.drop(columns=['label'])
+        df = df.drop(columns=['label', 'smiles'])
         tensor = torch.tensor(df.to_numpy())
         return tensor, labels
 
     @staticmethod
     def load_logvar(path):
         df = pd.read_parquet(path)
-        df.drop(columns=['label'], inplace=True)
         tensor = torch.tensor(df.to_numpy())
         return tensor

@@ -30,7 +30,6 @@ def main():
     run_name = str(config['RUN']['run_name'])
     batch_size = int(config['RUN']['batch_size'])
     mu_path = str(config['RUN']['mu_path'])
-    logvar_path = str(config['RUN']['logvar_path'])
     latent_size = int(config['MODEL']['latent_size'])
     checkpoint_path = str(config['MODEL']['checkpoint_path'])
 
@@ -41,7 +40,7 @@ def main():
     with open(f'models/{run_name}/hyperparameters.ini', 'w') as configfile:
         config.write(configfile)
 
-    dataset = src.disc.dataset.DiscDataset(mu_path, logvar_path)
+    dataset = src.disc.dataset.DiscDataset(mu_path)
     train_dataset, val_dataset = data.random_split(dataset, [train_size, 1 - train_size])
     train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                   num_workers=NUM_WORKERS)

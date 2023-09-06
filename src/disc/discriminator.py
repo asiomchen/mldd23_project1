@@ -12,8 +12,8 @@ class Discriminator(nn.Module):
         super().__init__()
         self.latent_size = latent_size
         self.fc1 = nn.Linear(latent_size, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 16)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 16)
         self.fc4 = nn.Linear(16, 1)
         self.relu = nn.ReLU()
         self.use_sigmoid = use_sigmoid
