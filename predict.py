@@ -81,7 +81,7 @@ def predict(file_path, is_verbose=True):
         print(f'Loaded model from {model_path}') if is_verbose else None
 
     # load data
-    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}').sample(1000)
+    query_df = pd.read_parquet(f'data/encoded_data/{dir_name}/{file_name}')
     target_smiles = query_df['smiles'].values
     for col in ['smiles', 'label']:
         if col in query_df.columns:
@@ -89,7 +89,7 @@ def predict(file_path, is_verbose=True):
     input_tensor = torch.tensor(query_df.to_numpy(), dtype=torch.float32)
 
     # get predictions
-    print(f'Getting predictions for file {file_name}...') if is_verbose else None
+    print(f'Getting predictions for file {file_path}...') if is_verbose else None
     df = get_predictions(model,
                          input_tensor,
                          use_cuda=use_cuda,

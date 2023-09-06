@@ -33,7 +33,7 @@ def train(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='generator',
+            project='gru',
             config=log_dict,
             name=run_name
         )
