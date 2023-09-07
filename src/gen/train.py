@@ -2,10 +2,11 @@ from src.utils.vectorizer import SELFIESVectorizer
 import torch
 import pandas as pd
 import time
-from src.generator.cce import CCE
+from src.gen.cce import CCE
 import wandb
 import selfies as sf
 import rdkit.Chem as Chem
+import rdkit.Chem.QED as QED
 from src.utils.annealing import Annealer
 
 
@@ -40,7 +41,13 @@ def train(config, model, train_loader, val_loader):
 
     # Define dataframe for logging progress
     epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'kld_weighted', 'train_loss', 'val_loss'])
+    metrics = pd.DataFrame(columns=['epoch',
+                                    'kld_loss',
+                                    'kld_weighted',
+                                    'train_loss',
+                                    'val_loss',
+                                    'mean_qed',
+                                    'mean_fp_recon'])
 
     # Define loss function and optimizer
     optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
@@ -75,11 +82,19 @@ def train(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
+        if epoch % 10 == 0:
+            mean_qed, mean_fp_recon = get_scores(model, val_loader)
+        else:
+            mean_qed = None
+            mean_fp_recon = None
+
         metrics_dict = {'epoch': epoch,
                         'kld_loss': kld_loss.item(),
                         'kld_weighted': kld_weighted.item(),
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
+                        'mean_qed': mean_qed,
+                        'mean_fp_recon': mean_fp_recon
                         }
         if use_wandb:
             wandb.log(metrics_dict)
@@ -123,7 +138,7 @@ def train_rl(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='generator-rl',
+            project='gen-rl',
             config=log_dict,
             name=run_name
         )
@@ -216,32 +231,55 @@ def evaluate(model, val_loader):
         return avg_loss
 
 
-def eval_properties(model, val_loader):
+def get_scores(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    vectorizer = SELFIESVectorizer(pad_to_len=128)
+    vectorizer = SELFIESVectorizer()
     model.eval()
     with torch.no_grad():
-        epoch_qed = 0
-        epoch_fp_score = 0
+        mean_qed = 0
+        mean_fp_recon = 0
         for batch_idx, (X, y) in enumerate(val_loader):
             X = X.to(device)
             y = y.to(device)
             output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
+            selfies_list = [vectorizer.devectorize(x) for x in X]
+            smiles_list = [sf.decoder(x) for x in selfies_list]
+            mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
 
-            sample_idxs = [0]
-            for idx in sample_idxs:
-                vectorized = output[idx].cpu().numpy()
-                selfies = vectorizer.devectorize(vectorized, remove_special=True)
-                try:
-                    smiles = sf.decoder(selfies)
-                    mol = Chem.MolFromSmiles(smiles)
-                    epoch_qed += model.get_qed_reward(mol)
-                    epoch_fp_score += model.get_fp_reward(mol, X[idx])
-                except sf.DecoderError:
-                    print('SELFIES decoding error during evaluation')
-            epoch_qed = epoch_qed / len(sample_idxs)
-            epoch_fp_score = epoch_fp_score / len(sample_idxs)
+            # Calculate QED
+            batch_qed = 0
+            for mol in mol_list:
+                batch_qed += QED.qed(mol)
+            batch_qed = batch_qed / len(mol_list)
+            mean_qed += batch_qed
 
-        mean_qed = epoch_qed / len(val_loader)
-        fp_recon_score = epoch_fp_score / len(val_loader)
-        return mean_qed, fp_recon_score
+            # Calculate FP recon score
+            batch_fp_recon = 0
+            for mol, x in zip(mol_list, X):
+                fp = x.cpu().numpy()
+                mean_fp_recon += fp_score(mol, fp)
+            batch_fp_recon = batch_fp_recon / len(mol_list)
+            mean_fp_recon += batch_fp_recon
+
+        mean_fp_recon = mean_fp_recon / len(val_loader)
+        mean_qed = mean_qed / len(val_loader)
+        return mean_qed, mean_fp_recon
+
+
+def fp_score(mol, fp: torch.Tensor):
+    """
+    Calculates the fingerprint reconstruction score for a molecule
+    Args:
+        mol: rdkit mol object
+        fp: torch tensor of size (fp_len)
+    Returns:
+        score: float (0-1)
+    """
+    score = 0
+    key = pd.read_csv('data/KlekFP_keys.txt', header=None)
+    fp_len = fp.shape[0]
+    for i in range(fp_len):
+        if fp[i] == 1:
+            frag = Chem.MolFromSmarts(key.iloc[i].values[0])
+            score += mol.HasSubstructMatch(frag)
+    return score / torch.sum(fp).item()

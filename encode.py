@@ -1,7 +1,7 @@
 import torch
 import pandas as pd
-from src.generator.dataset import VAEDataset
-from src.generator.generator import EncoderDecoderV3
+from src.gen.dataset import VAEDataset
+from src.gen.generator import EncoderDecoderV3
 import torch.utils.data as D
 import numpy as np
 from tqdm import tqdm

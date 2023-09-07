@@ -1,4 +1,4 @@
-from src.generator.generator import EncoderDecoderV3
+from src.gen.generator import EncoderDecoderV3
 import torch
 import matplotlib.pyplot as plt
 import pandas as pd

@@ -11,7 +11,7 @@ import rdkit.Chem as Chem
 import selfies as sf
 import torch
 
-from src.generator.generator import EncoderDecoderV3
+from src.gen.generator import EncoderDecoderV3
 from src.pred.filter import molecule_filter
 from src.utils.vectorizer import SELFIESVectorizer
 
