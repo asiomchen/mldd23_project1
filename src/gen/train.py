@@ -83,7 +83,7 @@ def train(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
-        if epoch % 2 == 0:
+        if epoch % 10 == 0:
             start = time.time()
             mean_qed, mean_fp_recon = get_scores(model, val_loader)
             end = time.time()
