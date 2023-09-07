@@ -8,6 +8,7 @@ import selfies as sf
 import rdkit.Chem as Chem
 import rdkit.Chem.QED as QED
 from src.utils.annealing import Annealer
+from tqdm import tqdm
 
 
 def train(config, model, train_loader, val_loader):
@@ -63,7 +64,7 @@ def train(config, model, train_loader, val_loader):
         print(f'Epoch: {epoch}')
         epoch_loss = 0
         kld_loss = 0
-        for X, y in train_loader:
+        for X, y in tqdm(train_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
@@ -82,8 +83,11 @@ def train(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
-        if epoch % 10 == 0:
+        if epoch % 2 == 0:
+            start = time.time()
             mean_qed, mean_fp_recon = get_scores(model, val_loader)
+            end = time.time()
+            print(f'QED + fp evaluated in {(end - start) / 60} minutes')
         else:
             mean_qed = None
             mean_fp_recon = None
@@ -111,7 +115,7 @@ def train(config, model, train_loader, val_loader):
         metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
         end_time = time.time()
         loop_time = (end_time - start_time) / 60  # in minutes
-        print(f'Executed in {loop_time} minutes')
+        print(f'Epoch {epoch} completed in {loop_time} minutes')
 
     wandb.finish()
     return None
@@ -233,7 +237,7 @@ def evaluate(model, val_loader):
 
 def get_scores(model, val_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    vectorizer = SELFIESVectorizer()
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()
     with torch.no_grad():
         mean_qed = 0
@@ -242,7 +246,8 @@ def get_scores(model, val_loader):
             X = X.to(device)
             y = y.to(device)
             output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
-            selfies_list = [vectorizer.devectorize(x) for x in X]
+            selfies_list = [vectorizer.devectorize(ohe.detach().cpu().numpy(),
+                                                   remove_special=True) for ohe in output]
             smiles_list = [sf.decoder(x) for x in selfies_list]
             mol_list = [Chem.MolFromSmiles(x) for x in smiles_list]
 
@@ -256,7 +261,7 @@ def get_scores(model, val_loader):
             # Calculate FP recon score
             batch_fp_recon = 0
             for mol, x in zip(mol_list, X):
-                fp = x.cpu().numpy()
+                fp = x.detach().cpu()
                 mean_fp_recon += fp_score(mol, fp)
             batch_fp_recon = batch_fp_recon / len(mol_list)
             mean_fp_recon += batch_fp_recon
