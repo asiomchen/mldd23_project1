@@ -83,7 +83,7 @@ def train(config, model, train_loader, val_loader):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             start = time.time()
             mean_qed, mean_fp_recon = get_scores(model, val_loader)
             end = time.time()
@@ -262,8 +262,9 @@ def get_scores(model, val_loader):
             batch_fp_recon = 0
             for mol, x in zip(mol_list, X):
                 fp = x.detach().cpu()
-                mean_fp_recon += fp_score(mol, fp)
+                batch_fp_recon += fp_score(mol, fp)
             batch_fp_recon = batch_fp_recon / len(mol_list)
+            print(batch_fp_recon)
             mean_fp_recon += batch_fp_recon
 
         mean_fp_recon = mean_fp_recon / len(val_loader)
