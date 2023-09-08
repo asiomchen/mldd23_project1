@@ -10,20 +10,21 @@ import time
 import random
 
 
-class Scorer():
+class Scorer:
     """
     Scorer class for Bayesian optimization
     """
-    def __init__(self, path, latent_size, bounds, penalize=False, device='cpu'):
+    def __init__(self, path, latent_size, boundary, penalize=False, device='cpu'):
         """
         Args:
+            path: path to the discriminator model
             latent_size: size of the latent space
-            bounds: value of the upper and lower bound for the latent space search
+            boundary: value of the upper and lower bound for the latent space search
             penalize: if True, penalize for values outside of bounds
         """
         self.model = Discriminator(latent_size=latent_size, use_sigmoid=True).to(device)
         self.model.load_state_dict(torch.load(path, map_location=device))
-        self.bounds = bounds
+        self.bounds = boundary
         self.penalize = penalize
 
     def __call__(self, **args) -> float:
@@ -32,23 +33,26 @@ class Scorer():
         pred = self.model(input_tensor)
         output = pred.cpu().detach().numpy()[0]
         if self.penalize:
-            output = output * self.penalty(input_tensor)
+            output = output * (1 - self.penalty(input_tensor, self.bounds))
         return output
 
-    def penalty(self, tensor) -> float:
+    def penalty(self, tensor, boundary) -> float:
         """
         Penalize for values outside of bounds
         Args:
-            tensor: latent tensor
+            tensor (torch.Tensor): latent tensor
+            boundary (float): value of the upper and lower bound for the latent space search
         Returns:
             float: penalty
         """
-        total_penalty = 1
-        for i in range(len(tensor)):
-            x = abs(tensor[i])
-            if x > self.bounds / 2:
-                total_penalty *= (x - self.bounds / 2) / x
-        return total_penalty
+        dist = torch.pow(tensor, 2).sum()
+        if dist < boundary/2:
+            penalty = 0
+        elif dist > boundary:
+            penalty = 1
+        else:
+            penalty = boundary - dist
+        return penalty
 
 
 def search(parser, return_list):
@@ -62,14 +66,10 @@ def search(parser, return_list):
     """
     # parse arguments
     args = parser.parse_args()
-    init_points = args.init_points
-    n_iter = args.n_iter
-    bounds = args.bounds
-    verbose = args.verbose
 
     # initialize scorer
     latent_size = 32
-    scorer = Scorer(latent_size, bounds)
+    scorer = Scorer(args.model_path, latent_size, args.bounds)
 
     # define bounds
     pbounds = {str(p): (-scorer.bounds, scorer.bounds) for p in range(latent_size)}
@@ -80,22 +80,20 @@ def search(parser, return_list):
         f=scorer,
         pbounds=pbounds,
         random_state=random_state,
-        verbose=verbose
+        verbose=args.verbose
     )
 
     vector_list = []
     score_list = []
 
-    # run optimization
-    for _ in range(n_samples):
-        optimizer.maximize(
-            init_points=init_points,
-            n_iter=n_iter
-        )
-        vector = np.array(list(optimizer.max['params'].values()))
-        score_list.append(float(optimizer.max['target']))
-        print("Score: ", optimizer.max['target'])
-        vector_list.append(vector)
+    # run optimization:
+    optimizer.maximize(
+        init_points=args.init_points,
+        n_iter=args.n_iter,
+    )
+    vector = np.array(list(optimizer.max['params'].values()))
+    score_list.append(float(optimizer.max['target']))
+    vector_list.append(vector)
 
     # append results to return list
     samples = pd.DataFrame(np.array(vector_list))
@@ -113,6 +111,7 @@ if __name__ == '__main__':
     """
     start_time = time.time()
     parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--model_path', type=str, required=True)
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
     parser.add_argument('-p', '--init_points', type=int, default=1,
@@ -129,6 +128,7 @@ if __name__ == '__main__':
     samples = pd.DataFrame()  # placeholder
     args = parser.parse_args()
     device = torch.device(args.device)
+    n_samples = args.n_samples
 
     if args.device == 'cpu':
         manager = mp.Manager()
@@ -138,22 +138,9 @@ if __name__ == '__main__':
 
         queue = queue.Queue()
 
-        # prepare a process for each file and add to queue
-
-        n_samples = args.n_samples
-        if n_samples < cpus:
-            for i in range(n_samples):
-                proc = mp.Process(target=search, args=[parser, return_list])
-                queue.put(proc)
-        else:
-            chunk_size = n_samples // cpus
-            remainder = n_samples % cpus
-            for i in range(cpus):
-                if i > cpus - remainder:
-                    proc = mp.Process(target=search, args=[parser, return_list[:chunk_size + 1]])
-                else:
-                    proc = mp.Process(target=search, args=[parser, return_list[:chunk_size]])
-                queue.put(proc)
+        for i in range(n_samples):
+            proc = mp.Process(target=search, args=[parser,  return_list])
+            queue.put(proc)
 
         # handle the queue
         processes = []
@@ -164,6 +151,8 @@ if __name__ == '__main__':
             if len(mp.active_children()) < cpus:
                 proc = queue.get()
                 proc.start()
+                if queue.qsize() % 5 == 0:
+                    print('(mp) Processes in queue: ', queue.qsize())
                 processes.append(proc)
             time.sleep(1)
 
@@ -172,7 +161,6 @@ if __name__ == '__main__':
             proc.join()
 
         samples = pd.concat(return_list)
-        print(samples)
         end_time = time.time()
         time_elapsed = end_time - start_time
         print("Time elapsed: ", round(time_elapsed, 2), "s")
