@@ -36,7 +36,7 @@ class SELFIESVectorizer:
     
     def devectorize(self, ohe, remove_special=False):
         """
-        Devectorize a numpy array of shape (len(selfies), len(charset)) to a list of SELFIES strings
+        Devectorize a numpy array of shape (len(selfies), len(charset)) to a SELFIES string
         Args:
             ohe (numpy.ndarray): one-hot encoded sequence as numpy array
             remove_special (bool): remove special tokens

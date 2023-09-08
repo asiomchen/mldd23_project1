@@ -28,16 +28,9 @@ def predict(file_path, is_verbose=True):
 
     # setup
     start_time = time.time()
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--config',
-                        '-c',
-                        type=str,
-                        default='config_files/pred_config.ini',
-                        help='Path to config file')
-    config_path = parser.parse_args().config
 
     # get file name
-    dir_name, file_name = file_path.split('/')
+    _, dir_name, file_name = file_path.split('/')
     name, _ = file_name.split('.')
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     name = '_'.join([dir_name, name, timestamp])
@@ -217,19 +210,15 @@ def get_predictions(model,
 
 
 if __name__ == '__main__':
-
-    # get list of files and dirs in data/encoded_data directory
-    if not os.path.isdir('data/encoded_data'):
-        os.mkdir('data/encoded_data')
-
-    encoded_data_directories = os.listdir('data/encoded_data')
-    parquet_files = []
-    for dir_name in encoded_data_directories:
-        dir_list = os.listdir(f'data/encoded_data/{dir_name}')
-        files = [f'{dir_name}/{name}' for name in dir_list if name.split('.')[-1] == 'parquet']
-        parquet_files.extend(files)
-    if not parquet_files:
-        print('No .parquet files found')
-
-    for file in parquet_files:
-        predict(file, is_verbose=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config',
+                        '-c',
+                        type=str,
+                        default='config_files/pred_config.ini',
+                        help='Path to config file')
+    parser.add_argument('-d',
+                        '-data',
+                        type=str,
+                        help='Path to data file')
+    config_path = parser.parse_args().config
+    predict(parser.parse_args().data)

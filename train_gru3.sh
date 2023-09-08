@@ -1,9 +1,9 @@
 #!/bin/bash
-#SBATCH --job-name=GRU3
+#SBATCH --job-name=GRUv3_no_pretrain
 #SBATCH --partition=student
 #SBATCH --qos=big
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=3
+#SBATCH --cpus-per-task=6
 #SBATCH --mem-per-cpu=32G
 
 nvidia-smi -L

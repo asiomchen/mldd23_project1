@@ -1,7 +1,7 @@
 # import packages
-from src.generator.train import train
-from src.generator.dataset import GRUDataset
-from src.generator.generator import EncoderDecoderV3
+from src.gen.train import train
+from src.gen.dataset import GRUDataset
+from src.gen.generator import EncoderDecoderV3
 from src.utils.vectorizer import SELFIESVectorizer
 from src.utils.split import scaffold_split
 import torch
@@ -20,7 +20,7 @@ def main():
     parser.add_argument('-c',
                         '--config',
                         type=str,
-                        default='config_files/gru_config.ini',
+                        default='gru_config0.ini',
                         help='Path to config file')
     config_path = parser.parse_args().config
 
@@ -72,9 +72,11 @@ def main():
     else:
         train_df = pd.read_parquet(data_path.split('.')[0] + f'_train_{train_percent}.parquet')
         val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{val_percent}.parquet')
+    scoring_df = val_df.sample(frac=0.1, random_state=42)
 
     train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum)
     val_dataset = GRUDataset(val_df, vectorizer, fp_len, smiles_enum=False)
+    scoring_dataset = GRUDataset(scoring_df, vectorizer, fp_len, smiles_enum=False)
 
     print("Dataset size:", len(dataset))
     print("Train size:", len(train_dataset))
@@ -84,6 +86,8 @@ def main():
                               drop_last=True, num_workers=NUM_WORKERS)
     val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size,
                             drop_last=True, num_workers=NUM_WORKERS)
+    scoring_loader = DataLoader(scoring_dataset, shuffle=False, batch_size=batch_size,
+                                drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
     if model_type == 'EncoderDecoderV3':
@@ -107,7 +111,7 @@ def main():
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))
     elif encoder_path.lower() != 'none':
         model.encoder.load_state_dict(torch.load(encoder_path, map_location=device))
-    _ = train(config, model, train_loader, val_loader)
+    _ = train(config, model, train_loader, val_loader, scoring_loader)
     return None
 
 

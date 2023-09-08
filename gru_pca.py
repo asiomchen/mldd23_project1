@@ -2,8 +2,8 @@ import numpy as np
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
-from src.generator.generator import EncoderDecoderV3
-from src.generator.dataset import VAEDataset
+from src.gen.generator import EncoderDecoderV3
+from src.gen.dataset import VAEDataset
 import torch.utils.data as Data
 from tqdm import tqdm
 from sklearn.decomposition import PCA

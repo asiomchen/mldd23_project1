@@ -172,3 +172,11 @@ models/vae_gru_scheduler/epoch_50.pt
 *.png
 gru_metrics.ipynb
 vae_metrics.ipynb
+results/GRUv3_lech_mu_d2_epoch_80_20230906-112518/config.ini
+results/GRUv3_lech_mu_d2_epoch_80_20230906-112518/GRUv3_lech_mu_d2_epoch_80_20230906-112518.csv
+results/GRUv3_tatra_mu_d2_epoch_80_20230906-111132/config.ini
+results/GRUv3_tatra_mu_d2_epoch_80_20230906-111132/GRUv3_tatra_mu_d2_epoch_80_20230906-111132.csv
+results/GRUv3_tyskie_mu_d2_epoch_80_20230906-110322/config.ini
+results/GRUv3_tyskie_mu_d2_epoch_80_20230906-110322/GRUv3_tyskie_mu_d2_epoch_80_20230906-110322.csv
+results/GRUv3_warka_mu_d2_epoch_80_20230906-111706/config.ini
+results/GRUv3_warka_mu_d2_epoch_80_20230906-111706/GRUv3_warka_mu_d2_epoch_80_20230906-111706.csv

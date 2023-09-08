@@ -2,9 +2,6 @@ import pandas as pd
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
-from tqdm import tqdm
-
-
 
 def fp2bitstring(fp):
     """
@@ -65,7 +62,7 @@ class TanimotoSearch():
         high_tan = 0
         high_idx = 0
         query_fp = Chem.rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=512)
-        for idx, fp in enumerate(tqdm(self.train_morgan_fps, disable=not self.progress_bar)):
+        for idx, fp in enumerate(self.train_morgan_fps):
             bitstring = fp2bitstring(fp)
             ebv = DataStructs.CreateFromBitString(bitstring)
             tan = DataStructs.TanimotoSimilarity(query_fp, ebv)
