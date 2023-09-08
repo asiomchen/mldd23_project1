@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=bayesian_search
 #SBATCH --partition=student
-#SBATCH --qos=quick
+#SBATCH --qos=normal
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=32G
 
