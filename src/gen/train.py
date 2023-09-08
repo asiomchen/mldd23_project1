@@ -83,7 +83,7 @@ def train(config, model, train_loader, val_loader, scoring_loader):
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
         val_loss = evaluate(model, val_loader)
-        if epoch % 1 == 0:
+        if epoch % 10 == 0:
             start = time.time()
             mean_qed, mean_fp_recon = get_scores(model, scoring_loader)
             end = time.time()
@@ -282,7 +282,7 @@ def fp_score(mol, fp: torch.Tensor):
         score: float (0-1)
     """
     score = 0
-    key = pd.read_csv('data/KlekFP_keys.txt', header=None).value
+    key = pd.read_csv('data/KlekFP_keys.txt', header=None)
     fp_len = fp.shape[0]
     for i in range(fp_len):
         if fp[i] == 1:
