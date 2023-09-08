@@ -81,12 +81,16 @@ def main():
     print("Dataset size:", len(dataset))
     print("Train size:", len(train_dataset))
     print("Val size:", len(val_dataset))
+    print("Scoring size:", len(scoring_dataset))
+
+    val_batch_size = batch_size if batch_size < len(val_dataset) else len(val_dataset)
+    scoring_batch_size = batch_size if batch_size < len(scoring_dataset) else len(scoring_dataset)
 
     train_loader = DataLoader(train_dataset, shuffle=True, batch_size=batch_size,
                               drop_last=True, num_workers=NUM_WORKERS)
-    val_loader = DataLoader(val_dataset, shuffle=False, batch_size=batch_size,
+    val_loader = DataLoader(val_dataset, shuffle=False, batch_size=val_batch_size,
                             drop_last=True, num_workers=NUM_WORKERS)
-    scoring_loader = DataLoader(scoring_dataset, shuffle=False, batch_size=batch_size,
+    scoring_loader = DataLoader(scoring_dataset, shuffle=False, batch_size=scoring_batch_size,
                                 drop_last=True, num_workers=NUM_WORKERS)
 
     # Init model
