@@ -11,7 +11,7 @@ from src.utils.annealing import Annealer
 from tqdm import tqdm
 
 
-def train(config, model, train_loader, val_loader):
+def train(config, model, train_loader, val_loader, scoring_loader):
     """
         Training loop for the model consisting of a VAE encoder and GRU decoder
     """
@@ -85,7 +85,7 @@ def train(config, model, train_loader, val_loader):
         val_loss = evaluate(model, val_loader)
         if epoch % 1 == 0:
             start = time.time()
-            mean_qed, mean_fp_recon = get_scores(model, val_loader)
+            mean_qed, mean_fp_recon = get_scores(model, scoring_loader)
             end = time.time()
             print(f'QED + fp evaluated in {(end - start) / 60} minutes')
         else:
@@ -235,14 +235,14 @@ def evaluate(model, val_loader):
         return avg_loss
 
 
-def get_scores(model, val_loader):
+def get_scores(model, scoring_loader):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()
     with torch.no_grad():
         mean_qed = 0
         mean_fp_recon = 0
-        for batch_idx, (X, y) in enumerate(val_loader):
+        for batch_idx, (X, y) in enumerate(scoring_loader):
             X = X.to(device)
             y = y.to(device)
             output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
@@ -267,8 +267,8 @@ def get_scores(model, val_loader):
             print(batch_fp_recon)
             mean_fp_recon += batch_fp_recon
 
-        mean_fp_recon = mean_fp_recon / len(val_loader)
-        mean_qed = mean_qed / len(val_loader)
+        mean_fp_recon = mean_fp_recon / len(scoring_loader)
+        mean_qed = mean_qed / len(scoring_loader)
         return mean_qed, mean_fp_recon
 
 
@@ -282,7 +282,7 @@ def fp_score(mol, fp: torch.Tensor):
         score: float (0-1)
     """
     score = 0
-    key = pd.read_csv('data/KlekFP_keys.txt', header=None)
+    key = pd.read_csv('data/KlekFP_keys.txt', header=None).value
     fp_len = fp.shape[0]
     for i in range(fp_len):
         if fp[i] == 1:
