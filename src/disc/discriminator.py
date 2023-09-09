@@ -50,11 +50,8 @@ def reparameterize(mu, logvar):
     return eps.mul(std).add_(mu)
 
 
-from sklearn.ensemble import RandomForestClassifier
-import numpy as np
-
 class RandomForestWrapper:
-    def __init__(self, n_estimators=100, max_depth=None, random_state=None):
+    def __init__(self, n_estimators=100, max_depth=None, random_state=42):
         self.model = RandomForestClassifier(
             n_estimators=n_estimators,
             max_depth=max_depth,
