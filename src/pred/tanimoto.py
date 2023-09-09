@@ -2,6 +2,8 @@ import pandas as pd
 from rdkit import Chem
 from rdkit import DataStructs
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
+import numpy as np
+from scipy.spatial.distance import cdist
 
 def fp2bitstring(fp):
     """
