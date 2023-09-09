@@ -68,7 +68,7 @@ def search(parser, return_list):
 
     # initialize scorer
     latent_size = 32
-    scorer = Scorer(args.model_path, latent_size, args.bounds, penalize=True)
+    scorer = Scorer(args.model_path, latent_size, args.bounds, penalize=False)
 
     # define bounds
     pbounds = {str(p): (-scorer.boundary, scorer.boundary) for p in range(latent_size)}
@@ -117,7 +117,7 @@ if __name__ == '__main__':
                         help='Number of initial points to sample')
     parser.add_argument('-i', '--n_iter', type=int, default=8,
                         help='Number of iterations to perform')
-    parser.add_argument('-b', '--bounds', type=float, default=2.0,
+    parser.add_argument('-b', '--bounds', type=float, default=1.0,
                         help='Bounds for the latent space search')
     parser.add_argument('-v', '--verbose', type=bool, default=False,
                         help='Verbosity')
