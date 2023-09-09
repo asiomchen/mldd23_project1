@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch
-
+from sklearn.ensemble import RandomForestClassifier
 
 class Discriminator(nn.Module):
     """
@@ -48,3 +48,22 @@ def reparameterize(mu, logvar):
     std = torch.exp(0.5 * logvar)
     eps = torch.randn_like(std)
     return eps.mul(std).add_(mu)
+
+
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+class RandomForestWrapper:
+    def __init__(self, n_estimators=100, max_depth=None, random_state=None):
+        self.model = RandomForestClassifier(
+            n_estimators=n_estimators,
+            max_depth=max_depth,
+            random_state=random_state
+        )
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+
+    def forward(self, X):
+        y = self.model.predict_proba(X)[0]
+        return y 
