@@ -24,7 +24,7 @@ class Scorer:
         """
         self.model = Discriminator(latent_size=latent_size, use_sigmoid=True).to(device)
         self.model.load_state_dict(torch.load(path, map_location=device))
-        self.bounds = boundary
+        self.boundary = boundary
         self.penalize = penalize
 
     def __call__(self, **args) -> float:
@@ -33,25 +33,24 @@ class Scorer:
         pred = self.model(input_tensor)
         output = pred.cpu().detach().numpy()[0]
         if self.penalize:
-            output = output * (1 - self.penalty(input_tensor, self.bounds))
+            output = output * (1 - self.get_penalty(input_tensor))
         return output
 
-    def penalty(self, tensor, boundary) -> float:
+    def get_penalty(self, tensor) -> float:
         """
         Penalize for values outside of bounds
         Args:
             tensor (torch.Tensor): latent tensor
-            boundary (float): value of the upper and lower bound for the latent space search
         Returns:
             float: penalty
         """
         dist = torch.pow(tensor, 2).sum()
-        if dist < boundary/2:
+        if dist < self.boundary/2:
             penalty = 0
-        elif dist > boundary:
+        elif dist > self.boundary:
             penalty = 1
         else:
-            penalty = boundary - dist
+            penalty = self.boundary - dist
         return penalty
 
 
@@ -69,10 +68,10 @@ def search(parser, return_list):
 
     # initialize scorer
     latent_size = 32
-    scorer = Scorer(args.model_path, latent_size, args.bounds)
+    scorer = Scorer(args.model_path, latent_size, args.bounds, penalize=True)
 
     # define bounds
-    pbounds = {str(p): (-scorer.bounds, scorer.bounds) for p in range(latent_size)}
+    pbounds = {str(p): (-scorer.boundary, scorer.boundary) for p in range(latent_size)}
 
     # initialize optimizer
     random_state = random.randint(0, 1000000)
@@ -162,8 +161,11 @@ if __name__ == '__main__':
 
         samples = pd.concat(return_list)
         end_time = time.time()
-        time_elapsed = end_time - start_time
-        print("Time elapsed: ", round(time_elapsed, 2), "s")
+        time_elapsed = (end_time - start_time) / 60 # in minutes
+        if time_elapsed < 60:
+            print("Time elapsed: ", round(time_elapsed, 2), "min")
+        else:
+            print("Time elapsed: ", int(time_elapsed // 60), "h", round(time_elapsed % 60, 2), "min")
 
     elif args.device == 'cuda':
         raise NotImplementedError
