@@ -52,6 +52,7 @@ def main():
     fc1_size = int(config['MODEL']['fc1_size'])
     fc2_size = int(config['MODEL']['fc2_size'])
     fc3_size = int(config['MODEL']['fc3_size'])
+    encoder_activation = str(config['MODEL']['encoder_activation'])
 
     dataset = pd.read_parquet(data_path)
 
@@ -105,7 +106,8 @@ def main():
             output_size=42,  # alphabet length
             fc1_size=fc1_size,
             fc2_size=fc2_size,
-            fc3_size=fc3_size
+            fc3_size=fc3_size,
+            encoder_activation=encoder_activation
         ).to(device)
 
     else:

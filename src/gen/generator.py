@@ -18,6 +18,7 @@ class VAEEncoder(nn.Module):
         fc1_size (int): size of the first fully connected layer
         fc2_size (int): size of the second fully connected layer
         fc3_size (int): size of the third fully connected layer
+        activation (str): activation function ('relu', 'elu', 'gelu' or 'leaky_relu')
     """
 
     def __init__(self,
@@ -25,14 +26,25 @@ class VAEEncoder(nn.Module):
                  output_size,
                  fc1_size,
                  fc2_size,
-                 fc3_size):
+                 fc3_size,
+                 activation='relu'):
         super(VAEEncoder, self).__init__()
         self.fc1 = nn.Linear(input_size, fc1_size)
         self.fc2 = nn.Linear(fc1_size, fc2_size)
         self.fc3 = nn.Linear(fc2_size, fc3_size)
         self.fc41 = nn.Linear(fc3_size, output_size)
         self.fc42 = nn.Linear(fc3_size, output_size)
-        self.relu = nn.ReLU()
+        if activation == 'relu':
+            self.relu = nn.ReLU()
+        elif activation == 'leaky_relu':
+            self.relu = nn.LeakyReLU()
+        elif activation == 'elu':
+            self.relu = nn.ELU()
+        elif activation == 'gelu':
+            self.relu = nn.GELU()
+        else:
+            raise ValueError('Activation must be one of: relu, leaky_relu, elu, gelu')
+
 
     def forward(self, x):
         """
@@ -53,6 +65,7 @@ class VAEEncoder(nn.Module):
     def kld_loss(mu, logvar):
         kld = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1), dim=0)
         return kld
+
 
 
 class GRUDecoder(nn.Module):
@@ -121,8 +134,8 @@ class GRUDecoder(nn.Module):
         for n in range(128):
             out, hidden = self.gru(x, hidden)
             out = self.fc2(out)  # shape (batch_size, 1, 42)
-            outputs.append(out)
             out = self.softmax(out)
+            outputs.append(out)
             random_float = random.random()
             if (teacher_forcing and
                     random_float < self.teacher_ratio and
@@ -151,13 +164,15 @@ class EncoderDecoderV3(nn.Module):
     """
 
     def __init__(self, fp_size, encoding_size, hidden_size, num_layers, output_size, dropout,
-                 teacher_ratio, random_seed=42, use_cuda=True, fc1_size=2048, fc2_size=1024, fc3_size=512):
+                 teacher_ratio, random_seed=42, use_cuda=True, fc1_size=2048, fc2_size=1024, fc3_size=512,
+                 encoder_activation='relu'):
         super(EncoderDecoderV3, self).__init__()
         self.encoder = VAEEncoder(fp_size,
                                   encoding_size,
                                   fc1_size,
                                   fc2_size,
-                                  fc3_size)
+                                  fc3_size,
+                                  encoder_activation)
         self.decoder = GRUDecoder(hidden_size,
                                   num_layers,
                                   output_size,

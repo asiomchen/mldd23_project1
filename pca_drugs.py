@@ -27,7 +27,10 @@ model = EncoderDecoderV3(fp_size=4860,
                          output_size=42,
                          dropout=0,
                          teacher_ratio=0.0,
-                         random_seed=42).to(device)
+                         random_seed=42,
+                         fc1_size=2048,
+                         fc2_size=2048,
+                         fc3_size=1024).to(device)
 model.load_state_dict(torch.load(model_path, map_location=device))
 vectorizer = SELFIESVectorizer()
 
@@ -62,7 +65,8 @@ fp_encoded, _ = model.encoder(fps_tensor)
 
 preds, _ = model(fp_encoded, _, omit_encoder=True)
 preds = preds.detach().cpu().numpy()
-preds = [vectorizer.devectorize(pred, remove_special=True) for pred in preds]
+
+preds = [vectorizer.devectorize(pred, remove_special=True, reduction='sample') for pred in preds]
 preds = [sf.decoder(x) for x in preds]
 preds = [Chem.MolFromSmiles(pred) for pred in preds]
 img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
@@ -74,8 +78,11 @@ mus, _ = encode(df, model, device)
 pca = PCA(n_components=2, random_state=42)
 pca.fit(mus)
 all_results = transform(mus, pca)
-d2_encoded = encode(read_data('data/activity_data/d2_klek_100nM.parquet'), model, device)
-d2_results = transform(d2_encoded[0], pca)
+d2_active, d2_inactive = read_data('data/activity_data/d2_klek_100nM.parquet')
+d2_active_encoded = encode(d2_active, model, device)
+d2_inactive_encoded = encode(d2_inactive, model, device)
+d2_active_transformed = transform(d2_active_encoded[0], pca)
+d2_inactive_transformed = transform(d2_inactive_encoded[0], pca)
 
 out = transform(fp_encoded.detach().cpu().numpy(), pca).T
 out = [(x, y, name) for (x, y), name in zip(out, molecule_names)]
@@ -85,7 +92,8 @@ marker_size = 10
 plt.clf()
 fig = plt.figure(figsize=(12, 8))
 plt.scatter(*all_results, marker='o', label='train', s=12, c='lightgrey')
-plt.scatter(*d2_results, marker=f'.', label='D2_active', s=marker_size)
+plt.scatter(*d2_inactive_transformed, marker=f'.', label='D2_inactive', s=marker_size, c='grey')
+plt.scatter(*d2_active_transformed, marker=f'.', label='D2_active', s=marker_size)
 for i, (x, y, name) in enumerate(out):
     plt.scatter(x, y, marker=f'o', s=100, label=name)
 plt.xlabel('PCA-1')
