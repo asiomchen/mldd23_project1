@@ -86,8 +86,11 @@ class GRUDataset(Dataset):
         return fp_rec
 
     @staticmethod
-    def prepare_X(fps):
-        fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
+    def prepare_X(fps, eval=True):
+        if eval:
+            fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
+        else:
+            fps = fps.apply(lambda x: np.array(x, dtype=int))
         return fps.values
 
     @staticmethod
