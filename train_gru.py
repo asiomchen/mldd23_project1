@@ -75,9 +75,9 @@ def main():
         val_df = pd.read_parquet(data_path.split('.')[0] + f'_val_{val_percent}.parquet')
     scoring_df = val_df.sample(frac=0.1, random_state=42)
 
-    train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum)
-    val_dataset = GRUDataset(val_df, vectorizer, fp_len, smiles_enum=False)
-    scoring_dataset = GRUDataset(scoring_df, vectorizer, fp_len, smiles_enum=False)
+    train_dataset = GRUDataset(train_df, vectorizer, fp_len, smiles_enum=smiles_enum, do_eval=False)
+    val_dataset = GRUDataset(val_df, vectorizer, fp_len, smiles_enum=False, do_eval=False)
+    scoring_dataset = GRUDataset(scoring_df, vectorizer, fp_len, smiles_enum=False, do_eval=False)
 
     print("Dataset size:", len(dataset))
     print("Train size:", len(train_dataset))
