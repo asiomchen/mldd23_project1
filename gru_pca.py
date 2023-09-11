@@ -28,6 +28,7 @@ def encode(df, model, device):
     dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
     mus = []
     logvars = []
+    model.eval()
     with torch.no_grad():
         for batch in tqdm(dataloader):
             X = batch.to(device)
@@ -55,22 +56,21 @@ def transform(mu_values, pca_model):
     return pca_results
 
 
-def read_data(path, n_samples=1000):
+def read_data(path):
     """
-    Reads the data from the parquet file and returns a pandas dataframe with Klekota&Roth fingerprints
-        and the corresponding Ki values (only those with Ki < 100).
+    Reads the data from the parquet file and returns a tuple of dataframes
     Args:
         path: path to the parquet file
-        n_samples: number of samples to be returned
     Returns:
-        df (pd.DataFrame): dataframe containing 'fps' column with Klekota&Roth fingerprints
-            and the corresponding Ki values
+        df_active (pd.DataFrame): dataframe containing Klekota&Roth fingerprints and Ki values
+            for active molecules (Ki <= 100)
+        df_inactive (pd.DataFrame): dataframe containing Klekota&Roth fingerprints and Ki values
+            for inactive molecules (Ki > 100)
     """
     df = pd.read_parquet(path)
-    df = df[df['Ki'] < 100]
-    if len(df) > n_samples:
-        df = df.sample(n_samples)
-    return df
+    df_active = df[df['Ki'] <= 100]
+    df_inactive = df[df['Ki'] > 100]
+    return df_active, df_inactive
 
 if __name__ == '__main__':
 
