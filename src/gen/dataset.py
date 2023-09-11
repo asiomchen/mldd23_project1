@@ -7,7 +7,7 @@ import pandas as pd
 
 
 class GRUDataset(Dataset):
-    def __init__(self, df, vectorizer, fp_len=4860, smiles_enum=False):
+    def __init__(self, df, vectorizer, fp_len=4860, smiles_enum=False, do_eval=True):
         """
         Dataset class for handling GRU training data.
         Args:
@@ -25,6 +25,7 @@ class GRUDataset(Dataset):
         self.vectorizer = vectorizer
         self.fp_len = fp_len
         self.smiles_enum = smiles_enum
+        self.do_eval = do_eval
 
     def __len__(self):
         return len(self.fps)
@@ -85,9 +86,8 @@ class GRUDataset(Dataset):
         fp_rec[fp] = 1
         return fp_rec
 
-    @staticmethod
-    def prepare_X(fps, eval=True):
-        if eval:
+    def prepare_X(self, fps):
+        if self.do_eval:
             fps = fps.apply(eval).apply(lambda x: np.array(x, dtype=int))
         else:
             fps = fps.apply(lambda x: np.array(x, dtype=int))
