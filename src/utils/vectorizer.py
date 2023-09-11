@@ -34,18 +34,24 @@ class SELFIESVectorizer:
             X[i, self.char2idx[splited[i]]] = 1
         return X
     
-    def devectorize(self, ohe, remove_special=False):
+    def devectorize(self, ohe, remove_special=False, reduction='max'):
         """
         Devectorize a numpy array of shape (len(selfies), len(charset)) to a SELFIES string
         Args:
             ohe (numpy.ndarray): one-hot encoded sequence as numpy array
             remove_special (bool): remove special tokens
+            reduction (string): reduction method, either 'max' or 'sample'
         Returns:
             selfie_str (string): SELFIES string
         """
         selfie_str = ''
         for j in range(ohe.shape[0]):
-            idx = np.argmax(ohe[j, :])
+            if reduction == 'max':
+                idx = np.argmax(ohe[j, :])
+            elif reduction == 'sample':
+                idx = np.random.choice(np.arange(len(self.alphabet)), p=ohe[j, :])
+            else:
+                raise ValueError('Reduction must be either "max" or "sample"')
             if remove_special and (self.idx2char[idx] == '[start]' or self.idx2char[idx] == '[end]'):
                 continue
             selfie_str += self.idx2char[idx]

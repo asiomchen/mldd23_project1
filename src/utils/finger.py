@@ -14,7 +14,7 @@ def smiles2sparse(smiles):
             fp_list.append(1)
         else:
             fp_list.append(0)
-    return fp_list
+    return np.array(fp_list)
 
 def smiles2dense(smiles):
     mol = Chem.MolFromSmiles(smiles)
@@ -25,9 +25,9 @@ def smiles2dense(smiles):
     for i, key in enumerate(klek_keys_mols):
         if mol.HasSubstructMatch(key):
             fp_list.append(i)
-    return fp_list
+    return np.array(fp_list)
 
-def sparse2dense(sparse):
+def sparse2dense(sparse, return_numpy=True):
     """
     Convert sparse fingerprint to dense fingerprint
     Args:
@@ -39,7 +39,10 @@ def sparse2dense(sparse):
     for idx, value in enumerate(sparse):
         if value == 1:
             dense.append(idx)
-    return np.array(dense)
+    if return_numpy:
+        return np.array(dense)
+    else:
+        return dense
 
 
 def dense2sparse(dense, fp_len=4860):
@@ -54,4 +57,4 @@ def dense2sparse(dense, fp_len=4860):
     sparse = np.zeros(fp_len, dtype=np.int8)
     for value in dense:
         sparse[value] = 1
-    return sparse
+    return np.array(sparse)
