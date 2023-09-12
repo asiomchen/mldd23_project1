@@ -1,13 +1,12 @@
 #!/bin/bash
-#SBATCH --job-name=GRUv3_no_pretrain
-#SBATCH --partition=student
-#SBATCH --qos=big
+#SBATCH --job-name=5ht1a
+#SBATCH --partition=dgx_A100
 #SBATCH --gpus=1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem-per-cpu=32G
-
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=16G
 nvidia-smi -L
-source ~/miniconda3/bin/activate
+source /raid/soft/miniconda/bin/activate
+
 conda init bash
 conda activate mldd
 wandb login
