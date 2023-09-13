@@ -2,8 +2,7 @@
 cd data
 mkdir train_data
 cd train_data
-# wget -O combined_dataset.parquet https://www.dropbox.com/s/9nsvjcvfvpamjez/combined_dataset.parquet?dl=1
-wget -O combined_dataset_ECFP.parquet https://www.dropbox.com/scl/fi/azg7tk8mtuap65zy6a9h1/combined_dataset_ECFP.parquet?rlkey=4m3zailmm4rag540b3son1oq6&dl=1
+wget -O big_dataset.parquet https://www.dropbox.com/scl/fi/kbrlo5hqvpezmp0v4nlm9/big_dataset.parquet?rlkey=0f28kmf2vy9gs9k57fagdu4k5&dl=1
 # wget -O train_morgan_512bits.parquet https://www.dropbox.com/s/bj37jlql9j1lcrr/train_morgan_512bits.parquet?dl=1
 # cd -
 # mkdir interactions
