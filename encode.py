@@ -34,7 +34,8 @@ def main(encoder_path, data_path):
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),
                              fc2_size=config.getint('MODEL', 'fc2_size'),
-                             fc3_size=config.getint('MODEL', 'fc3_size')
+                             fc3_size=config.getint('MODEL', 'fc3_size'),
+                             encoder_activation=config['MODEL']['encoder_activation']
                              ).to(device)
     model.load_state_dict(torch.load(encoder_path, map_location=device))
     model = model.encoder
