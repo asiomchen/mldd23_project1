@@ -1,6 +1,5 @@
 from bayes_opt import BayesianOptimization
 from src.clf.scorer import MLPScorer, SKLearnScorer
-import torch
 import pandas as pd
 import argparse
 import numpy as np
@@ -8,21 +7,37 @@ import multiprocessing as mp
 import queue
 import time
 import random
+import warnings
 
-def search(parser, return_list):
+# suppress scikit-learn warnings
+
+def warn(*args, **kwargs):
+    pass
+
+warnings.warn = warn
+
+
+def search(args, return_list):
     """
     Perform Bayesian optimization on the latent space in respect to the discriminator output
     Args:
-        parser: argparse parser object
+        args: dictionary of arguments (argparse)
+            contains:
+                model_path: path to the model
+                model_type: type of the model (mlp or sklearn)
+                n_samples: number of samples to generate
+                init_points: number of initial points to sample
+                n_iter: number of iterations to perform
+                bounds: bounds for the latent space search
+                verbose: verbosity
+                latent_size: size of the latent space
         return_list: list to append results to (multiprocessing)
     Returns:
         None
     """
-    # parse arguments
-    args = parser.parse_args()
 
     # initialize scorer
-    latent_size = 32
+    latent_size = args.latent_size
     if args.model_type == 'mlp':
         scorer = MLPScorer(args.model_path, latent_size, penalize=False)
     elif args.model_type == 'sklearn':
@@ -33,8 +48,9 @@ def search(parser, return_list):
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
 
-    # initialize optimizer
     random_state = random.randint(0, 1000000)
+
+    # initialize optimizer
     optimizer = BayesianOptimization(
         f=scorer,
         pbounds=pbounds,
@@ -51,6 +67,7 @@ def search(parser, return_list):
         n_iter=args.n_iter,
     )
     vector = np.array(list(optimizer.max['params'].values()))
+
     score_list.append(float(optimizer.max['target']))
     vector_list.append(vector)
 
@@ -83,55 +100,49 @@ if __name__ == '__main__':
                         help='Bounds for the latent space search')
     parser.add_argument('-v', '--verbose', type=bool, default=False,
                         help='Verbosity')
-    parser.add_argument('-d', '--device', type=str, default='cpu',
-                        help='Device to use for search')
+    parser.add_argument('-l', '--latent_size', type=int, default=32)
 
     samples = pd.DataFrame()  # placeholder
     args = parser.parse_args()
-    device = torch.device(args.device)
     n_samples = args.n_samples
 
-    if args.device == 'cpu':
-        manager = mp.Manager()
-        return_list = manager.list()
-        cpus = mp.cpu_count()
-        print("Number of cpus: ", cpus)
+    manager = mp.Manager()
+    return_list = manager.list()
+    cpus = mp.cpu_count()
+    print("Number of cpus: ", cpus)
 
-        queue = queue.Queue()
+    queue = queue.Queue()
 
-        for i in range(n_samples):
-            proc = mp.Process(target=search, args=[parser,  return_list])
-            queue.put(proc)
+    for i in range(n_samples):
+        proc = mp.Process(target=search, args=[args, return_list])
+        queue.put(proc)
 
-        # handle the queue
-        processes = []
-        while True:
-            if queue.empty():
-                print("(mp) Queue handled successfully")
-                break
-            if len(mp.active_children()) < cpus:
-                proc = queue.get()
-                proc.start()
-                if queue.qsize() % 5 == 0:
-                    print('(mp) Processes in queue: ', queue.qsize())
-                processes.append(proc)
-            time.sleep(1)
+    # handle the queue
+    processes = []
+    while True:
+        if queue.empty():
+            print("(mp) Queue handled successfully")
+            break
+        if len(mp.active_children()) < cpus:
+            proc = queue.get()
+            proc.start()
+            if queue.qsize() % 5 == 0:
+                print('(mp) Processes in queue: ', queue.qsize())
+            processes.append(proc)
+        time.sleep(1)
 
-        # complete the processes
-        for proc in processes:
-            proc.join()
+    # complete the processes
+    for proc in processes:
+        proc.join()
 
-        samples = pd.concat(return_list)
-        end_time = time.time()
-        time_elapsed = (end_time - start_time) / 60 # in minutes
-        if time_elapsed < 60:
-            print("Time elapsed: ", round(time_elapsed, 2), "min")
-        else:
-            print("Time elapsed: ", int(time_elapsed // 60), "h", round(time_elapsed % 60, 2), "min")
-
-    elif args.device == 'cuda':
-        raise NotImplementedError
+    samples = pd.concat(return_list)
+    end_time = time.time()
+    time_elapsed = (end_time - start_time) / 60  # in minutes
+    if time_elapsed < 60:
+        print("Time elapsed: ", round(time_elapsed, 2), "min")
+    else:
+        print("Time elapsed: ", int(time_elapsed // 60), "h", round(time_elapsed % 60, 2), "min")
 
     # save the results
-    print(samples.head())
-    samples.to_parquet('results/samples.parquet', index=False)
+    model_name = args.model_path.split('/')[-1]
+    samples.to_parquet(f'results/{model_name}.parquet', index=False)
