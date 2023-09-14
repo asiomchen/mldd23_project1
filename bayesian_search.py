@@ -1,5 +1,5 @@
 from bayes_opt import BayesianOptimization
-from src.clf.classifier import NLPClassifier
+from src.clf.scorer import MLPScorer, SKLearnScorer
 import torch
 import pandas as pd
 import argparse
@@ -8,51 +8,6 @@ import multiprocessing as mp
 import queue
 import time
 import random
-
-
-class Scorer:
-    """
-    Scorer class for Bayesian optimization
-    """
-    def __init__(self, path, latent_size, boundary, penalize=False, device='cpu'):
-        """
-        Args:
-            path: path to the discriminator model
-            latent_size: size of the latent space
-            boundary: value of the upper and lower bound for the latent space search
-            penalize: if True, penalize for values outside of bounds
-        """
-        self.model = NLPClassifier(latent_size=latent_size, use_sigmoid=True).to(device)
-        self.model.load_state_dict(torch.load(path, map_location=device))
-        self.boundary = boundary
-        self.penalize = penalize
-
-    def __call__(self, **args) -> float:
-        input_tensor = torch.tensor(list({**args}.values()))
-        input_tensor = input_tensor.to(torch.float32)
-        pred = self.model(input_tensor)
-        output = pred.cpu().detach().numpy()[0]
-        if self.penalize:
-            output = output * (1 - self.get_penalty(input_tensor))
-        return output
-
-    def get_penalty(self, tensor) -> float:
-        """
-        Penalize for values outside of bounds
-        Args:
-            tensor (torch.Tensor): latent tensor
-        Returns:
-            float: penalty
-        """
-        dist = torch.pow(tensor, 2).sum()
-        if dist < self.boundary/2:
-            penalty = 0
-        elif dist > self.boundary:
-            penalty = 1
-        else:
-            penalty = self.boundary - dist
-        return penalty
-
 
 def search(parser, return_list):
     """
@@ -68,10 +23,10 @@ def search(parser, return_list):
 
     # initialize scorer
     latent_size = 32
-    scorer = Scorer(args.model_path, latent_size, args.bounds, penalize=False)
+    scorer = MLPScorer(args.model_path, latent_size, penalize=False)
 
     # define bounds
-    pbounds = {str(p): (-scorer.boundary, scorer.boundary) for p in range(latent_size)}
+    pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
 
     # initialize optimizer
     random_state = random.randint(0, 1000000)
