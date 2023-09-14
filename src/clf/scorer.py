@@ -48,8 +48,8 @@ class SKLearnScorer:
 
     def __call__(self, **args) -> float:
         input_vector = list({**args}.values())
-        pred = self.model.predict_proba(input_vector)
-        output = pred.cpu().detach().numpy()[0]
+        input_vector = np.array(input_vector).reshape(1, -1)
+        output = self.model.predict_proba(input_vector)[0][0]
         if self.penalize:
             output = output * (gaussian_reward(input_vector, penalty=4))
         return output
