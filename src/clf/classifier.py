@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 
-class NLPClassifier(nn.Module):
+class MLPClassifier(nn.Module):
     """
     Classifier model for searching VAE latent space
     Args:
