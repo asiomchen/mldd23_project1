@@ -3,10 +3,12 @@ import pickle
 import torch
 from src.clf.classifier import MLPClassifier
 
+
 class MLPScorer:
     """
     Scorer class for Bayesian optimization, based on MLP
     """
+
     def __init__(self, path, latent_size, penalize=False, device='cpu'):
         """
         Args:
@@ -33,6 +35,7 @@ class SKLearnScorer:
     """
     Scorer class for Bayesian optimization, based on scikit-learn models
     """
+
     def __init__(self, path, penalize=False):
         """
         Args:
@@ -54,6 +57,5 @@ class SKLearnScorer:
 
 def gaussian_reward(vec: np.array, penalty: int = 4):
     norm = np.linalg.norm(vec)
-    score = np.exp(-norm*norm / penalty)
+    score = np.exp(-norm * norm / penalty)
     return score
-

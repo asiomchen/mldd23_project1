@@ -51,7 +51,7 @@ def main():
     print("Train size:", len(train_dataset))
     print("Val size:", len(val_dataset))
 
-    model = discriminator.NLPClassifier(latent_size).to(device)
+    model = discriminator.MLPClassifier(latent_size).to(device)
 
     if checkpoint_path != 'None':
         model.load_state_dict(torch.load(checkpoint_path, map_location=device))

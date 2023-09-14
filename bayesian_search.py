@@ -23,7 +23,12 @@ def search(parser, return_list):
 
     # initialize scorer
     latent_size = 32
-    scorer = MLPScorer(args.model_path, latent_size, penalize=False)
+    if args.model_type == 'mlp':
+        scorer = MLPScorer(args.model_path, latent_size, penalize=False)
+    elif args.model_type == 'sklearn':
+        scorer = SKLearnScorer(args.model_path, penalize=False)
+    else:
+        raise ValueError("Model type must be either 'mlp' or 'sklearn")
 
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
@@ -66,6 +71,8 @@ if __name__ == '__main__':
     start_time = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--model_path', type=str, required=True)
+    parser.add_argument('-t', '--model_type', type=str, default='mlp',
+                        help='Model type: mlp or sklearn')
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
     parser.add_argument('-p', '--init_points', type=int, default=1,

@@ -46,11 +46,14 @@ def train_clf(config, model, train_loader, val_loader):
 
         # calculate loss and log to wandb
         avg_loss = epoch_loss / len(train_loader)
-        val_loss, acc = evaluate(model, val_loader)
+        val_loss, acc, true_pos, false_pos = evaluate(model, val_loader)
         metrics_dict = {'epoch': epoch,
                         'train_loss': avg_loss,
                         'val_loss': val_loss,
-                        'accuracy': acc}
+                        'accuracy': acc,
+                        'true_positive': true_pos,
+                        'false_positive': false_pos,
+                        }
 
         # Update metrics df
         metrics.loc[len(metrics)] = metrics_dict
@@ -95,4 +98,6 @@ def accuracy(y_pred: torch.tensor, y: torch.tensor):
     y_pred = torch.round(y_pred).bool()
     y = y.bool()
     acc = torch.sum(y_pred == y).item() / batch_size
-    return acc
+    true_pos = torch.sum(y_pred & y).item()
+    false_pos = torch.sum(y_pred & ~y).item()
+    return acc, true_pos, false_pos
