@@ -2,8 +2,6 @@ import numpy as np
 import pickle
 import torch
 from src.clf.classifier import MLPClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
 
 class MLPScorer:
     """
@@ -16,7 +14,7 @@ class MLPScorer:
             latent_size: size of the latent space
             penalize: if True, penalize for values outside of bounds
         """
-        self.model = NLPClassifier(latent_size=latent_size, use_sigmoid=True).to(device)
+        self.model = MLPClassifier(latent_size=latent_size, use_sigmoid=True).to(device)
         self.model.load_state_dict(torch.load(path, map_location=device))
         self.penalize = penalize
 
