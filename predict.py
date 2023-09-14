@@ -13,7 +13,7 @@ from src.gen.generator import EncoderDecoderV3
 from src.pred.filter import molecule_filter
 
 
-def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
+def predict(file_path, model_path, config_path):
     """
     Predicting molecules using the trained model.
 
@@ -21,20 +21,24 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
         file_path (str): Path to the file containing latent vectors.
         model_path (str): Path to the model weights.
         config_path: Path to the config file.
-        is_verbose (bool): Whether to print progress.
-        use_cuda (bool): Whether to use GPU for prediction (VRAM memory intensive).
     Returns: None
     """
 
     # setup
     start_time = time.time()
 
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    use_cuda = config['SCRIPT'].getboolean('use_cuda')
+    verbose = config['SCRIPT'].getboolean('verbose')
+    device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
+
     # get file name
     name = file_path.split('/')[-1].split('.')[0]
     timestamp = time.strftime("%Y%m%d-%H%M%S")
     name = '_'.join([name, timestamp])
-    device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
-    print(f'Using {device} device') if is_verbose else None
+
+    print(f'Using {device} device') if verbose else None
 
     model_epoch = model_path.split('/')[-1]
     model_config_path = model_path.replace(model_epoch, 'hyperparameters.ini')
@@ -47,7 +51,7 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
         encoding_size=int(config['MODEL']['encoding_size']),
         hidden_size=int(config['MODEL']['hidden_size']),
         num_layers=int(config['MODEL']['num_layers']),
-        dropout=0.1,
+        dropout=float(config['MODEL']['dropout']),
         teacher_ratio=0.0,
         use_cuda=use_cuda,
         output_size=42,
@@ -58,9 +62,7 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
     ).to(device)
 
     model.load_state_dict(torch.load(model_path, map_location=device))
-    print(f'Loaded model from {model_path}') if is_verbose else None
-
-    config.read(config_path)
+    print(f'Loaded model from {model_path}') if verbose else None
 
     # load data
     query_df = pd.read_parquet(file_path)
@@ -68,9 +70,10 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
         if col in query_df.columns:
             query_df = query_df.drop(columns=[col])
     input_vector = query_df.to_numpy()
+    print(f'Loaded data from {file_path}') if verbose else None
 
     # get predictions
-    print(f'Getting predictions for file {file_path}...') if is_verbose else None
+    print(f'Getting predictions for file {file_path}...') if verbose else None
     df = predict_with_dropout(model,
                               input_vector,
                               n_iter=int(config['SCRIPT']['n_iter']),
@@ -78,14 +81,17 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
                               return_imgs=False)
 
     # pred out non-druglike molecules
-    print('Filtering out non-druglike molecules...') if is_verbose else None
+    print('Filtering out non-druglike molecules...') if verbose else None
 
+    # multiprocessing
     manager = mp.Manager()
     return_list = manager.list()
-
     cpus = mp.cpu_count()
-    print("Number of cpus: ", cpus)
+    if config['SCRIPT']['n_workers'] != -1:
+        n_workers = int(config['SCRIPT']['n_workers'])
+        cpus = n_workers if n_workers < cpus else cpus
 
+    print("Number of workers:", cpus) if verbose else None
     q = queue.Queue()
 
     # prepare a process for each file and add to queue
@@ -103,13 +109,13 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
     processes = []
     while True:
         if q.empty():
-            print("(mp) Queue handled successfully")
+            print("(mp) Queue handled successfully") if verbose else None
             break
         if len(mp.active_children()) < cpus:
             proc = q.get()
             proc.start()
             if q.qsize() % 5 == 0:
-                print('(mp) Processes in queue: ', q.qsize())
+                print('(mp) Processes in queue: ', q.qsize()) if verbose else None
             processes.append(proc)
         time.sleep(1)
 
@@ -131,7 +137,7 @@ def predict(file_path, model_path, config_path, is_verbose=True, use_cuda=True):
                        columns=['smiles', 'qed'],
                        index=False)
 
-    print(f'Saved data to results/{name}') if is_verbose else None
+    print(f'Saved data to results/{name}') if verbose else None
 
     # save images
     os.mkdir(f'results/{name}/imgs')
