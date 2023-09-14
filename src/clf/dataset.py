@@ -1,10 +1,10 @@
 from torch.utils.data import Dataset
-from src.disc.discriminator import reparameterize
+from src.clf.classifier import reparameterize
 import pandas as pd
 import torch
 
 
-class DiscDataset(Dataset):
+class ClfDataset(Dataset):
     """
     Dataset for the discriminator model
     Args:

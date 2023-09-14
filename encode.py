@@ -24,6 +24,11 @@ def main(encoder_path, data_path):
 
     config = configparser.ConfigParser()
     config.read(f'models/{model_name}/hyperparameters.ini')
+    try:
+        encoder_activation = config['MODEL']['encoder_activation']
+    except KeyError:
+        encoder_activation = 'relu'
+
     model = EncoderDecoderV3(fp_size=config.getint('MODEL', 'fp_len'),
                              hidden_size=config.getint('MODEL', 'hidden_size'),
                              encoding_size=config.getint('MODEL', 'encoding_size'),
@@ -34,7 +39,8 @@ def main(encoder_path, data_path):
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),
                              fc2_size=config.getint('MODEL', 'fc2_size'),
-                             fc3_size=config.getint('MODEL', 'fc3_size')
+                             fc3_size=config.getint('MODEL', 'fc3_size'),
+                             encoder_activation=encoder_activation
                              ).to(device)
     model.load_state_dict(torch.load(encoder_path, map_location=device))
     model = model.encoder
