@@ -81,16 +81,23 @@ def evaluate(model, val_loader):
         criterion = torch.nn.BCELoss()
         epoch_loss = 0
         epoch_acc = 0
+        epoch_true_pos = 0
+        epoch_false_pos = 0
         for X, y in val_loader:
             X = X.to(device)
             y = y.to(device)
             y_pred = model(X).squeeze(1)
             loss = criterion(y_pred, y)
             epoch_loss += loss.item()
-            epoch_acc += accuracy(y_pred.cpu(), y.cpu())
+            acc, true_pos, false_pos = accuracy(y_pred.cpu(), y.cpu())
+            epoch_acc += acc
+            epoch_true_pos += true_pos
+            epoch_false_pos += false_pos
         avg_loss = epoch_loss / len(val_loader)
         avg_accuracy = epoch_acc / len(val_loader)
-    return avg_loss, avg_accuracy
+        avg_true_pos = epoch_true_pos / len(val_loader)
+        avg_false_pos = epoch_false_pos / len(val_loader)
+    return avg_loss, avg_accuracy, avg_true_pos, avg_false_pos
 
 
 def accuracy(y_pred: torch.tensor, y: torch.tensor):
@@ -98,6 +105,6 @@ def accuracy(y_pred: torch.tensor, y: torch.tensor):
     y_pred = torch.round(y_pred).bool()
     y = y.bool()
     acc = torch.sum(y_pred == y).item() / batch_size
-    true_pos = torch.sum(y_pred & y).item()
-    false_pos = torch.sum(y_pred & ~y).item()
+    true_pos = torch.sum(y_pred & y).item() / batch_size
+    false_pos = torch.sum(y_pred & ~y).item() / batch_size
     return acc, true_pos, false_pos
