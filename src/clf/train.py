@@ -4,9 +4,9 @@ import pandas as pd
 import wandb
 
 
-def train_disc(config, model, train_loader, val_loader):
+def train_clf(config, model, train_loader, val_loader):
     """
-    Training loop for discriminator model
+    Training loop for MLP classifier model
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -18,7 +18,7 @@ def train_disc(config, model, train_loader, val_loader):
     if use_wandb:
         log_dict = {s: dict(config.items(s)) for s in config.sections()}
         wandb.init(
-            project='discriminator',
+            project='classifier',
             config=log_dict,
             name=run_name
         )

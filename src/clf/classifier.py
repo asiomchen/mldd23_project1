@@ -1,19 +1,18 @@
 import torch.nn as nn
 import torch
-from sklearn.ensemble import RandomForestClassifier
 
-class Discriminator(nn.Module):
+class NLPClassifier(nn.Module):
     """
-    Discriminator model for searching VAE latent space
+    Classifier model for searching VAE latent space
     Args:
         latent_size (int): size of the latent space
     """
-    def __init__(self, latent_size, use_sigmoid=True):
+    def __init__(self, latent_size, use_sigmoid=True, fc1_size=256, fc2_size=256):
         super().__init__()
         self.latent_size = latent_size
-        self.fc1 = nn.Linear(latent_size, 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 16)
+        self.fc1 = nn.Linear(latent_size, fc1_size)
+        self.fc2 = nn.Linear(fc1_size, fc2_size)
+        self.fc3 = nn.Linear(fc2_size, 16)
         self.fc4 = nn.Linear(16, 1)
         self.relu = nn.ReLU()
         self.use_sigmoid = use_sigmoid
@@ -21,7 +20,7 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
         """
-        Forward pass of the discriminator
+        Forward pass of the classifier
         Args:
             x (torch.Tensor): input tensor of size (latent space)
         Returns:
@@ -48,19 +47,3 @@ def reparameterize(mu, logvar):
     std = torch.exp(0.5 * logvar)
     eps = torch.randn_like(std)
     return eps.mul(std).add_(mu)
-
-
-class RandomForestWrapper:
-    def __init__(self, n_estimators=100, max_depth=None, random_state=42):
-        self.model = RandomForestClassifier(
-            n_estimators=n_estimators,
-            max_depth=max_depth,
-            random_state=random_state
-        )
-
-    def train(self, X, y):
-        self.model.fit(X, y)
-
-    def forward(self, X):
-        y = self.model.predict_proba(X)[0]
-        return y 

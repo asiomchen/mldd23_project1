@@ -1,5 +1,5 @@
 from bayes_opt import BayesianOptimization
-from src.disc.discriminator import Discriminator
+from src.clf.classifier import NLPClassifier
 import torch
 import pandas as pd
 import argparse
@@ -22,7 +22,7 @@ class Scorer:
             boundary: value of the upper and lower bound for the latent space search
             penalize: if True, penalize for values outside of bounds
         """
-        self.model = Discriminator(latent_size=latent_size, use_sigmoid=True).to(device)
+        self.model = NLPClassifier(latent_size=latent_size, use_sigmoid=True).to(device)
         self.model.load_state_dict(torch.load(path, map_location=device))
         self.boundary = boundary
         self.penalize = penalize
