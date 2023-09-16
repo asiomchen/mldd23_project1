@@ -1,4 +1,4 @@
-from bayes_opt import BayesianOptimization
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
 from src.clf.scorer import MLPScorer, SKLearnScorer
 import pandas as pd
 import argparse
@@ -8,11 +8,13 @@ import queue
 import time
 import random
 import warnings
+import os
+
 
 # suppress scikit-learn warnings
-
 def warn(*args, **kwargs):
     pass
+
 
 warnings.warn = warn
 
@@ -29,7 +31,7 @@ def search(args, return_list):
                 init_points: number of initial points to sample
                 n_iter: number of iterations to perform
                 bounds: bounds for the latent space search
-                verbose: verbosity
+                verbosity: verbosity level
                 latent_size: size of the latent space
         return_list: list to append results to (multiprocessing)
     Returns:
@@ -48,14 +50,15 @@ def search(args, return_list):
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
 
-    random_state = random.randint(0, 1000000)
+    bounds_transformer = SequentialDomainReductionTransformer(minimum_window=0.2)
 
     # initialize optimizer
     optimizer = BayesianOptimization(
         f=scorer,
         pbounds=pbounds,
-        random_state=random_state,
-        verbose=args.verbose
+        random_state=(time.time_ns() % 10 ** 6),
+        verbose=args.verbosity > 1,
+        bounds_transformer=bounds_transformer
     )
 
     vector_list = []
@@ -76,6 +79,7 @@ def search(args, return_list):
     samples.columns = [str(n) for n in range(latent_size)]
     samples['score'] = score_list
     samples['score'] = samples['score'].astype(float)
+    samples['norm'] = np.linalg.norm(samples.iloc[:, :-1], axis=1)
     return_list.append(samples)
     return None
 
@@ -87,20 +91,24 @@ if __name__ == '__main__':
     """
     start_time = time.time()
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m', '--model_path', type=str, required=True)
+    parser.add_argument('-m', '--model_path', type=str, required=True,
+                        help='Path to the saved activity predictor model')
     parser.add_argument('-t', '--model_type', type=str, default='mlp',
                         help='Model type: mlp or sklearn')
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
-    parser.add_argument('-p', '--init_points', type=int, default=1,
+    parser.add_argument('-p', '--init_points', type=int, default=10,
                         help='Number of initial points to sample')
     parser.add_argument('-i', '--n_iter', type=int, default=8,
                         help='Number of iterations to perform')
     parser.add_argument('-b', '--bounds', type=float, default=1.0,
                         help='Bounds for the latent space search')
-    parser.add_argument('-v', '--verbose', type=bool, default=False,
-                        help='Verbosity')
-    parser.add_argument('-l', '--latent_size', type=int, default=32)
+    parser.add_argument('-v', '--verbosity', type=int, default=1,
+                        help='Verbosity: 0 - silent, 1 - normal, 2 - verbose')
+    parser.add_argument('-l', '--latent_size', type=int, default=32,
+                        help='Size of the latent space vector')
+    parser.add_argument('-w', '--n_workers', type=int, default=-1,
+                        help='Number of workers to use. Default: -1 (all available CPU cores)')
 
     samples = pd.DataFrame()  # placeholder
     args = parser.parse_args()
@@ -108,8 +116,13 @@ if __name__ == '__main__':
 
     manager = mp.Manager()
     return_list = manager.list()
-    cpus = mp.cpu_count()
-    print("Number of cpus: ", cpus)
+    cpu_cores = mp.cpu_count()
+    if args.n_workers != -1:
+        cpus = args.n_workers if args.n_workers < cpu_cores else cpu_cores
+    else:
+        cpus = cpu_cores
+
+    print("Number of workers: ", cpus) if args.verbosity > 0 else None
 
     queue = queue.Queue()
 
@@ -117,17 +130,29 @@ if __name__ == '__main__':
         proc = mp.Process(target=search, args=[args, return_list])
         queue.put(proc)
 
+    print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
+
+    queue_initial_size = queue.qsize()
+    if queue_initial_size >= 1000:
+        period = 100
+    if queue_initial_size >= 500:
+        period = 50
+    elif queue_initial_size >= 100:
+        period = 20
+    else:
+        period = 5
+
     # handle the queue
     processes = []
     while True:
         if queue.empty():
-            print("(mp) Queue handled successfully")
+            print("(mp) Queue handled successfully") if args.verbosity > 0 else None
             break
         if len(mp.active_children()) < cpus:
             proc = queue.get()
             proc.start()
-            if queue.qsize() % 5 == 0:
-                print('(mp) Processes in queue: ', queue.qsize())
+            if queue.qsize() % period == 0:
+                print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
             processes.append(proc)
         time.sleep(1)
 
@@ -139,10 +164,40 @@ if __name__ == '__main__':
     end_time = time.time()
     time_elapsed = (end_time - start_time) / 60  # in minutes
     if time_elapsed < 60:
-        print("Time elapsed: ", round(time_elapsed, 2), "min")
+        print("Time elapsed: ", round(time_elapsed, 2), "min") if args.verbosity > 0 else None
     else:
-        print("Time elapsed: ", int(time_elapsed // 60), "h", round(time_elapsed % 60, 2), "min")
+        print("Time elapsed: ",
+              int(time_elapsed // 60), "h",
+              round(time_elapsed % 60, 2), "min") if args.verbosity > 0 else None
 
     # save the results
-    model_name = args.model_path.split('/')[-1]
-    samples.to_parquet(f'results/{model_name}.parquet', index=False)
+    timestamp = (str(time.localtime()[3]) + '-' +
+                 str(time.localtime()[4]) + '-' +
+                 str(time.localtime()[5])
+                 )
+
+    model_name = args.model_path.split('/')[-2].split('.')[0] + '_' + timestamp
+
+    # create results directory
+    os.mkdir(f'results/{model_name}')
+
+    # save the results
+    samples.to_csv(f'results/{model_name}/latent_vectors.csv', index=False)
+
+    # save the arguments
+    with open(f'results/{model_name}/info.txt', 'w') as f:
+        text = [f'model_path: {args.model_path}',
+                f'latent_size: {args.latent_size}',
+                f'model_type: {args.model_type}',
+                f'n_samples: {args.n_samples}',
+                f'init_points: {args.init_points}',
+                f'n_iter: {args.n_iter}',
+                f'bounds: {args.bounds}',
+                f'verbosity: {args.verbosity}',
+                f'time elapsed per sample: {round(time_elapsed / n_samples, 2)} min',
+                f'mean score: {round(samples["score"].mean(), 2)}',
+                f'sigma score: {round(samples["score"].std(), 2)}',
+                f'mean norm: {round(samples["norm"].mean(), 2)}',
+                f'sigma norm: {round(samples["norm"].std(), 2)}']
+        text = '\n'.join(text)
+        f.write(text)

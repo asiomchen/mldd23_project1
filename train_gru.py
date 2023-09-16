@@ -103,7 +103,7 @@ def main():
             num_layers=num_layers,
             dropout=dropout,
             teacher_ratio=teacher_ratio,
-            output_size=42,  # alphabet length
+            output_size=31,  # alphabet length
             fc1_size=fc1_size,
             fc2_size=fc2_size,
             fc3_size=fc3_size,

@@ -94,8 +94,8 @@ class GRUDecoder(nn.Module):
         self.output_size = output_size
 
         # start token initialization
-        self.start_ohe = torch.zeros(42, dtype=torch.float32)
-        self.start_ohe[41] = 1.0
+        self.start_ohe = torch.zeros(31, dtype=torch.float32)
+        self.start_ohe[30] = 1.0
 
         # pytorch.nn
         self.gru = nn.GRU(input_size=self.input_size,
@@ -133,14 +133,14 @@ class GRUDecoder(nn.Module):
         outputs = []
         for n in range(128):
             out, hidden = self.gru(x, hidden)
-            out = self.fc2(out)  # shape (batch_size, 1, 42)
+            out = self.fc2(out)  # shape (batch_size, 1, 31)
             outputs.append(out)
             out = self.softmax(out)
             random_float = random.random()
             if (teacher_forcing and
                     random_float < self.teacher_ratio and
                     y_true is not None):
-                out = y_true[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 42)
+                out = y_true[:, n, :].unsqueeze(1)  # shape (batch_size, 1, 31)
             x = out
         out_cat = torch.cat(outputs, dim=1)
         return out_cat

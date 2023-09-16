@@ -5,7 +5,7 @@ import torch.nn as nn
 
 
 class CCE(nn.Module):
-    def __init__(self, ignore_index=40):
+    def __init__(self, ignore_index=29):
         """
         Conscious Cross-Entropy. Calculates cross-entropy loss on two SELFIES,
         ignoring indices of padding tokens.

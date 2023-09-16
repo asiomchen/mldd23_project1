@@ -34,7 +34,7 @@ def main(encoder_path, data_path):
                              encoding_size=config.getint('MODEL', 'encoding_size'),
                              num_layers=config.getint('MODEL', 'num_layers'),
                              dropout=0.0,
-                             output_size=42,
+                             output_size=31,
                              teacher_ratio=0.0,
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),
@@ -57,7 +57,7 @@ def main(encoder_path, data_path):
         logvars = pd.DataFrame(np.concatenate(logvar_list, axis=0))
         mus.columns = mus.columns.astype(str)
         logvars.columns = logvars.columns.astype(str)
-        mus['label'] = df['Class']
+        mus['label'] = df['activity']
         mus['smiles'] = df['smiles']
         if not os.path.exists(f'data/encoded_data/{model_name}'):
             os.mkdir(f'data/encoded_data/{model_name}')
@@ -66,7 +66,7 @@ def main(encoder_path, data_path):
 
         out_config = configparser.ConfigParser()
         out_config['INFO'] = {'model_path': encoder_path,
-                                  'encoding_size': config.getint('MODEL', 'encoding_size')}
+                              'encoding_size': config.getint('MODEL', 'encoding_size')}
         if not os.path.exists(f'data/encoded_data/{model_name}/info.ini'):
             with open(f'data/encoded_data/{model_name}/info.ini', 'x') as file:
                 out_config.write(file)
@@ -82,7 +82,7 @@ if __name__ == '__main__':
                         '--data_path',
                         type=str,
                         help='Path to data',
-                        default='all')
+                        default='data/activity_data/d2_klek_100nM.parquet')
     encoder_path = parser.parse_args().model_path
     data_path = parser.parse_args().data_path
     if data_path == 'all':
