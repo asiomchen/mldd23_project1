@@ -64,7 +64,7 @@ def train(config, model, train_loader, val_loader, scoring_loader):
         print(f'Epoch: {epoch}')
         epoch_loss = 0
         kld_loss = 0
-        for X, y in tqdm(train_loader):
+        for X, y in train_loader:
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
