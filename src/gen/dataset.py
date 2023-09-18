@@ -61,6 +61,8 @@ class GRUDataset(Dataset):
         else:
             raw_selfie = sf.encoder(raw_smile, strict=False)
         vectorized_selfie = self.vectorizer.vectorize(raw_selfie)
+        if len(vectorized_selfie) > 128:
+            vectorized_selfie = vectorized_selfie[:128]
         raw_X = self.fps[idx]
         X = np.array(raw_X, dtype=int)
         X_reconstructed = self.reconstruct_fp(X)

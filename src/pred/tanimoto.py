@@ -82,7 +82,7 @@ class TanimotoSearch():
         else:
             return high_tan
 
-class NewTanimotoSearch():
+class TanimotoSearch2():
 
     def __init__(self, return_smiles=False, progress_bar=True):
         data_path = 'data/train_data/train_morgan_512bits.parquet'

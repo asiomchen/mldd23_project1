@@ -2,7 +2,6 @@ from src.gen.generator import EncoderDecoderV3
 import torch
 import seaborn as sns
 import pandas as pd
-from src.utils.finger import smiles2sparse
 from sklearn.manifold import TSNE
 import argparse
 import configparser
@@ -11,6 +10,7 @@ import rdkit.Chem.Draw as Draw
 from src.utils.vectorizer import SELFIESVectorizer
 import numpy as np
 import selfies as sf
+import rdkit.Chem.AllChem as AllChem
 import random
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
@@ -30,7 +30,7 @@ def encode(df, model, device):
         mus (np.ndarray): array of means of the latent space
         logvars (np.ndarray): array of logvars of the latent space
     """
-    dataset = VAEDataset(df, fp_len=4860)
+    dataset = VAEDataset(df, fp_len=2048)
     dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
     mus = []
     logvars = []
@@ -51,7 +51,7 @@ config = configparser.ConfigParser()
 parser = argparse.ArgumentParser()
 parser.add_argument('--model_path', '-m', type=str, required=True)
 parser.add_argument('--random_seed', '-r', type=int, default=42)
-parser.add_argument('--data', '-d', type=str, default='d2_drugs.csv')
+parser.add_argument('--data', '-d', type=str, default='data/encoded_data/d2_encoded.csv')
 seed = parser.parse_args().random_seed
 random.seed(seed)
 
@@ -90,7 +90,9 @@ drugs = pd.read_csv('data/d2_drugs.csv')
 smiles = drugs['smiles'].to_list()
 molecule_names = drugs['name'].to_list()
 
-fps = [torch.Tensor(smiles2sparse(smile)) for smile in smiles]
+mols = [Chem.MolFromSmiles(smi) for smi in smiles]
+bvs = [AllChem.GetMorganFingerprintAsBitVect(mol,2, nBits=2048) for mol in mols]
+fps = [torch.Tensor(np.array(bv)) for bv in bvs]
 fps = [fp.unsqueeze(0).to(device) for fp in fps]
 fps_tensor = torch.cat(fps, dim=0)
 fp_encoded, _ = model.encoder(fps_tensor)
@@ -114,7 +116,7 @@ tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
 results = tsne.fit_transform(cat)
 
 all_df = pd.DataFrame((results[-len(d2_encoded):]), columns=['x', 'y'])
-activity = ['D2 active' if x == 1 else 'D2 inactive' for x in df['Class']]
+activity = ['D2 active' if x == 1 else 'D2 inactive' for x in df['activity']]
 all_df['activity'] = activity
 drugs_df = pd.DataFrame((results[:-len(d2_encoded)]), columns=['x', 'y'])
 drugs_df['name'] = molecule_names
