@@ -85,6 +85,7 @@ class SELFIESVectorizer:
 
     @staticmethod
     def read_alphabet():
-        with open('data/alphabet.txt', 'r') as f:
+        # TODO: change to new alphabet
+        with open('data/alphabet_old.txt', 'r') as f:
             alphabet = f.read().splitlines()
         return alphabet

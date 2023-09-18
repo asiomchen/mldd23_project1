@@ -116,7 +116,7 @@ tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
 results = tsne.fit_transform(cat)
 
 all_df = pd.DataFrame((results[-len(d2_encoded):]), columns=['x', 'y'])
-activity = ['D2 active' if x == 1 else 'D2 inactive' for x in df['Class']]
+activity = ['D2 active' if x == 1 else 'D2 inactive' for x in df['activity']]
 all_df['activity'] = activity
 drugs_df = pd.DataFrame((results[:-len(d2_encoded)]), columns=['x', 'y'])
 drugs_df['name'] = molecule_names
