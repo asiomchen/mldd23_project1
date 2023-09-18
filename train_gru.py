@@ -54,7 +54,7 @@ def main():
     fc3_size = int(config['MODEL']['fc3_size'])
     encoder_activation = str(config['MODEL']['encoder_activation'])
 
-    dataset = pd.read_parquet(data_path)
+    dataset = pd.read_parquet(data_path).sample(100000)
 
     # create a directory for this model if not there
     if not os.path.isdir(f'models/{run_name}'):
