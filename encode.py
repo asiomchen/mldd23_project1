@@ -16,14 +16,16 @@ def main(encoder_path, data_path):
                  '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0])
     model_name = encoder_path.split('/')[-2]
     df = pd.read_parquet(data_path)
-    dataset = VAEDataset(df, fp_len=4860)
-    dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
     if not os.path.exists(f'data/encoded_data'):
         os.mkdir(f'data/encoded_data')
 
     config = configparser.ConfigParser()
     config.read(f'models/{model_name}/hyperparameters.ini')
+
+    dataset = VAEDataset(df, fp_len=config.getint('MODEL', 'fp_len'))
+    dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
+
     try:
         encoder_activation = config['MODEL']['encoder_activation']
     except KeyError:
@@ -34,7 +36,7 @@ def main(encoder_path, data_path):
                              encoding_size=config.getint('MODEL', 'encoding_size'),
                              num_layers=config.getint('MODEL', 'num_layers'),
                              dropout=0.0,
-                             output_size=31,
+                             output_size=42,
                              teacher_ratio=0.0,
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),

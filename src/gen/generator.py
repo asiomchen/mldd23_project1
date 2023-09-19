@@ -94,8 +94,8 @@ class GRUDecoder(nn.Module):
         self.output_size = output_size
 
         # start token initialization
-        self.start_ohe = torch.zeros(31, dtype=torch.float32)
-        self.start_ohe[30] = 1.0
+        self.start_ohe = torch.zeros(output_size, dtype=torch.float32)
+        self.start_ohe[output_size - 1] = 1.0  # start token
 
         # pytorch.nn
         self.gru = nn.GRU(input_size=self.input_size,
