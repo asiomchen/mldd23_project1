@@ -93,8 +93,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--model_path', type=str, required=True,
                         help='Path to the saved activity predictor model')
-    parser.add_argument('-t', '--model_type', type=str, default='mlp',
-                        help='Model type: mlp or sklearn')
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
     parser.add_argument('-p', '--init_points', type=int, default=10,
