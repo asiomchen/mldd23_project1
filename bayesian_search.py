@@ -40,12 +40,12 @@ def search(args, return_list):
 
     # initialize scorer
     latent_size = args.latent_size
-    if args.model_type == 'mlp':
+    if args.model_path.split('.')[-1] == 'pt':
         scorer = MLPScorer(args.model_path, latent_size, penalize=False)
-    elif args.model_type == 'sklearn':
+    elif args.model_path.split('.')[-1] == 'pkl':
         scorer = SKLearnScorer(args.model_path, penalize=False)
     else:
-        raise ValueError("Model type must be either 'mlp' or 'sklearn")
+        raise ValueError("Model type not supported")
 
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
