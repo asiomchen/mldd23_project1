@@ -142,8 +142,9 @@ if __name__ == '__main__':
         period = 5
 
     # handle the queue
-    processes= []
+
     while True:
+        processes = []
         if queue.empty():
             print("(mp) Queue handled successfully") if args.verbosity > 0 else None
             break
