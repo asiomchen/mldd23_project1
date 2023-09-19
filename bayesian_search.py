@@ -9,6 +9,7 @@ import time
 import random
 import warnings
 import os
+import multiprocessing.pool
 
 
 # suppress scikit-learn warnings
@@ -141,22 +142,22 @@ if __name__ == '__main__':
         period = 5
 
     # handle the queue
-    processes = []
+    processes= []
     while True:
         if queue.empty():
             print("(mp) Queue handled successfully") if args.verbosity > 0 else None
             break
-        if len(mp.active_children()) < cpus:
+        while len(mp.active_children()) < cpus:
             proc = queue.get()
             proc.start()
             if queue.qsize() % period == 0:
                 print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
             processes.append(proc)
-        time.sleep(1)
 
-    # complete the processes
-    for proc in processes:
-        proc.join()
+            # complete the processes
+        for proc in processes:
+            proc.join()
+        time.sleep(1)
 
     samples = pd.concat(return_list)
     end_time = time.time()
