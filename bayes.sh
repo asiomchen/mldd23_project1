@@ -2,7 +2,7 @@
 #SBATCH --job-name=bayesian_search
 #SBATCH --partition=student
 #SBATCH --qos=quick
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=12
 #SBATCH --mem-per-cpu=32G
 
 nvidia-smi -L
