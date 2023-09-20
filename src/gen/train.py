@@ -264,7 +264,6 @@ def get_scores(model, scoring_loader):
                 fp = x.detach().cpu()
                 batch_fp_recon += fp_score(mol, fp)
             batch_fp_recon = batch_fp_recon / len(mol_list)
-            print(batch_fp_recon)
             mean_fp_recon += batch_fp_recon
 
         mean_fp_recon = mean_fp_recon / len(scoring_loader)
