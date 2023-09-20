@@ -54,7 +54,7 @@ def predict(file_path, model_path, config_path):
         dropout=float(model_config['MODEL']['dropout']),
         teacher_ratio=0.0,
         use_cuda=use_cuda,
-        output_size=42,
+        output_size=31,
         random_seed=42,
         fc1_size=int(model_config['MODEL']['fc1_size']),
         fc2_size=int(model_config['MODEL']['fc2_size']),

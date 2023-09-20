@@ -8,12 +8,11 @@ import selfies as sf
 import rdkit.Chem as Chem
 import rdkit.Chem.QED as QED
 from src.utils.annealing import Annealer
-from tqdm import tqdm
 
 
 def train(config, model, train_loader, val_loader, scoring_loader):
     """
-        Training loop for the model consisting of a VAE encoder and GRU decoder
+    Training loop for the model consisting of a VAE encoder and GRU decoder
     """
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -121,105 +120,16 @@ def train(config, model, train_loader, val_loader, scoring_loader):
     return None
 
 
-def train_rl(config, model, train_loader, val_loader):
-    """
-        Training loop for GRU model with RL
-    """
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    supervised = config.getboolean('RUN', 'supervised')
-    rl_weight = float(config['RUN']['rl_weight'])
-    run_name = str(config['RUN']['run_name'])
-    learn_rate = float(config['RUN']['learn_rate'])
-    epochs = int(config['RUN']['epochs'])
-    start_epoch = int(config['RUN']['start_epoch'])
-    teacher_ratio = float(config['MODEL']['teacher_ratio'])
-    use_teacher = True if teacher_ratio > 0 else False
-    use_wandb = config.getboolean('RUN', 'use_wandb')
-    kld_backward = config.getboolean('RUN', 'kld_backward')
-    kld_weight = float(config['RUN']['kld_weight'])
-
-    # start a new wandb run to track this script
-    if use_wandb:
-        log_dict = {s: dict(config.items(s)) for s in config.sections()}
-        wandb.init(
-            project='gen-rl',
-            config=log_dict,
-            name=run_name
-        )
-
-    # Define dataframe for logging progress
-    epochs_range = range(start_epoch, epochs + start_epoch)
-    metrics = pd.DataFrame(columns=['epoch', 'kld_loss', 'val_loss', 'rl_loss', 'total_reward'])
-
-    # Define loss function and optimizer
-    optimizer = torch.optim.Adam(model.parameters(), lr=learn_rate)
-    criterion = CCE()
-
-    print("Starting RL Training of GRU")
-    print(f"Device: {device}")
-
-    # Start training loop
-    for epoch in epochs_range:
-        start_time = time.time()
-        print(f'Epoch: {epoch}')
-        epoch_loss = 0
-        epoch_rl_loss = 0
-        epoch_total_reward = 0
-        kld_loss = 0
-        model.train()
-        for batch_idx, (X, y) in enumerate(train_loader):
-            optimizer.zero_grad()
-            X = X.to(device)
-            y = y.to(device)
-            output, kld_loss, rl_loss, total_reward = model(X, y, teacher_forcing=use_teacher, reinforcement=True)
-            rl_loss = rl_loss * rl_weight
-            kld_loss = kld_loss * kld_weight
-            epoch_rl_loss += rl_loss.item()
-            epoch_total_reward += total_reward
-            loss = torch.tensor(0)
-            if supervised:
-                loss = criterion(y, output)
-                epoch_loss += loss.item()
-            if kld_backward:
-                (loss + rl_loss + kld_loss).backward()
-            else:
-                (loss + rl_loss).backward()
-            optimizer.step()
-            if use_wandb:
-                wandb.log(
-                    {'batch_idx': batch_idx,
-                     'batch_rl_loss': rl_loss.item(),
-                     'batch_reward': total_reward})
-
-        epoch_rl_loss = epoch_rl_loss / len(train_loader)
-        epoch_total_reward = epoch_total_reward / len(train_loader)
-        val_loss = evaluate(model, val_loader)
-        metrics_dict = {'epoch': epoch,
-                        'kld_loss': kld_loss.item(),
-                        'val_loss': val_loss,
-                        'rl_loss': epoch_rl_loss,
-                        'total_reward': epoch_total_reward,
-                        }
-        if use_wandb:
-            wandb.log(metrics_dict)
-
-        # Update metrics df
-        metrics.loc[len(metrics)] = metrics_dict
-        if epoch % 5 == 0:
-            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
-            torch.save(model.state_dict(), save_path)
-
-        metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
-
-        end_time = time.time()
-        loop_time = (end_time - start_time) / 60  # in minutes
-        print(f'Executed in {loop_time} minutes')
-
-    wandb.finish()
-    return None
-
-
 def evaluate(model, val_loader):
+    """
+    Evaluates the model on the validation set
+    Args:
+        model (nn.Module): EncoderDecoderV3 model
+        val_loader (DataLoader): validation set loader
+    Returns:
+        float: average loss on the validation set
+
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.eval()
     with torch.no_grad():
@@ -236,6 +146,17 @@ def evaluate(model, val_loader):
 
 
 def get_scores(model, scoring_loader):
+    """
+    Calculates the QED and FP reconstruction score for the model
+    Args:
+        model (nn.Module): EncoderDecoderV3 model
+        scoring_loader (DataLoader): scoring set loader
+
+    Returns:
+        mean_qed (float): average QED score
+        mean_fp_recon (float): average FP reconstruction score
+
+    """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     vectorizer = SELFIESVectorizer(pad_to_len=128)
     model.eval()

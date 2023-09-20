@@ -36,7 +36,7 @@ def main(encoder_path, data_path):
                              encoding_size=config.getint('MODEL', 'encoding_size'),
                              num_layers=config.getint('MODEL', 'num_layers'),
                              dropout=0.0,
-                             output_size=42,
+                             output_size=31,
                              teacher_ratio=0.0,
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                         '--data_path',
                         type=str,
                         help='Path to data',
-                        default='data/activity_data/d2_klek_100nM.parquet')
+                        default='data/activity_data/d2_klek_100nM_std.parquet')
     encoder_path = parser.parse_args().model_path
     data_path = parser.parse_args().data_path
     if data_path == 'all':

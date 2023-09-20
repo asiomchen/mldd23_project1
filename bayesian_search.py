@@ -9,7 +9,6 @@ import time
 import random
 import warnings
 import os
-import multiprocessing.pool
 
 
 # suppress scikit-learn warnings
@@ -42,9 +41,9 @@ def search(args, return_list):
     # initialize scorer
     latent_size = args.latent_size
     if args.model_path.split('.')[-1] == 'pt':
-        scorer = MLPScorer(args.model_path, latent_size, penalize=False)
+        scorer = MLPScorer(args.model_path, latent_size, penalize=True)
     elif args.model_path.split('.')[-1] == 'pkl':
-        scorer = SKLearnScorer(args.model_path, penalize=False)
+        scorer = SKLearnScorer(args.model_path, penalize=True)
     else:
         raise ValueError("Model type not supported")
 
@@ -154,6 +153,9 @@ if __name__ == '__main__':
             if queue.qsize() % period == 0:
                 print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
             processes.append(proc)
+            if queue.empty():
+                break
+            break
 
             # complete the processes
         for proc in processes:
@@ -188,7 +190,6 @@ if __name__ == '__main__':
     with open(f'results/{model_name}/info.txt', 'w') as f:
         text = [f'model_path: {args.model_path}',
                 f'latent_size: {args.latent_size}',
-                f'model_type: {args.model_type}',
                 f'n_samples: {args.n_samples}',
                 f'init_points: {args.init_points}',
                 f'n_iter: {args.n_iter}',

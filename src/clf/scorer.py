@@ -27,7 +27,7 @@ class MLPScorer:
         pred = self.model(input_tensor)
         output = pred.cpu().detach().numpy()[0]
         if self.penalize:
-            output = output * (gaussian_reward(input_vector, penalty=4))
+            output = output * (gaussian_reward(input_vector, 0, 10))
         return output
 
 
@@ -51,11 +51,12 @@ class SKLearnScorer:
         input_vector = np.array(input_vector).reshape(1, -1)
         output = self.model.predict_proba(input_vector)[0][0]
         if self.penalize:
-            output = output * (gaussian_reward(input_vector, penalty=4))
+            output = output * gaussian_reward(input_vector, mu=6.47, sigma=2.44)
         return output
 
 
-def gaussian_reward(vec: np.array, penalty: int = 4):
-    norm = np.linalg.norm(vec)
-    score = np.exp(-norm * norm / penalty)
+def gaussian_reward(vec: np.array, mu: float, sigma: float):
+    x = np.linalg.norm(vec)
+    c = np.sqrt(2 * np.pi)
+    score = np.exp(-0.5 * ((x - mu) / sigma)**2) / sigma / c
     return score
