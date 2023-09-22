@@ -1,0 +1,13 @@
+smiles,name
+CN(C)CCCN1C2=CC=CC=C2SC3=CC=CC=C31,Promazine
+Clc2cc1C(\c3c(Sc1cc2)cccc3)=C/CCN(C)C,Chlorprotixene
+CC1=CC2=C(NC3=CC=CC=C3N=C2S1)N4CCN(CC4)C,Olanzapine
+CN1CCN(CC1)C2=C3C=CC=CC3=NC4=C(N2)C=C(C=C4)Cl,Clozapine
+FC1=CC=C(C=C1)C(=O)CCCN1CCC(=CC1)N1C(=O)NC2=CC=CC=C12,Droperidol
+OC1(CCN(CCCC(=O)C2=CC=C(F)C=C2)CC1)C1=CC=C(Cl)C=C1,Haloperidol
+c1ccc(cc1)N2CNC(=O)C23CCN(CC3)CCCC(=O)c4ccc(cc4)F,Spiperone
+CCC1=CC(=C(C(=C1O)C(=O)NCC2CCCN2CC)OC)Cl,Eticlopride
+O=C1Cc2cc(CCN3CCN(c4nsc5ccccc45)CC3)c(Cl)cc2N1,Ziprasidone
+CCN(CC)C(=O)NC1C=C2c3cccc4[nH]cc(c34)CC2N(C)C1,Lisuride
+Fc1ccc(cc1)n3c2ccc(Cl)cc2c(c3)C5CCN(CCN4C(=O)NCC4)CC5,Sertindole
+OC1(c2ccc(Cl)cc2)CCN(Cc2c[nH]c3ccccc23)CC1,L-741626

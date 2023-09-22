@@ -1,7 +1,7 @@
 import torch
 import pandas as pd
-from src.generator.dataset import VAEDataset
-from src.generator.generator import EncoderDecoderV3
+from src.gen.dataset import VAEDataset
+from src.gen.generator import EncoderDecoderV3
 import torch.utils.data as D
 import numpy as np
 from tqdm import tqdm
@@ -16,25 +16,33 @@ def main(encoder_path, data_path):
                  '_epoch_' + encoder_path.split('/')[-1].split('_')[-1].split('.')[0])
     model_name = encoder_path.split('/')[-2]
     df = pd.read_parquet(data_path)
-    dataset = VAEDataset(df, fp_len=4860)
-    dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
 
     if not os.path.exists(f'data/encoded_data'):
         os.mkdir(f'data/encoded_data')
 
     config = configparser.ConfigParser()
     config.read(f'models/{model_name}/hyperparameters.ini')
+
+    dataset = VAEDataset(df, fp_len=config.getint('MODEL', 'fp_len'))
+    dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
+
+    try:
+        encoder_activation = config['MODEL']['encoder_activation']
+    except KeyError:
+        encoder_activation = 'relu'
+
     model = EncoderDecoderV3(fp_size=config.getint('MODEL', 'fp_len'),
                              hidden_size=config.getint('MODEL', 'hidden_size'),
                              encoding_size=config.getint('MODEL', 'encoding_size'),
                              num_layers=config.getint('MODEL', 'num_layers'),
                              dropout=0.0,
-                             output_size=42,
+                             output_size=31,
                              teacher_ratio=0.0,
                              random_seed=42,
                              fc1_size=config.getint('MODEL', 'fc1_size'),
                              fc2_size=config.getint('MODEL', 'fc2_size'),
-                             fc3_size=config.getint('MODEL', 'fc3_size')
+                             fc3_size=config.getint('MODEL', 'fc3_size'),
+                             encoder_activation=encoder_activation
                              ).to(device)
     model.load_state_dict(torch.load(encoder_path, map_location=device))
     model = model.encoder
@@ -51,7 +59,7 @@ def main(encoder_path, data_path):
         logvars = pd.DataFrame(np.concatenate(logvar_list, axis=0))
         mus.columns = mus.columns.astype(str)
         logvars.columns = logvars.columns.astype(str)
-        mus['label'] = df['Class']
+        mus['label'] = df['activity']
         mus['smiles'] = df['smiles']
         if not os.path.exists(f'data/encoded_data/{model_name}'):
             os.mkdir(f'data/encoded_data/{model_name}')
@@ -60,7 +68,7 @@ def main(encoder_path, data_path):
 
         out_config = configparser.ConfigParser()
         out_config['INFO'] = {'model_path': encoder_path,
-                                  'encoding_size': config.getint('MODEL', 'encoding_size')}
+                              'encoding_size': config.getint('MODEL', 'encoding_size')}
         if not os.path.exists(f'data/encoded_data/{model_name}/info.ini'):
             with open(f'data/encoded_data/{model_name}/info.ini', 'x') as file:
                 out_config.write(file)
@@ -76,18 +84,8 @@ if __name__ == '__main__':
                         '--data_path',
                         type=str,
                         help='Path to data',
-                        default='all')
+                        default='data/activity_data/d2_klek_100nM_std.parquet')
     encoder_path = parser.parse_args().model_path
     data_path = parser.parse_args().data_path
-    if data_path == 'all':
-        paths = [
-            'data/activity_data/5ht1a_klek_100nM.parquet',
-            'data/activity_data/5ht7_klek_100nM.parquet',
-            'data/activity_data/beta2_klek_100nM.parquet',
-            'data/activity_data/d2_klek_100nM.parquet',
-            'data/activity_data/h1_klek_100nM.parquet'
-                 ]
-    else:
-        paths = [data_path]
-    for data_path in paths:
-        main(encoder_path, data_path)
+
+    main(encoder_path, data_path)

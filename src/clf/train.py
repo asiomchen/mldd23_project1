@@ -1,0 +1,110 @@
+import torch
+import time
+import pandas as pd
+import wandb
+
+
+def train_clf(config, model, train_loader, val_loader):
+    """
+    Training loop for MLP classifier model
+    """
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    epochs = int(config['RUN']['epochs'])
+    start_epoch = int(config['RUN']['start_epoch'])
+    run_name = config['RUN']['run_name']
+    learning_rate = float(config['RUN']['learning_rate'])
+    use_wandb = config.getboolean('RUN', 'use_wandb')
+    if use_wandb:
+        log_dict = {s: dict(config.items(s)) for s in config.sections()}
+        wandb.init(
+            project='classifier',
+            config=log_dict,
+            name=run_name
+        )
+
+    criterion = torch.nn.BCELoss()
+    optimizer = torch.optim.Adam(model.parameters(), learning_rate)
+
+    # Define dataframe for logging progress
+    metrics = pd.DataFrame(columns=['epoch', 'train_loss', 'val_loss', 'accuracy'])
+
+    for epoch in range(start_epoch, epochs + start_epoch):
+        print(f'Epoch: {epoch}')
+        epoch_loss = 0
+        start_time = time.time()
+
+        for X, y in train_loader:
+            X = X.to(device)
+            y = y.unsqueeze(1).to(device)
+            y_pred = model(X)
+            loss = criterion(y_pred, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            epoch_loss += loss.item()
+
+        # calculate loss and log to wandb
+        avg_loss = epoch_loss / len(train_loader)
+        val_loss, acc, true_pos, false_pos = evaluate(model, val_loader)
+        metrics_dict = {'epoch': epoch,
+                        'train_loss': avg_loss,
+                        'val_loss': val_loss,
+                        'accuracy': acc,
+                        'true_positive': true_pos,
+                        'false_positive': false_pos,
+                        }
+
+        # Update metrics df
+        metrics.loc[len(metrics)] = metrics_dict
+
+        if use_wandb:
+            wandb.log(metrics_dict)
+
+        if epoch % 50 == 0:
+            save_path = f"./models/{run_name}/epoch_{epoch}.pt"
+            torch.save(model.state_dict(), save_path)
+
+        metrics.to_csv(f"./models/{run_name}/metrics.csv", index=False)
+
+        end_time = time.time()
+        loop_time = (end_time - start_time) / 60  # in minutes
+        print(f'Executed in {loop_time} minutes')
+
+    return model
+
+
+def evaluate(model, val_loader):
+    model.eval()
+    with torch.no_grad():
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        criterion = torch.nn.BCELoss()
+        epoch_loss = 0
+        epoch_acc = 0
+        epoch_true_pos = 0
+        epoch_false_pos = 0
+        for X, y in val_loader:
+            X = X.to(device)
+            y = y.to(device)
+            y_pred = model(X).squeeze(1)
+            loss = criterion(y_pred, y)
+            epoch_loss += loss.item()
+            acc, true_pos, false_pos = accuracy(y_pred.cpu(), y.cpu())
+            epoch_acc += acc
+            epoch_true_pos += true_pos
+            epoch_false_pos += false_pos
+        avg_loss = epoch_loss / len(val_loader)
+        avg_accuracy = epoch_acc / len(val_loader)
+        avg_true_pos = epoch_true_pos / len(val_loader)
+        avg_false_pos = epoch_false_pos / len(val_loader)
+    return avg_loss, avg_accuracy, avg_true_pos, avg_false_pos
+
+
+def accuracy(y_pred: torch.tensor, y: torch.tensor):
+    batch_size = y.shape[0]
+    y_pred = torch.round(y_pred).bool()
+    y = y.bool()
+    acc = torch.sum(y_pred == y).item() / batch_size
+    true_pos = torch.sum(y_pred & y).item() / batch_size
+    false_pos = torch.sum(y_pred & ~y).item() / batch_size
+    return acc, true_pos, false_pos
