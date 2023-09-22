@@ -1,5 +1,3 @@
-# Conscious Cross-Entropy
-
 import torch
 import torch.nn as nn
 

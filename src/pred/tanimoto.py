@@ -45,44 +45,6 @@ def unpack(ls: list):
     return vec
 
 class TanimotoSearch():
-    """
-    Returns the highest tanimoto score between given molecule
-    and all the molecules from the training set
-
-    Args:
-        return_smiles (bool): if True, returns the smiles of the molecule
-        progress_bar (bool): if True, shows the progress bar
-
-    Returns:
-        high_tan (float): highest tanimoto score
-
-    """
-
-    def __init__(self, return_smiles=False, progress_bar=True):
-        data_path = 'data/train_data/train_morgan_512bits.parquet'
-        self.train_morgan_fps = pd.read_parquet(data_path).fps.apply(eval).tolist()
-        self.return_smiles = return_smiles
-        self.progress_bar = progress_bar
-
-    def __call__(self, mol):
-
-        high_tan = 0
-        high_idx = 0
-        query_fp = Chem.rdMolDescriptors.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=512)
-        for idx, fp in enumerate(self.train_morgan_fps):
-            bitstring = fp2bitstring(fp)
-            ebv = DataStructs.CreateFromBitString(bitstring)
-            tan = DataStructs.TanimotoSimilarity(query_fp, ebv)
-            if tan > high_tan:
-                high_tan, high_idx = tan, idx
-
-        if self.return_smiles:
-            high_smiles = get_smiles_from_train(high_idx)
-            return high_tan, high_smiles
-        else:
-            return high_tan
-
-class TanimotoSearch2():
 
     def __init__(self, return_smiles=False, progress_bar=True):
         data_path = 'data/train_data/train_morgan_512bits.parquet'

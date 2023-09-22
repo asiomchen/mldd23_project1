@@ -110,7 +110,6 @@ if __name__ == '__main__':
 
     samples = pd.DataFrame()  # placeholder
     args = parser.parse_args()
-    n_samples = args.n_samples
 
     manager = mp.Manager()
     return_list = manager.list()
@@ -124,7 +123,7 @@ if __name__ == '__main__':
 
     queue = queue.Queue()
 
-    for i in range(n_samples):
+    for i in range(args.n_samples):
         proc = mp.Process(target=search, args=[args, return_list])
         queue.put(proc)
 
@@ -195,7 +194,7 @@ if __name__ == '__main__':
                 f'n_iter: {args.n_iter}',
                 f'bounds: {args.bounds}',
                 f'verbosity: {args.verbosity}',
-                f'time elapsed per sample: {round(time_elapsed / n_samples, 2)} min',
+                f'time elapsed per sample: {round(time_elapsed / args.n_samples, 2)} min',
                 f'mean score: {round(samples["score"].mean(), 2)}',
                 f'sigma score: {round(samples["score"].std(), 2)}',
                 f'mean norm: {round(samples["norm"].mean(), 2)}',

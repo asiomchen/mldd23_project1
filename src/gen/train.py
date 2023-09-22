@@ -2,7 +2,7 @@ from src.utils.vectorizer import SELFIESVectorizer
 import torch
 import pandas as pd
 import time
-from src.gen.cce import CCE
+from src.gen.loss import CCE
 import wandb
 import selfies as sf
 import rdkit.Chem as Chem
@@ -67,7 +67,7 @@ def train(config, model, train_loader, val_loader, scoring_loader):
             X = X.to(device)
             y = y.to(device)
             optimizer.zero_grad()
-            output, kld_loss = model(X, y, teacher_forcing=True, reinforcement=False)
+            output, kld_loss = model(X, y, teacher_forcing=True)
             loss = criterion(y, output)
             kld_weighted = kld_loss * kld_weight
             if kld_annealing:
@@ -138,7 +138,7 @@ def evaluate(model, val_loader):
         for batch_idx, (X, y) in enumerate(val_loader):
             X = X.to(device)
             y = y.to(device)
-            output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
+            output, _ = model(X, y, teacher_forcing=False)
             loss = criterion(y, output)
             epoch_loss += loss.item()
         avg_loss = epoch_loss / len(val_loader)
@@ -166,7 +166,7 @@ def get_scores(model, scoring_loader):
         for batch_idx, (X, y) in enumerate(scoring_loader):
             X = X.to(device)
             y = y.to(device)
-            output, _ = model(X, y, teacher_forcing=False, reinforcement=False)
+            output, _ = model(X, y, teacher_forcing=False)
             selfies_list = [vectorizer.devectorize(ohe.detach().cpu().numpy(),
                                                    remove_special=True) for ohe in output]
             smiles_list = [sf.decoder(x) for x in selfies_list]

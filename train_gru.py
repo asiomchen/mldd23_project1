@@ -12,23 +12,16 @@ import configparser
 import argparse
 
 
-def main():
+def main(config_path):
     """
     Training script for model with variational encoder and GRU decoder
     """
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-c',
-                        '--config',
-                        type=str,
-                        default='gru_config0.ini',
-                        help='Path to config file')
-    config_path = parser.parse_args().config
+    NUM_WORKERS = 3  # number of workers for dataloader
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print('Using device:', device)
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
-    NUM_WORKERS = 3
     train_size = 0.9
     val_size = round(1 - train_size, 1)
     train_percent = int(train_size * 100)
@@ -122,4 +115,11 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c',
+                        '--config',
+                        type=str,
+                        default='gru_config0.ini',
+                        help='Path to config file')
+    config_path = parser.parse_args().config
+    main(config_path)

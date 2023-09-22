@@ -87,15 +87,5 @@ if __name__ == '__main__':
                         default='data/activity_data/d2_klek_100nM_std.parquet')
     encoder_path = parser.parse_args().model_path
     data_path = parser.parse_args().data_path
-    if data_path == 'all':
-        paths = [
-            'data/activity_data/5ht1a_klek_100nM.parquet',
-            'data/activity_data/5ht7_klek_100nM.parquet',
-            'data/activity_data/beta2_klek_100nM.parquet',
-            'data/activity_data/d2_klek_100nM.parquet',
-            'data/activity_data/h1_klek_100nM.parquet'
-                 ]
-    else:
-        paths = [data_path]
-    for data_path in paths:
-        main(encoder_path, data_path)
+
+    main(encoder_path, data_path)

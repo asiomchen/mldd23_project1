@@ -1,60 +1,46 @@
 import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import QED, rdMolDescriptors
-from src.pred.tanimoto import TanimotoSearch
+import rdkit.Chem.rdmolops as rdmolops
 
 
-def get_largest_ring(mol):
-    ri = mol.GetRingInfo()
-    rings = []
-    for b in mol.GetBonds():
-        ring_len = [len(ring) for ring in ri.BondRings() if b.GetIdx() in ring]
-        rings += ring_len
-    return max(rings) if rings else 0
+def molecule_score(mol, max_ring_size=7):
+    """
+    Used to choose the most druglike mol from a collection of dropout prediction mols.
+    Args:
+        mol: rdkit mol object.
+        max_ring_size (int): maximum ring size.
+    Returns:
+        float: score.
+    """
+    score = QED.qed(mol)
+    if get_largest_ring(mol) > max_ring_size:
+        score = score * (0.8)
+    if rdMolDescriptors.CalcNumRings(mol) > 8:
+        score = score * (0.8)
 
 
-def check_substructures(mol):
-    value = False
-    smarts = ['[C]1-[C]=[C]-1',  # cyclopropene
-              '[C]1-[C]#[C]-1',  # cyclopropyne
-              '[*]=[C]1-[C]-[C]-1',  # cyclopropane bound to anything with double bond
-              '[*]-[C]1-[C]-[C]-1-[*]',  # epoxide-type cyclopropane
-              '[C]1=[C]-[C]=[C]-1',  # cyclobutadiene
-              '[C]1#[C]~[C]~[C]-1',  # cyclobutyne
-              '[C]1=[C]-[C]=[C]-[C]-[C]-1',  # 1,3-cyclohexadiene
-              '[C]1=[C]-[C]-[C]=[C]-[C]-1',  # 1,4-cyclohexadiene
-              '[c]1#[c]~[c]~[c]~[c]~[c]~1'  # any pseudo-aromatic 6-membered ring with triple bond
-              ]
-    for substructure in smarts:
-        pattern = Chem.MolFromSmarts(substructure)
-        value = mol.HasSubstructMatch(pattern)
-        if value:
-            break
-    return value
+    return score
 
 
-def molecule_filter(dataframe, config, return_list):
+def molecule_filter(dataframe, config):
     """
     Filters out non-druglike molecules from a list of SMILES.
     Args:
         dataframe (pd.DataFrame): Dataframe containing 'smiles' and 'fps' columns.
         config (ConfigParser): Configuration file.
-        return_list (list): List to which the results are appended.
     Returns:
         pd.DataFrame: Dataframe containing druglike molecules.
     """
 
     qed = float(config['FILTER']['qed'])
-    max_tanimoto = float(config['FILTER']['max_tanimoto'])
-    check_sub = config['FILTER'].getboolean('check_sub')
-    calc_tanimoto = config['FILTER'].getboolean('calc_tanimoto')
-    verbose = config['SCRIPT'].getboolean('verbose')
     max_ring_size = int(config['FILTER']['max_ring_size'])
     max_num_rings = int(config['FILTER']['max_num_rings'])
     df = dataframe.copy(deep=True)
 
     # generate mol object for each smiles
     df['mols'] = df.smiles.apply(Chem.MolFromSmiles)
+
     # print(f"Original size of dataset: {len(df)}")
 
     if max_num_rings is not None:
@@ -71,16 +57,52 @@ def molecule_filter(dataframe, config, return_list):
         df = df[df['qed'] > qed].reset_index(drop=True)
         # print(f"Dataset size after QED check: {len(df)}")
 
-    if max_tanimoto is not None and calc_tanimoto and len(df) > 0:
-        search_agent = TanimotoSearch(return_smiles=False, progress_bar=verbose)
-        df['tanimoto'] = df['mols'].apply(search_agent)
-        df = df[df['tanimoto'] < max_tanimoto].reset_index(drop=True)
-        # print(f"Dataset size after Tanimoto check: {len(df)}")
+    return df
 
-    if check_sub and len(df) > 0:
-        mask = df['mols'].apply(check_substructures)
-        df = df[~mask].reset_index(drop=True)
-        # print(f"Dataset size after substructure check: {len(df)}")
 
-    return_list.append(df)
-    return None
+def workup(dataframe):
+    df = dataframe.copy(deep=True)
+    df['mol'] = df.smiles.apply(Chem.MolFromSmiles)
+
+    # delete common artifacts
+    df['mol'].apply(delete_terminal_artifacts, inplace=True)
+
+    # sanitize
+    df['mol'].apply(try_sanitize, inplace=True)
+
+    # remove invalid mols
+    df = df[df.mol.notnull()]
+
+    return df
+
+
+def delete_terminal_artifacts(mol):
+    smarts = ['[C]1-[C]=[C]-1',  # cyclopropene
+              '[C]1-[C]#[C]-1',  # cyclopropyne
+              '[*]=[C]1-[C]-[C]-1'  # cyclopropane bound to anything with double bond
+              # TODO: add more common artifacts
+              ]
+    fragment_mols = [Chem.MolFromSmarts(smart) for smart in smarts]
+    for fragment_mol in fragment_mols:
+        mol = rdmolops.DeleteSubstructs(mol, fragment_mol)
+    return mol
+
+
+def get_largest_ring(mol):
+    ri = mol.GetRingInfo()
+    rings = []
+    for b in mol.GetBonds():
+        ring_len = [len(ring) for ring in ri.BondRings() if b.GetIdx() in ring]
+        rings += ring_len
+    return max(rings) if rings else 0
+
+
+def try_sanitize(mol):
+    try:
+        output = mol
+        Chem.SanitizeMol(output)
+        return output
+    except:
+        return mol
+
+
