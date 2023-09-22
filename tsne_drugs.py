@@ -1,22 +1,22 @@
 from src.gen.generator import EncoderDecoderV3
+from src.utils.finger import smiles2sparse
+from sklearn.manifold import TSNE
+from src.utils.vectorizer import SELFIESVectorizer
+from adjustText import adjust_text
+from src.gen.dataset import VAEDataset
+from tqdm import tqdm
 import torch
 import seaborn as sns
 import pandas as pd
-from src.utils.finger import smiles2sparse
-from sklearn.manifold import TSNE
 import argparse
 import configparser
 import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
-from src.utils.vectorizer import SELFIESVectorizer
 import numpy as np
 import selfies as sf
 import random
 import matplotlib.pyplot as plt
-from adjustText import adjust_text
-from src.gen.dataset import VAEDataset
 import torch.utils.data as Data
-from tqdm import tqdm
 
 
 def main(model_path, data_path, seed):
@@ -48,7 +48,7 @@ def main(model_path, data_path, seed):
 
     vectorizer = SELFIESVectorizer()
 
-    drugs = pd.read_csv('../data/d2_drugs.csv')
+    drugs = pd.read_csv('data/d2_drugs.csv')
     smiles = drugs['smiles'].to_list()
     molecule_names = drugs['name'].to_list()
 
@@ -63,7 +63,7 @@ def main(model_path, data_path, seed):
     preds = [sf.decoder(x) for x in preds]
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
-    img.save(f'{model_name}_epoch_{epoch}_drugs.png')
+    img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -104,7 +104,7 @@ def main(model_path, data_path, seed):
         )
     adjust_text(annotation_list)
 
-    plt.savefig(f'{model_name}_epoch_{epoch}_tsne.png')
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
 
 def encode(df, model, device):
     """
@@ -140,4 +140,5 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', '-d', type=str, required=True)
     parser.add_argument('--random_seed', '-r', type=int, default=42)
     args = parser.parse_args()
-    main(args.model_path, args.data, args.seed)
+    main(args.model_path, args.data_path, args.random_seed)
+

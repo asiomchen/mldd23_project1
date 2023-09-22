@@ -1,5 +1,4 @@
 from torch.utils.data import Dataset
-from src.clf.classifier import reparameterize
 import pandas as pd
 import torch
 
@@ -46,3 +45,18 @@ class ClfDataset(Dataset):
         df = pd.read_parquet(path)
         tensor = torch.tensor(df.to_numpy())
         return tensor
+
+
+def reparameterize(mu, logvar):
+    """
+    Reparameterization trick for sampling VAE latent space
+    Args:
+        mu (torch.Tensor): tensor of mu values
+        logvar (torch.Tensor): tensor of logvar values
+    Returns:
+        torch.Tensor: tensor of sampled values
+    """
+
+    std = torch.exp(0.5 * logvar)
+    eps = torch.randn_like(std)
+    return eps.mul(std).add_(mu)

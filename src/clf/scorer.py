@@ -1,34 +1,5 @@
 import numpy as np
 import pickle
-import torch
-from src.clf.classifier import MLPClassifier
-
-
-class MLPScorer:
-    """
-    Scorer class for Bayesian optimization, based on MLP
-    """
-
-    def __init__(self, path, latent_size, penalize=False, device='cpu'):
-        """
-        Args:
-            path: path to the saved model
-            latent_size: size of the latent space
-            penalize: if True, penalize for values outside of bounds
-        """
-        self.model = MLPClassifier(latent_size=latent_size, use_sigmoid=True).to(device)
-        self.model.load_state_dict(torch.load(path, map_location=device))
-        self.penalize = penalize
-
-    def __call__(self, **args) -> float:
-        input_vector = np.array(list({**args}.values()))
-        input_tensor = torch.from_numpy(input)
-        input_tensor = input_tensor.to(torch.float32)
-        pred = self.model(input_tensor)
-        output = pred.cpu().detach().numpy()[0]
-        if self.penalize:
-            output = output * (gaussian_reward(input_vector, 0, 10))
-        return output
 
 
 class SKLearnScorer:

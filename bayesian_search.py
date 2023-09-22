@@ -1,5 +1,5 @@
 from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
-from src.clf.scorer import MLPScorer, SKLearnScorer
+from src.clf.scorer import SKLearnScorer
 import pandas as pd
 import argparse
 import numpy as np
@@ -40,12 +40,7 @@ def search(args, return_list):
 
     # initialize scorer
     latent_size = args.latent_size
-    if args.model_path.split('.')[-1] == 'pt':
-        scorer = MLPScorer(args.model_path, latent_size, penalize=True)
-    elif args.model_path.split('.')[-1] == 'pkl':
-        scorer = SKLearnScorer(args.model_path, penalize=True)
-    else:
-        raise ValueError("Model type not supported")
+    scorer = SKLearnScorer(args.model_path, penalize=False)
 
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
@@ -147,14 +142,13 @@ if __name__ == '__main__':
             print("(mp) Queue handled successfully") if args.verbosity > 0 else None
             break
         while len(mp.active_children()) < cpus:
+            if queue.empty():
+                break
             proc = queue.get()
             proc.start()
             if queue.qsize() % period == 0:
                 print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
             processes.append(proc)
-            if queue.empty():
-                break
-            break
 
             # complete the processes
         for proc in processes:

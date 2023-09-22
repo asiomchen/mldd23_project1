@@ -77,7 +77,7 @@ def main(model_path, data_path, seed):
 
     vectorizer = SELFIESVectorizer()
 
-    drugs = pd.read_csv('../data/d2_drugs.csv')
+    drugs = pd.read_csv('data/d2_drugs.csv')
     smiles = drugs['smiles'].to_list()
     molecule_names = drugs['name'].to_list()
 
