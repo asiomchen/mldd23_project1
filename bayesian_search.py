@@ -40,7 +40,7 @@ def search(args, return_list):
 
     # initialize scorer
     latent_size = args.latent_size
-    scorer = SKLearnScorer(args.model_path, penalize=True)
+    scorer = SKLearnScorer(args.model_path, penalize=False)
 
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
