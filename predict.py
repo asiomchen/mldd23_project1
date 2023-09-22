@@ -37,7 +37,7 @@ def main(file_path, model_path, config_path):
 
     print(f'Using {device} device') if verbosity > 0 else None
 
-    model_epoch = model_path.split('/')[-1]
+    model_epoch = model_path.split('/')[-1].split('_')[1]
     model_config_path = model_path.replace(model_epoch, 'hyperparameters.ini')
     model_config = configparser.ConfigParser()
     model_config.read(model_config_path)
