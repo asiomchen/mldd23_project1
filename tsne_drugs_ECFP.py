@@ -64,7 +64,7 @@ def main(model_path, data_path, seed):
                              encoding_size=int(config['MODEL']['encoding_size']),
                              hidden_size=int(config['MODEL']['hidden_size']),
                              num_layers=int(config['MODEL']['num_layers']),
-                             output_size=42,
+                             output_size=31,
                              dropout=0,
                              teacher_ratio=0.0,
                              fc1_size=int(config['MODEL']['fc1_size']),
@@ -94,7 +94,7 @@ def main(model_path, data_path, seed):
     preds = [sf.decoder(x) for x in preds]
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
-    img.save(f'{model_name}_epoch_{epoch}_drugs.png')
+    img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -135,7 +135,7 @@ def main(model_path, data_path, seed):
         )
     adjust_text(annotation_list)
 
-    plt.savefig(f'{model_name}_epoch_{epoch}_tsne.png')
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
 
 
 if __name__ == '__main__':
@@ -144,4 +144,4 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', '-r', type=int, default=42)
     parser.add_argument('--data_path', '-d', type=str, default='data/encoded_data/d2_encoded.csv')
     args = parser.parse_args()
-    main(args.model_path, args.data, args.random_seed)
+    main(args.model_path, args.data_path, args.random_seed)
