@@ -9,6 +9,7 @@ from src.pred.droputpred import predict_with_dropout
 import torch
 from src.gen.generator import EncoderDecoderV3
 from src.pred.props import get_properties
+from src.pred.filter import molecule_filter
 
 def main(file_path, model_path, config_path):
     """
@@ -37,8 +38,10 @@ def main(file_path, model_path, config_path):
 
     print(f'Using {device} device') if verbosity > 0 else None
 
-    model_epoch = model_path.split('/')[-2].split('_')[-1]
+    model_epoch = model_path.split('/')[-1]
     model_config_path = model_path.replace(model_epoch, 'hyperparameters.ini')
+    if not os.path.exists(model_config_path):
+        raise ValueError(f'Model config file {model_config_path} not found')
     model_config = configparser.ConfigParser()
     model_config.read(model_config_path)
 
@@ -82,6 +85,10 @@ def main(file_path, model_path, config_path):
                               input_vector,
                               n_iter=int(config['SCRIPT']['n_iter']),
                               device=device,)
+
+    # filter out invalid
+    print(f'Filtering out invalid molecules...') if verbosity > 1 else None
+    df = molecule_filter(df, config=config)
 
     # get properties
     print(f'Getting properties...') if verbosity > 1 else None
