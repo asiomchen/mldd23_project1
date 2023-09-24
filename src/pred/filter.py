@@ -13,12 +13,20 @@ def molecule_score(mol, max_ring_size=7):
     Returns:
         float: score.
     """
+    fragments = ['[C]1-[C]=[C]-1',  # cyclopropene
+                 '[C]1-[C]#[C]-1',  # cyclopropyne
+                 '[*]=[C]1-[C]-[C]-1'  # cyclopropane bound to anything with double bond
+                 '[*]-[C]1-[C]-[C]-1-[*]',  # 1,2-disubstituted cyclopropane,
+                 ]
+
     score = QED.qed(mol)
     if get_largest_ring(mol) > max_ring_size:
         score = score * (0.8)
     if rdMolDescriptors.CalcNumRings(mol) > 8:
         score = score * (0.8)
-
+    for fragment in fragments:
+        if mol.HasSubstructMatch(Chem.MolFromSmarts(fragment)):
+            score = score * (0.8)
 
     return score
 
@@ -72,6 +80,8 @@ def workup(dataframe):
 
     # remove invalid mols
     df = df[df.mol.notnull()]
+
+    df.drop(columns=['mol'], inplace=True)
 
     return df
 
