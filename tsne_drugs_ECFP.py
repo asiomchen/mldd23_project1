@@ -8,6 +8,7 @@ import configparser
 import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
 from src.utils.vectorizer import SELFIESVectorizer
+from src.utils.modelinit import initialize_model
 import numpy as np
 import selfies as sf
 import rdkit.Chem.AllChem as AllChem
@@ -59,20 +60,7 @@ def main(model_path, data_path, seed):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
 
-
-    model = EncoderDecoderV3(fp_size=int(config['MODEL']['fp_len']),
-                             encoding_size=int(config['MODEL']['encoding_size']),
-                             hidden_size=int(config['MODEL']['hidden_size']),
-                             num_layers=int(config['MODEL']['num_layers']),
-                             output_size=31,
-                             dropout=0,
-                             teacher_ratio=0.0,
-                             fc1_size=int(config['MODEL']['fc1_size']),
-                             fc2_size=int(config['MODEL']['fc2_size']),
-                             fc3_size=int(config['MODEL']['fc3_size']),
-                             random_seed=seed,
-                             encoder_activation=str(config['MODEL']['encoder_activation'])
-                             ).to(device)
+    model = initialize_model(config_path, dropout=False, device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     vectorizer = SELFIESVectorizer()
