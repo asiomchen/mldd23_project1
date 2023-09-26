@@ -22,35 +22,6 @@ from src.utils.modelinit import initialize_model
 from src.utils.vectorizer import SELFIESVectorizer
 
 
-def encode(df, model, device):
-    """
-    Encodes the fingerprints of the molecules in the dataframe using VAE encoder.
-    Args:
-        df (pd.DataFrame): dataframe containing 'fps' column with Klekota&Roth fingerprints
-            in the form of a list of integers (dense representation)
-        model (EncoderDecoderV3): model to be used for encoding
-        device (torch.device): device to be used for encoding
-    Returns:
-        mus (np.ndarray): array of means of the latent space
-        logvars (np.ndarray): array of logvars of the latent space
-    """
-    dataset = VAEDataset(df, fp_len=2048)
-    dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
-    mus = []
-    logvars = []
-    model.eval()
-    with torch.no_grad():
-        for batch in tqdm(dataloader):
-            X = batch.to(device)
-            mu, logvar = model.encoder(X)
-            mus.append(mu.cpu().numpy())
-            logvars.append(logvar.cpu().numpy())
-
-        mus = np.concatenate(mus, axis=0)
-        logvars = np.concatenate(logvars, axis=0)
-    return mus, logvars
-
-
 def main(model_path, data_path, seed):
     config = configparser.ConfigParser()
     random.seed(seed)
@@ -65,7 +36,7 @@ def main(model_path, data_path, seed):
     model = initialize_model(config_path, dropout=False, device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    vectorizer = SELFIESVectorizer()
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     drugs = pd.read_csv('data/d2_drugs.csv')
     smiles = drugs['smiles'].to_list()
@@ -85,6 +56,7 @@ def main(model_path, data_path, seed):
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
     img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
+    print('Images saved')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -92,6 +64,7 @@ def main(model_path, data_path, seed):
 
     random_state = seed
     cat = np.concatenate((fp_encoded_numpy, d2_encoded), axis=0)
+    print('Running t-SNE...')
     tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
 
     results = tsne.fit_transform(cat)
@@ -128,10 +101,39 @@ def main(model_path, data_path, seed):
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
 
 
+def encode(df, model, device):
+    """
+    Encodes the fingerprints of the molecules in the dataframe using VAE encoder.
+    Args:
+        df (pd.DataFrame): dataframe containing 'fps' column with Klekota&Roth fingerprints
+            in the form of a list of integers (dense representation)
+        model (EncoderDecoderV3): model to be used for encoding
+        device (torch.device): device to be used for encoding
+    Returns:
+        mus (np.ndarray): array of means of the latent space
+        logvars (np.ndarray): array of logvars of the latent space
+    """
+    dataset = VAEDataset(df, fp_len=2048)
+    dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
+    mus = []
+    logvars = []
+    model.eval()
+    with torch.no_grad():
+        for batch in tqdm(dataloader):
+            X = batch.to(device)
+            mu, logvar = model.encoder(X)
+            mus.append(mu.cpu().numpy())
+            logvars.append(logvar.cpu().numpy())
+
+        mus = np.concatenate(mus, axis=0)
+        logvars = np.concatenate(logvars, axis=0)
+    return mus, logvars
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', '-m', type=str, required=True)
     parser.add_argument('--random_seed', '-r', type=int, default=42)
-    parser.add_argument('--data_path', '-d', type=str, default='data/encoded_data/d2_encoded.csv')
+    parser.add_argument('--data_path', '-d', type=str, required=True)
     args = parser.parse_args()
     main(args.model_path, args.data_path, args.random_seed)
