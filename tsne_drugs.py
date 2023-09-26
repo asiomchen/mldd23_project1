@@ -35,7 +35,7 @@ def main(model_path, data_path, seed):
     model = initialize_model(config_path, dropout=False, device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    vectorizer = SELFIESVectorizer()
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     drugs = pd.read_csv('data/d2_drugs.csv')
     smiles = drugs['smiles'].to_list()
@@ -53,6 +53,7 @@ def main(model_path, data_path, seed):
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
     img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
+    print('Images saved')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -60,6 +61,8 @@ def main(model_path, data_path, seed):
 
     random_state = random.randint(0, 100000)
     cat = np.concatenate((fp_encoded_numpy, d2_encoded), axis=0)
+
+    print('Running t-SNE...')
     tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
 
     results = tsne.fit_transform(cat)
@@ -94,7 +97,7 @@ def main(model_path, data_path, seed):
     adjust_text(annotation_list)
 
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
-
+    print('Plot saved')
 
 def encode(df, model, device):
     """
