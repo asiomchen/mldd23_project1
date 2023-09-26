@@ -166,12 +166,8 @@ if __name__ == '__main__':
               round(time_elapsed % 60, 2), "min") if args.verbosity > 0 else None
 
     # save the results
-    timestamp = (str(time.localtime()[3]) + '-' +
-                 str(time.localtime()[4]) + '-' +
-                 str(time.localtime()[5])
-                 )
-
-    model_name = args.model_path.split('/')[-2].split('.')[0] + '_' + timestamp
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    model_name = 'SVC_' + timestamp
 
     # create results directory
     os.mkdir(f'results/{model_name}')
