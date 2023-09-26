@@ -1,128 +1,161 @@
 # Fragments from the known ligands as a source of building blocks for enumeration of new target-focused compound libraries supported by deep learning algoritms
-
-## Authors: Mateusz Iwan, Hubert Rybka, Anton Siomchen
-
+## Authors: Hubert Rybka, Mateusz Iwan, Anton Siomchen
 ## Table of contents
-
 * [General info](#general-info)
 * [Setup](#setup)
-* [Interface](#interface)
+* [Usage](#usage)
 * [Data sources and tools](#data-sources-and-tools)
 
 ## General info
-
 (W.I.P.)
 
 ## Setup
-
-1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating
-   system.
+1. Install [miniconda](https://docs.conda.io/en/latest/miniconda.html) following the instructions for your operating system.
 2. Download this repository. You need to have [Git](https://git-scm.com/) installed.
 3. Install environment from the YAML file: `conda env create -n mldd -f environment.yml`
 
 ## Usage
+### Activate the environment:  
+      conda activate mldd
 
-1. Activate the environment: `conda activate mldd `
-
-Prepare a dataset (preferably over 1,000 compunds).
-
-Put the data into pandas.DataFrame object. The dataframe must contain the following columns:
-'smiles' - SMILES strings of known ligands.
-'fps' - Klekota&Roth or Morgan (radius=2) fingerprints of the ligands.
-The fingerprints have to be saved as ordinary pthon lists, in dense format (a list of ints
-designating the indices of active bits in the original fingerprint).
-For help, see src.utils.finger.sparse2dense().
-'activity' - Activity class (True, False). By default, we define active compounds as those having
-Ki value <= 100nM and inactive as those of Ki > 100nM.
+### Prepare the dataset: 
+Put the data into pandas.DataFrame object. The dataframe must contain the following columns:  
+      
+* 'smiles' - SMILES strings of known ligands.  
+      
+* 'fps' - Klekota&Roth or Morgan (radius=2) fingerprints of the ligands.  
+        The fingerprints have to be saved as ordinary pthon lists, in **dense format** (a list of ints designating the indices of **active bits** in the original fingerprint).
+        For help in the conversion of sparse molecular fingerprints into dense format, see src.utils.finger.sparse2dense().
+          
+* 'activity' - Activity class (True, False). By default, we define active compounds as those having
+        Ki value <= 100nM and inactive as those of Ki > 100nM.
+      
 Save dataframe to .parquet file using:
-
+```
 import pandas as pd
 df = pd.DataFrame(columns=['smiles', 'fps', 'activity'])
 
 # ... load data into the dataframe
-
 name = '5ht7_ECFP' # example name for the dataset
 
 df.to_parquet(f'data/activity_data/{name}.parquet', index=False)
+```
 
-2. Encode the dataset into latent space, and train the activity predictor.
-   Use the following command:
+### Encode the dataset into latent space, and train the activity predictor.
+Use the following command:
+  
+    `python train_clf.py`
 
-   python train_clf.py
-
-and provide the path to the dataset file using the -d flag.
+Be sure to provide the path to the dataset file (prepared as explained above) using the -d (--data_path) flag.
 Other parameters are optional and can be set using the command line arguments.
-
---data_path DATA_PATH, -d DATA_PATH
-Path to data file (prepared as described in above)
+```
+--data_path DATA_PATH, -d DATA_PATH  
+                        Path to data file (prepared as described in above)
 --c_param C_PARAM, -c C_PARAM
-C parameter for SVM (default: 50)
-Commonly a float in the range [0.01, 100]
+                  C parameter for SVM (default: 50)
+                  Commonly a float in the range [0.01, 100]
 --kernel KERNEL, -k KERNEL
-Kernel type for SVM
-One of: linear, poly, rbf, sigmoid
+                  Kernel type for SVM (default: 'rbf')
+                  One of: 'linear', 'poly', 'rbf', 'sigmoid'
 --degree DEGREE, -deg DEGREE
-Degree of polynomial kernel
-Ignored by other kernels
+                  Degree of polynomial kernel
+                  Ignored by other kernels
 --gamma GAMMA, -g GAMMA
-Gamma parameter for SVM
-
+                  Gamma parameter for SVM (default: 'scale')
+                  One of: 'scale', 'auto', or a float
+```
+For more info about the SVC classifier, please refer to [scikit-learn SVC documentation](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html).
+  
 Now a file with the trained model should be saved in the 'models' directory. Locate the directory,
 and save path to a model.pkl file created by the training script inside.
-
+    
 It should look like this:
+        
+    models/name_of_the_model/model.pkl
 
-models/name_of_the_model/model.pkl
-
-3. Bayesian search on the latent space
-
+### Perform bayesian search on the latent space
+  
 The trained activity predictor can be used to perform bayesian search on the latent space
 in order to identify latent representations of potential novel ligands.
 To perform bayesian search on the latent space, use the following command:
 
     python bayesian_search.py
 
-and provide the path to the model file using the -m flag.
+Be sure to provide the path to the model file using the -m (--model_path) flag, and the desired number of samples to be 
+generated using the -n (--n_samples) flag.
 
-    python bayesian_search.py -m models/name_of_the_model/model.pkl
+    python bayesian_search.py -m models/name_of_the_model/model.pkl -n 1000
 
 Other parameters can be set using the command line arguments:
-
+```
 -m MODEL_PATH, --model_path MODEL_PATH
-Path to the saved activity predictor model
+                  Path to the saved activity predictor model
 -n N_SAMPLES, --n_samples N_SAMPLES
-Number of samples to generate
+                  Number of samples to generate
 -p INIT_POINTS, --init_points INIT_POINTS
-Number of initial points to sample
+                  Number of initial points to sample (default: 8)
 -i N_ITER, --n_iter N_ITER
-Number of iterations to perform
+                  Number of iterations to perform (default: 20)
 -b BOUNDS, --bounds BOUNDS
-Bounds for the latent space search
+                  Bounds for the latent space search (default: 4.0)
 -v VERBOSITY, --verbosity VERBOSITY
-Verbosity: 0 - silent, 1 - normal, 2 - verbose
+                  Verbosity: 0 - silent, 1 - normal, 2 - verbose (default 1)
 -w N_WORKERS, --n_workers N_WORKERS
-Number of workers to use. Default: -1 (all available CPU cores)
-
+                  Number of workers to use. (default: -1 [all available CPU cores])
+```
+For more info about the bayesian optimization process and the choice of non-default parameters refere to 
+[bayesian-optimization README](https://github.com/bayesian-optimization/BayesianOptimization).
+  
 Results of the search will be saved in the 'results' directory.
+  
+Directory 'SVC_{timestamp}' will be created on /results, containing the following files:  
+* latent_vectors.csv - latent vectors found by the search  
+* info.txt - information about the search
 
-Directory 'SVC_{timestamp}' will be created on /results, containing the following files:
-latent_vectors.csv - latent vectors found by the search
-info.txt - information about the search
+**Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
+for latent vectors of active class is finalized.**
+
+### Generate compound libraries from found latent vectors
+
+The generated compounds are filtered according to criteria, which can be modified in config_files/pred_config.ini.  
+
+In order to generate a molecule library, run `python predict.py`.  
+Provide path to latent_vectors.csv using -d (--data_path) flag, for example:
+  
+      python predict.py -d results/SVC_{timestamp}/latent_vectors.csv
+
+Other parameters can be set using the command line arguments:
+```
+-d DATA_PATH, --data_path DATA_PATH
+                  Path to data file 
+-n N_SAMPLES, --n_samples N_SAMPLES
+                  Number of samples to generate for each latent vector. If > 1, the variety of the generated
+                  molecules will be increased by using dropout.
+-c CONFIG, --config CONFIG
+                  Path to config file (default: config_files/pred_config.ini)
+-m MODEL_PATH, --model_path MODEL_PATH
+                  Path to model weights
+-v VERBOSITY, --verbosity VERBOSITY
+                  Verbosity level (0 - silent, 1 - progress, 2 - verbose)
+-w WORKERS, --workers WORKERS
+                  Number of workers. (default: -1 [all available CPU cores])
+-u USE_CUDA, --use_cuda USE_CUDA
+                  Use CUDA if available (default: True)
+```
+
+As a result, in results/SVC_{timestamp} dir, a new directory preds_{new_timestamp} will be created. This contains the following files:
+* predictions.csv, a file containing SMILES of the generated compounds, as well as some calculated molecular properties
+  (QED, MW, logP, ring info, RO5 info rtc.)
+* imgs directory, in which .png files depicting the structures of the generated compounds are located
+* config.ini, a copy of the config file used for prediction (incl. filter criteria)
+
 
 ## Data sources and tools
-
 ### Data sources:
-
 * CHEMBL32
   ~1M subset of compounds with molecular mass in range of 200-450 Da, with no RO5 violations.
 * ZINC-250k
 
-  Datasets are available on [dropbox](https://www.dropbox.com/sh/7sop2qzz4n38o06/AAA1QXeD3cXO__02RnmsVV-Aa?dl=0) in
-  .parquet format
-
-### Python packages:
-
-* machine learning: pytorch
-* cheminformatics: selfies
-* other: numpy, pandas
+  Datasets are available on [dropbox](https://www.dropbox.com/sh/7sop2qzz4n38o06/AAA1QXeD3cXO__02RnmsVV-Aa?dl=0) in .parquet format
+  and can be batch downloaded using `get_datasets.sh`
 
