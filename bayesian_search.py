@@ -90,11 +90,11 @@ if __name__ == '__main__':
                         help='Path to the saved activity predictor model')
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
-    parser.add_argument('-p', '--init_points', type=int, default=10,
+    parser.add_argument('-p', '--init_points', type=int, default=8,
                         help='Number of initial points to sample')
-    parser.add_argument('-i', '--n_iter', type=int, default=8,
+    parser.add_argument('-i', '--n_iter', type=int, default=20,
                         help='Number of iterations to perform')
-    parser.add_argument('-b', '--bounds', type=float, default=1.0,
+    parser.add_argument('-b', '--bounds', type=float, default=4.0,
                         help='Bounds for the latent space search')
     parser.add_argument('-v', '--verbosity', type=int, default=1,
                         help='Verbosity: 0 - silent, 1 - normal, 2 - verbose')

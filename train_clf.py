@@ -138,7 +138,8 @@ if __name__ == '__main__':
     parser.add_argument('--c_param', '-c', type=float, default=50,
                         help='C parameter for SVM. Commonly a float in range [0.01, 1000]')
     parser.add_argument('--kernel', '-k', type=str, default='rbf',
-                        help='Kernel type for SVM. Can be "linear", "poly", "rbf", "sigmoid"')
+                        help='Kernel type for SVM',
+                        choices=['linear', 'poly', 'rbf', 'sigmoid'])
     parser.add_argument('--degree', '-deg', type=int, default=3,
                         help='Degree of polynomial kernel (ignored by other kernels)')
     parser.add_argument('--gamma', '-g', type=str, default='scale',

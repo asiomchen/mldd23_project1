@@ -125,7 +125,8 @@ if __name__ == '__main__':
     parser.add_argument('-v',
                         '--verbosity',
                         type=int,
-                        default=1)
+                        default=1,
+                        help='Verbosity level (0 - silent, 1 - progress, 2 - verbose)')
     parser.add_argument('-n',
                         '--n_samples',
                         type=int,
