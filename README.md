@@ -23,7 +23,7 @@ Put the data into pandas.DataFrame object. The dataframe must contain the follow
       
 * 'smiles' - SMILES strings of known ligands.  
       
-* 'fps' - Klekota&Roth or Morgan (radius=2) fingerprints of the ligands.  
+* 'fps' - Klekota&Roth or Morgan (radius=2, nBits=2048) fingerprints of the ligands.  
         The fingerprints have to be saved as ordinary pthon lists, in **dense format** (a list of ints designating the indices of **active bits** in the original fingerprint).
         For help in the conversion of sparse molecular fingerprints into dense format, see src.utils.finger.sparse2dense().
           
