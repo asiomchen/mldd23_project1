@@ -112,16 +112,18 @@ Directory 'SVC_{timestamp}' will be created on /results, containing the followin
 * latent_vectors.csv - latent vectors found by the search  
 * info.txt - information about the search
 
+**Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
+for latent vectors of active class is finalized.**
+
 ### Generate compound libraries from found latent vectors
 
-Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
-for latent vectors of active class is finalized.
+The generated compounds are filtered according to criteria, which can be modified in config_files/pred_config.ini.  
 
 In order to generate a molecule library, run `python predict.py`.  
 Provide path to latent_vectors.csv using -d (--data_path) flag, for example:
   
       python predict.py -d results/SVC_{timestamp}/latent_vectors.csv
-  
+
 Other parameters can be set using the command line arguments:
 ```
 -d DATA_PATH, --data_path DATA_PATH
