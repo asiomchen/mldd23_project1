@@ -1,6 +1,7 @@
-from rdkit.Chem import rdChemReactions
 from dataclasses import dataclass
+
 import rdkit.Chem as Chem
+from rdkit.Chem import rdChemReactions
 
 
 @dataclass
@@ -37,12 +38,12 @@ class MolFixer:
         self.fixes = [SMARTSReaction(
             '[#6:2]1-[#6:3](-[#6:1])=[#6:4]-[#6:5]=[#6:6]-[#6:7]=[#6:8]-1>>[#6:3]1(-[#6:1])=[#6:4]-[#6:5]=[#6:6]-[#6:7]=[#6:8]-1',
             'cycloheptatriene to benzene'),
-                      SMARTSReaction(
-                          '[#6:0]-[#6:1]1-[#6:2]2:[#6]:[#6]:[#6]:[#6]:[#6]:2-1>>[#6:0]-[#6:1]-[#6:2]1:[#6]:[#6]:[#6]:[#6]:[#6]:1',
-                          "uncycle conjugated cyclopropane to benzene"),
-                      SMARTSReaction(
-                          f'[#6]1=[#6]2-[#6:2]=[#6:1][#6:6]=[#6:5]-[#6:4]=[#6:3]-1-2>>[#6:2]1=[#6:1]-[#6:6]=[#6:5]-[#6:4]=[#6:3]-1',
-                          'bicyclo[5,3,1] to benzene')]
+            SMARTSReaction(
+                '[#6:0]-[#6:1]1-[#6:2]2:[#6]:[#6]:[#6]:[#6]:[#6]:2-1>>[#6:0]-[#6:1]-[#6:2]1:[#6]:[#6]:[#6]:[#6]:[#6]:1',
+                "uncycle conjugated cyclopropane to benzene"),
+            SMARTSReaction(
+                f'[#6]1=[#6]2-[#6:2]=[#6:1][#6:6]=[#6:5]-[#6:4]=[#6:3]-1-2>>[#6:2]1=[#6:1]-[#6:6]=[#6:5]-[#6:4]=[#6:3]-1',
+                'bicyclo[5,3,1] to benzene')]
 
     def fix(self, mol: Chem.Mol):
         """

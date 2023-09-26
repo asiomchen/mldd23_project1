@@ -2,12 +2,15 @@ import argparse
 import configparser
 import os
 import time
+
 import pandas as pd
-import rdkit.Chem.Draw as Draw
 import rdkit.Chem as Chem
-from src.pred.pred import predict_with_dropout, filter_dataframe
+import rdkit.Chem.Draw as Draw
 import torch
+
 from src.gen.generator import EncoderDecoderV3
+from src.pred.pred import predict_with_dropout, filter_dataframe
+
 
 def main(file_path, model_path, config_path, n_samples, use_cuda, workers, verbosity):
     """

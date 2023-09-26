@@ -1,14 +1,16 @@
-from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
-from src.clf.scorer import SKLearnScorer
-import pandas as pd
 import argparse
-import numpy as np
 import multiprocessing as mp
-import queue
-import time
-import random
-import warnings
 import os
+import queue
+import random
+import time
+import warnings
+
+import numpy as np
+import pandas as pd
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
+
+from src.clf.scorer import SKLearnScorer
 
 
 # suppress scikit-learn warnings

@@ -1,5 +1,6 @@
-from rdkit.Chem.Scaffolds import MurckoScaffold
 import random
+
+from rdkit.Chem.Scaffolds import MurckoScaffold
 
 
 # scaffold split

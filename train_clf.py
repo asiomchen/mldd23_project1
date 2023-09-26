@@ -1,21 +1,26 @@
-from src.utils.modelinit import initialize_model
+import argparse
+import os
+import pickle
+import time
+
+import numpy as np
+import pandas as pd
+import sklearn.model_selection
+import torch
+import torch.utils.data as D
 from sklearn.metrics import roc_auc_score, confusion_matrix
+from sklearn.svm import SVC
+
+import wandb
 from src.gen.dataset import VAEDataset
 from src.gen.generator import EncoderDecoderV3
-import sklearn.model_selection
-from sklearn.svm import SVC
-import torch.utils.data as D
-import time
-import pandas as pd
-import pickle
-import numpy as np
-import wandb
-import os
-import argparse
-import torch
+from src.utils.modelinit import initialize_model
 
 
-def main(data_path, c_param, kernel=50, degree=3, gamma='scale'):
+def main(data_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
+    """
+    Trains an SVM classifier on the latent space of the model.
+    """
     start_time = time.time()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     data = pd.read_parquet(data_path)
@@ -50,7 +55,8 @@ def main(data_path, c_param, kernel=50, degree=3, gamma='scale'):
     print('Training...')
     svc.fit(train_X, train_y)
 
-    name_extended = f'{svc.__class__.__name__}_C_{c_param}_kernel_{kernel}_degree_{degree}_gamma_{gamma}'
+    timestamp = time.strftime('%Y%m%d_%H%M%S')
+    name_extended = f'SVC_{timestamp}'
     # save model
 
     if not os.path.exists(f'models/{name_extended}'):
@@ -94,7 +100,7 @@ def encode(df, model, device):
         mus (np.ndarray): array of means of the latent space
         logvars (np.ndarray): array of logvars of the latent space
     """
-    dataset = VAEDataset(df, fp_len=2048)
+    dataset = VAEDataset(df, fp_len=model.fp_size)
     dataloader = D.DataLoader(dataset, batch_size=1024, shuffle=False)
     mus = []
     logvars = []

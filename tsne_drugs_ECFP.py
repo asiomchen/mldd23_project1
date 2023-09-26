@@ -1,23 +1,26 @@
-from src.gen.generator import EncoderDecoderV3
-import torch
-import seaborn as sns
-import pandas as pd
-from sklearn.manifold import TSNE
 import argparse
 import configparser
-import rdkit.Chem as Chem
-import rdkit.Chem.Draw as Draw
-from src.utils.vectorizer import SELFIESVectorizer
-from src.utils.modelinit import initialize_model
-import numpy as np
-import selfies as sf
-import rdkit.Chem.AllChem as AllChem
 import random
+
 import matplotlib.pyplot as plt
-from adjustText import adjust_text
-from src.gen.dataset import VAEDataset
+import numpy as np
+import pandas as pd
+import rdkit.Chem as Chem
+import rdkit.Chem.AllChem as AllChem
+import rdkit.Chem.Draw as Draw
+import seaborn as sns
+import selfies as sf
+import torch
 import torch.utils.data as Data
+from adjustText import adjust_text
+from sklearn.manifold import TSNE
 from tqdm import tqdm
+
+from src.gen.dataset import VAEDataset
+from src.gen.generator import EncoderDecoderV3
+from src.utils.modelinit import initialize_model
+from src.utils.vectorizer import SELFIESVectorizer
+
 
 def encode(df, model, device):
     """
@@ -49,7 +52,6 @@ def encode(df, model, device):
 
 
 def main(model_path, data_path, seed):
-
     config = configparser.ConfigParser()
     random.seed(seed)
     templist = model_path.split('/')
@@ -70,7 +72,7 @@ def main(model_path, data_path, seed):
     molecule_names = drugs['name'].to_list()
 
     mols = [Chem.MolFromSmiles(smi) for smi in smiles]
-    bvs = [AllChem.GetMorganFingerprintAsBitVect(mol,2, nBits=2048) for mol in mols]
+    bvs = [AllChem.GetMorganFingerprintAsBitVect(mol, 2, nBits=2048) for mol in mols]
     fps = [torch.Tensor(np.array(bv)) for bv in bvs]
     fps = [fp.unsqueeze(0).to(device) for fp in fps]
     fps_tensor = torch.cat(fps, dim=0)

@@ -1,49 +1,38 @@
-from src.gen.generator import EncoderDecoderV3
-from src.utils.finger import smiles2sparse
-from sklearn.manifold import TSNE
-from src.utils.vectorizer import SELFIESVectorizer
-from adjustText import adjust_text
-from src.gen.dataset import VAEDataset
-from tqdm import tqdm
-import torch
-import seaborn as sns
-import pandas as pd
 import argparse
 import configparser
+import random
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
-import numpy as np
+import seaborn as sns
 import selfies as sf
-import random
-import matplotlib.pyplot as plt
+import torch
 import torch.utils.data as Data
+from adjustText import adjust_text
+from sklearn.manifold import TSNE
+from tqdm import tqdm
+
+from src.gen.dataset import VAEDataset
+from src.gen.generator import EncoderDecoderV3
+from src.utils.finger import smiles2sparse
+from src.utils.modelinit import initialize_model
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def main(model_path, data_path, seed):
-
     config = configparser.ConfigParser()
     random.seed(seed)
     templist = model_path.split('/')
     config_path = '/'.join(templist[:-1]) + '/hyperparameters.ini'
-    config.read(config_path)
     model_name = model_path.split('/')[1]
     epoch = model_path.split('_')[-1].split('.')[0]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
 
-    model = EncoderDecoderV3(fp_size=int(config['MODEL']['fp_len']),
-                             encoding_size=int(config['MODEL']['encoding_size']),
-                             hidden_size=int(config['MODEL']['hidden_size']),
-                             num_layers=int(config['MODEL']['num_layers']),
-                             output_size=31,
-                             dropout=0,
-                             teacher_ratio=0.0,
-                             fc1_size=int(config['MODEL']['fc1_size']),
-                             fc2_size=int(config['MODEL']['fc2_size']),
-                             fc3_size=int(config['MODEL']['fc3_size']),
-                             random_seed=seed,
-                             encoder_activation=str(config['MODEL']['encoder_activation'])
-                             ).to(device)
+    model = initialize_model(config_path, dropout=False, device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     vectorizer = SELFIESVectorizer()
@@ -106,6 +95,7 @@ def main(model_path, data_path, seed):
 
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
 
+
 def encode(df, model, device):
     """
     Encodes the fingerprints of the molecules in the dataframe using VAE encoder.
@@ -134,6 +124,7 @@ def encode(df, model, device):
         logvars = np.concatenate(logvars, axis=0)
     return mus, logvars
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', '-m', type=str, required=True)
@@ -141,4 +132,3 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', '-r', type=int, default=42)
     args = parser.parse_args()
     main(args.model_path, args.data_path, args.random_seed)
-

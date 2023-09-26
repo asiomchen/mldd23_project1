@@ -1,9 +1,11 @@
 import configparser
+
 import torch
+
 from src.gen.generator import EncoderDecoderV3
 
 
-def initialize_model (config_path, dropout, device):
+def initialize_model(config_path, dropout, device):
     """
     Initialize model from a given path
     Args:

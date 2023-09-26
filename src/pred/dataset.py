@@ -1,6 +1,7 @@
-import torch
 import numpy as np
+import torch
 from torch.utils.data import Dataset
+
 
 class PredictionDataset(Dataset):
     def __init__(self, df, fp_len):

@@ -1,12 +1,13 @@
-import torch
 import numpy as np
 import pandas as pd
-from rdkit import Chem
-from src.utils.vectorizer import SELFIESVectorizer
-import selfies as sf
-from src.pred.fixer import MolFixer
-from rdkit.Chem import QED, rdMolDescriptors
 import rdkit.Chem.Crippen as Crippen
+import selfies as sf
+import torch
+from rdkit import Chem
+from rdkit.Chem import QED, rdMolDescriptors
+
+from src.pred.fixer import MolFixer
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def predict_with_dropout(model,
@@ -58,6 +59,7 @@ def predict_with_dropout(model,
 class FragmentCheck():
     def __init__(self):
         self.fragments = pd.read_csv('data/unwanted_frags.csv', sep=' ', header=None)[0].tolist()
+
     def __call__(self, mol):
         for fragment in self.fragments:
             if mol.HasSubstructMatch(Chem.MolFromSmarts(fragment)):
@@ -174,7 +176,7 @@ def filter_dataframe(df, config):
         df_copy = df_copy[df_copy['bridgehead_atoms'] <= int(config['NUM_BRIDGEHEAD_ATOMS']['max'])]
     print(f'Number of molecules after filtering by bridgehead atoms: {len(df_copy)}')
 
-    #filter by spiro atoms
+    # filter by spiro atoms
     df_copy['spiro_atoms'] = df_copy['mols'].apply(rdMolDescriptors.CalcNumSpiroAtoms)
     if config['NUM_SPIRO_ATOMS']['min'].lower() != 'none':
         df_copy = df_copy[df_copy['spiro_atoms'] >= int(config['NUM_SPIRO_ATOMS']['min'])]
