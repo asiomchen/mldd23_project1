@@ -49,18 +49,18 @@ Use the following command:
 Be sure to provide the path to the dataset file (prepared as explained above) using the -d (--data_path) flag.
 Other parameters are optional and can be set using the command line arguments.
 ```
---data_path DATA_PATH, -d DATA_PATH  
+-d DATA_PATH, --data_path DATA_PATH 
                         Path to data file (prepared as described in above)
---c_param C_PARAM, -c C_PARAM
+-c C_PARAM, --c_param C_PARAM
                   C parameter for SVM (default: 50)
                   Commonly a float in the range [0.01, 100]
---kernel KERNEL, -k KERNEL
+-k KERNEL, --kernel KERNEL
                   Kernel type for SVM (default: 'rbf')
                   One of: 'linear', 'poly', 'rbf', 'sigmoid'
---degree DEGREE, -deg DEGREE
+-deg DEGREE --degree DEGREE
                   Degree of polynomial kernel
                   Ignored by other kernels
---gamma GAMMA, -g GAMMA
+-g GAMMA, --gamma GAMMA
                   Gamma parameter for SVM (default: 'scale')
                   One of: 'scale', 'auto', or a float
 ```
