@@ -112,9 +112,6 @@ Directory 'SVC_{timestamp}' will be created on /results, containing the followin
 * latent_vectors.csv - latent vectors found by the search  
 * info.txt - information about the search
 
-**Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
-for latent vectors of active class is finalized.**
-
 ### Generate compound libraries from found latent vectors
 
 The generated compounds are filtered according to criteria, which can be modified in config_files/pred_config.ini.  
