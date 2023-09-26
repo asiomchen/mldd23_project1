@@ -84,7 +84,7 @@ To perform bayesian search on the latent space, use the following command:
 Be sure to provide the path to the model file using the -m (--model_path) flag, and the desired number of samples to be 
 generated using the -n (--n_samples) flag.
 
-    python bayesian_search.py -m models/name_of_the_model/model.pkl
+    python bayesian_search.py -m models/name_of_the_model/model.pkl -n 1000
 
 Other parameters can be set using the command line arguments:
 ```
