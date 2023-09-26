@@ -45,7 +45,7 @@ Use the following command:
   
     `python train_clf.py`
 
-Be sure to provide the path to the dataset file (prepared as explained above) using the -d flag.
+Be sure to provide the path to the dataset file (prepared as explained above) using the -d (--data_path) flag.
 Other parameters are optional and can be set using the command line arguments.
 ```
 --data_path DATA_PATH, -d DATA_PATH  
@@ -80,7 +80,8 @@ To perform bayesian search on the latent space, use the following command:
 
     python bayesian_search.py
 
-Be sure to provide the path to the model file using the -m flag, and the desired number of samples to be generated using the -n flag.
+Be sure to provide the path to the model file using the -m (--model_path) flag, and the desired number of samples to be 
+generated using the -n (--n_samples) flag.
 
     python bayesian_search.py -m models/name_of_the_model/model.pkl
 
@@ -101,14 +102,31 @@ Other parameters can be set using the command line arguments:
   -w N_WORKERS, --n_workers N_WORKERS
                         Number of workers to use. (default: -1 [all available CPU cores])
 ```
-For more info about the bayesian optimization process and the choice of non-default parameters refert to 
+For more info about the bayesian optimization process and the choice of non-default parameters refere to 
 [bayesian-optimization README](https://github.com/bayesian-optimization/BayesianOptimization).
   
 Results of the search will be saved in the 'results' directory.
   
 Directory 'SVC_{timestamp}' will be created on /results, containing the following files:  
-    latent_vectors.csv - latent vectors found by the search  
-    info.txt - information about the search
+* latent_vectors.csv - latent vectors found by the search  
+* info.txt - information about the search
+
+5.  Generating compound libraries from latent vectors
+
+Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
+for latent vectors of active class is finalized.
+
+In order to generate a molecule library, run `python predict.py`.  
+Provide path to latent_vectors.csv using -d (--data_path) flag, for example:
+  
+      python predict.py -d results/SVC_{timestamp}/latent_vectors.csv
+
+As a result, in results/SVC_{timestamp} dir, a new directory preds_{new_timestamp} will be created. This contains the following files:
+* predictions.csv, a file containing SMILES of the generated compounds, as well as some calculated molecular properties
+  (QED, MW, logP, ring info, RO5 info rtc.)
+* imgs directory, in which .png files depicting the structures of the generated compounds are located
+* config.ini, a copy of the config file used for prediction (incl. filter criteria)
+
 
 ## Data sources and tools
 ### Data sources:
