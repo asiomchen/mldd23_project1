@@ -1,9 +1,9 @@
-import torch
-import selfies as sf
 import numpy as np
-from torch.utils.data import Dataset
-import rdkit.Chem as Chem
 import pandas as pd
+import rdkit.Chem as Chem
+import selfies as sf
+import torch
+from torch.utils.data import Dataset
 
 
 class GRUDataset(Dataset):

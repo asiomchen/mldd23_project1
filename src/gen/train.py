@@ -1,13 +1,15 @@
-from src.utils.vectorizer import SELFIESVectorizer
-import torch
-import pandas as pd
 import time
-from src.gen.loss import CCE
-import wandb
-import selfies as sf
+
+import pandas as pd
 import rdkit.Chem as Chem
 import rdkit.Chem.QED as QED
+import selfies as sf
+import torch
+import wandb
+
+from src.gen.loss import CCE
 from src.utils.annealing import Annealer
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def train(config, model, train_loader, val_loader, scoring_loader):

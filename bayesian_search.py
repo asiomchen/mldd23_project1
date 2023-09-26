@@ -1,14 +1,16 @@
-from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
-from src.clf.scorer import MLPScorer, SKLearnScorer
-import pandas as pd
 import argparse
-import numpy as np
 import multiprocessing as mp
-import queue
-import time
-import random
-import warnings
 import os
+import queue
+import random
+import time
+import warnings
+
+import numpy as np
+import pandas as pd
+from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
+
+from src.clf.scorer import SKLearnScorer
 
 
 # suppress scikit-learn warnings
@@ -40,12 +42,7 @@ def search(args, return_list):
 
     # initialize scorer
     latent_size = args.latent_size
-    if args.model_path.split('.')[-1] == 'pt':
-        scorer = MLPScorer(args.model_path, latent_size, penalize=True)
-    elif args.model_path.split('.')[-1] == 'pkl':
-        scorer = SKLearnScorer(args.model_path, penalize=True)
-    else:
-        raise ValueError("Model type not supported")
+    scorer = SKLearnScorer(args.model_path, penalize=False)
 
     # define bounds
     pbounds = {str(p): (-args.bounds, args.bounds) for p in range(latent_size)}
@@ -95,11 +92,11 @@ if __name__ == '__main__':
                         help='Path to the saved activity predictor model')
     parser.add_argument('-n', '--n_samples', type=int, default=10,
                         help='Number of samples to generate')
-    parser.add_argument('-p', '--init_points', type=int, default=10,
+    parser.add_argument('-p', '--init_points', type=int, default=8,
                         help='Number of initial points to sample')
-    parser.add_argument('-i', '--n_iter', type=int, default=8,
+    parser.add_argument('-i', '--n_iter', type=int, default=20,
                         help='Number of iterations to perform')
-    parser.add_argument('-b', '--bounds', type=float, default=1.0,
+    parser.add_argument('-b', '--bounds', type=float, default=4.0,
                         help='Bounds for the latent space search')
     parser.add_argument('-v', '--verbosity', type=int, default=1,
                         help='Verbosity: 0 - silent, 1 - normal, 2 - verbose')
@@ -147,14 +144,13 @@ if __name__ == '__main__':
             print("(mp) Queue handled successfully") if args.verbosity > 0 else None
             break
         while len(mp.active_children()) < cpus:
+            if queue.empty():
+                break
             proc = queue.get()
             proc.start()
             if queue.qsize() % period == 0:
                 print('(mp) Processes in queue: ', queue.qsize()) if args.verbosity > 0 else None
             processes.append(proc)
-            if queue.empty():
-                break
-            break
 
             # complete the processes
         for proc in processes:
@@ -172,12 +168,8 @@ if __name__ == '__main__':
               round(time_elapsed % 60, 2), "min") if args.verbosity > 0 else None
 
     # save the results
-    timestamp = (str(time.localtime()[3]) + '-' +
-                 str(time.localtime()[4]) + '-' +
-                 str(time.localtime()[5])
-                 )
-
-    model_name = args.model_path.split('/')[-2].split('.')[0] + '_' + timestamp
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    model_name = 'SVC_' + timestamp
 
     # create results directory
     os.mkdir(f'results/{model_name}')

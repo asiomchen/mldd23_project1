@@ -16,6 +16,7 @@ def smiles2sparse(smiles):
             fp_list.append(0)
     return np.array(fp_list)
 
+
 def smiles2dense(smiles):
     mol = Chem.MolFromSmiles(smiles)
     keys = 'data/KlekFP_keys.txt'
@@ -26,6 +27,7 @@ def smiles2dense(smiles):
         if mol.HasSubstructMatch(key):
             fp_list.append(i)
     return np.array(fp_list)
+
 
 def sparse2dense(sparse, return_numpy=True):
     """

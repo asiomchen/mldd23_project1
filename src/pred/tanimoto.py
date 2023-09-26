@@ -1,9 +1,9 @@
+import numpy as np
 import pandas as pd
 from rdkit import Chem
-from rdkit import DataStructs
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprintAsBitVect
-import numpy as np
 from scipy.spatial.distance import cdist
+
 
 def fp2bitstring(fp):
     """
@@ -44,17 +44,17 @@ def unpack(ls: list):
     vec[ls] = 1
     return vec
 
+
 class TanimotoSearch():
 
     def __init__(self, return_smiles=False, progress_bar=True):
         data_path = 'data/train_data/train_morgan_512bits.parquet'
         self.fps = pd.read_parquet(data_path).fps.apply(eval)
-        self.fps = np.array(self.fps.apply(unpack).to_list()).reshape(-1,512)
-        self.fps = pd.DataFrame(self.fps, columns=[f'FP_{i+1}' for i in range(512)])
+        self.fps = np.array(self.fps.apply(unpack).to_list()).reshape(-1, 512)
+        self.fps = pd.DataFrame(self.fps, columns=[f'FP_{i + 1}' for i in range(512)])
         self.return_smiles = return_smiles
         self.progress_bar = progress_bar
         self.XB = self.fps.to_numpy(dtype=np.int8)
-        
 
     def __call__(self, mols):
         if isinstance(mols, list):

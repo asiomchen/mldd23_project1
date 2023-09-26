@@ -1,15 +1,17 @@
 # import packages
-from src.gen.train import train
-from src.gen.dataset import GRUDataset
-from src.gen.generator import EncoderDecoderV3
-from src.utils.vectorizer import SELFIESVectorizer
-from src.utils.split import scaffold_split
+import argparse
+import configparser
+import os
+
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
-import os
-import pandas as pd
-import configparser
-import argparse
+
+from src.gen.dataset import GRUDataset
+from src.gen.generator import EncoderDecoderV3
+from src.gen.train import train
+from src.utils.split import scaffold_split
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def main(config_path):
