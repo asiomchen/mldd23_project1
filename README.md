@@ -15,18 +15,19 @@
 3. Install environment from the YAML file: `conda env create -n mldd -f environment.yml`
 
 ## Usage
-1. Activate the environment: `conda activate mldd `
+### Activate the environment:  
+      conda activate mldd
 
-2. Prepare the dataset: 
+### Prepare the dataset: 
 Put the data into pandas.DataFrame object. The dataframe must contain the following columns:  
       
-    * 'smiles' - SMILES strings of known ligands.  
+* 'smiles' - SMILES strings of known ligands.  
       
-    * 'fps' - Klekota&Roth or Morgan (radius=2) fingerprints of the ligands.  
+* 'fps' - Klekota&Roth or Morgan (radius=2) fingerprints of the ligands.  
         The fingerprints have to be saved as ordinary pthon lists, in **dense format** (a list of ints designating the indices of **active bits** in the original fingerprint).
         For help in the conversion of sparse molecular fingerprints into dense format, see src.utils.finger.sparse2dense().
           
-    * 'activity' - Activity class (True, False). By default, we define active compounds as those having
+* 'activity' - Activity class (True, False). By default, we define active compounds as those having
         Ki value <= 100nM and inactive as those of Ki > 100nM.
       
 Save dataframe to .parquet file using:
@@ -40,7 +41,7 @@ name = '5ht7_ECFP' # example name for the dataset
 df.to_parquet(f'data/activity_data/{name}.parquet', index=False)
 ```
 
-3.  Encode the dataset into latent space, and train the activity predictor.
+### Encode the dataset into latent space, and train the activity predictor.
 Use the following command:
   
     `python train_clf.py`
@@ -72,7 +73,7 @@ It should look like this:
         
     models/name_of_the_model/model.pkl
 
-4.  Bayesian search on the latent space
+### Perform bayesian search on the latent space
   
 The trained activity predictor can be used to perform bayesian search on the latent space
 in order to identify latent representations of potential novel ligands.
@@ -111,7 +112,7 @@ Directory 'SVC_{timestamp}' will be created on /results, containing the followin
 * latent_vectors.csv - latent vectors found by the search  
 * info.txt - information about the search
 
-5.  Generating compound libraries from latent vectors
+### Generate compound libraries from found latent vectors
 
 Please locate the path of latent_vectors.csv file inside results/SVC_{timestamp} directory. This file will be created once the bayesian search
 for latent vectors of active class is finalized.
@@ -120,6 +121,24 @@ In order to generate a molecule library, run `python predict.py`.
 Provide path to latent_vectors.csv using -d (--data_path) flag, for example:
   
       python predict.py -d results/SVC_{timestamp}/latent_vectors.csv
+  
+Other parameters can be set using the command line arguments:
+```
+  -d DATA_PATH, --data_path DATA_PATH
+                        Path to data file 
+  -n N_SAMPLES, --n_samples N_SAMPLES
+                        Number of samples to generate for each latent vector. If > 1, the variety of the generated molecules will be increased                          by using dropout.
+  -c CONFIG, --config CONFIG
+                        Path to config file (default: config_files/pred_config.ini)
+  -m MODEL_PATH, --model_path MODEL_PATH
+                        Path to model weights
+  -v VERBOSITY, --verbosity VERBOSITY
+                        Verbosity level (0 - silent, 1 - progress, 2 - verbose)
+  -w WORKERS, --workers WORKERS
+                        Number of workers. (default: -1 [all available CPU cores])
+  -u USE_CUDA, --use_cuda USE_CUDA
+                        Use CUDA if available (default: True)
+```
 
 As a result, in results/SVC_{timestamp} dir, a new directory preds_{new_timestamp} will be created. This contains the following files:
 * predictions.csv, a file containing SMILES of the generated compounds, as well as some calculated molecular properties
