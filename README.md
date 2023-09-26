@@ -129,7 +129,8 @@ Other parameters can be set using the command line arguments:
 -d DATA_PATH, --data_path DATA_PATH
                   Path to data file 
 -n N_SAMPLES, --n_samples N_SAMPLES
-                  Number of samples to generate for each latent vector. If > 1, the variety of the generated molecules will be increased                          by using dropout.
+                  Number of samples to generate for each latent vector. If > 1, the variety of the generated
+                  molecules will be increased by using dropout.
 -c CONFIG, --config CONFIG
                   Path to config file (default: config_files/pred_config.ini)
 -m MODEL_PATH, --model_path MODEL_PATH
