@@ -8,7 +8,7 @@ import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
 import torch
 
-from src.gen.generator import EncoderDecoderV3
+from src.utils.modelinit import initialize_model
 from src.pred.pred import predict_with_dropout, filter_dataframe
 
 
@@ -25,7 +25,7 @@ def main(file_path, model_path, config_path, n_samples, use_cuda, workers, verbo
 
     # setup
     start_time = time.time()
-    device = 'cuda' if use_cuda and torch.cuda.is_available() else 'cpu'
+    device = torch.device('cuda' if torch.cuda.is_available() and use_cuda else 'cpu')
     config = configparser.ConfigParser(allow_no_value=True)
     config.read(config_path)
 
@@ -39,28 +39,12 @@ def main(file_path, model_path, config_path, n_samples, use_cuda, workers, verbo
     model_config_path = model_path.replace(model_epoch, 'hyperparameters.ini')
     if not os.path.exists(model_config_path):
         raise ValueError(f'Model config file {model_config_path} not found')
-    model_config = configparser.ConfigParser()
-    model_config.read(model_config_path)
-
-    dropout = float(model_config['MODEL']['dropout']) if n_samples > 1 else 0.0
 
     # load model
-    model = EncoderDecoderV3(
-        fp_size=int(model_config['MODEL']['fp_len']),
-        encoding_size=int(model_config['MODEL']['encoding_size']),
-        hidden_size=int(model_config['MODEL']['hidden_size']),
-        num_layers=int(model_config['MODEL']['num_layers']),
-        dropout=dropout,
-        teacher_ratio=0.0,
-        use_cuda=use_cuda,
-        output_size=31,
-        random_seed=42,
-        fc1_size=int(model_config['MODEL']['fc1_size']),
-        fc2_size=int(model_config['MODEL']['fc2_size']),
-        fc3_size=int(model_config['MODEL']['fc3_size']),
-        encoder_activation=model_config['MODEL']['encoder_activation']
-    ).to(device)
 
+    model = initialize_model(config_path=model_config_path,
+                             dropout=True if n_samples > 1 else False,
+                             device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
     print(f'Loaded model from {model_path}') if verbosity > 1 else None
 
