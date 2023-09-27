@@ -12,7 +12,7 @@ from src.utils.modelinit import initialize_model
 from src.pred.pred import predict_with_dropout, filter_dataframe
 
 
-def main(file_path, model_path, config_path, n_samples, use_cuda, workers, verbosity):
+def main(file_path, model_path, config_path, n_samples, use_cuda, verbosity):
     """
     Predicting molecules using the trained model.
 
@@ -119,11 +119,6 @@ if __name__ == '__main__':
                         type=int,
                         default=10,
                         help='Number of samples to generate for each latent vector. If > 1, the variety of the generated molecules will be increased by using dropout.')
-    parser.add_argument('-w',
-                        '--workers',
-                        type=int,
-                        default=-1,
-                        help='Number of workers. Default is -1 (all available cores)')
     parser.add_argument('-u',
                         '--use_cuda',
                         type=bool,
@@ -136,5 +131,4 @@ if __name__ == '__main__':
          config_path=args.config,
          n_samples=args.n_samples,
          use_cuda=args.use_cuda,
-         workers=args.workers,
          verbosity=args.verbosity)
