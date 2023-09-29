@@ -1,6 +1,10 @@
 # module for fingerprint manipulation
 import numpy as np
 from rdkit import Chem
+import torch
+import torch.utils.data as Data
+from tqdm import tqdm
+from src.gen.dataset import VAEDataset
 
 
 def smiles2sparse(smiles):
@@ -16,6 +20,7 @@ def smiles2sparse(smiles):
             fp_list.append(0)
     return np.array(fp_list)
 
+
 def smiles2dense(smiles):
     mol = Chem.MolFromSmiles(smiles)
     keys = 'data/KlekFP_keys.txt'
@@ -26,6 +31,7 @@ def smiles2dense(smiles):
         if mol.HasSubstructMatch(key):
             fp_list.append(i)
     return np.array(fp_list)
+
 
 def sparse2dense(sparse, return_numpy=True):
     """
@@ -58,3 +64,32 @@ def dense2sparse(dense, fp_len=4860):
     for value in dense:
         sparse[value] = 1
     return np.array(sparse)
+
+
+def encode(df, model, device):
+    """
+    Encodes the fingerprints of the molecules in the dataframe using VAE encoder.
+    Args:
+        df (pd.DataFrame): dataframe containing 'fps' column with Klekota&Roth fingerprints
+            in the form of a list of integers (dense representation)
+        model (EncoderDecoderV3): model to be used for encoding
+        device (torch.device): device to be used for encoding
+    Returns:
+        mus (np.ndarray): array of means of the latent space
+        logvars (np.ndarray): array of logvars of the latent space
+    """
+    dataset = VAEDataset(df, fp_len=model.fp_size)
+    dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
+    mus = []
+    logvars = []
+    model.eval()
+    with torch.no_grad():
+        for batch in tqdm(dataloader):
+            X = batch.to(device)
+            mu, logvar = model.encoder(X)
+            mus.append(mu.cpu().numpy())
+            logvars.append(logvar.cpu().numpy())
+
+        mus = np.concatenate(mus, axis=0)
+        logvars = np.concatenate(logvars, axis=0)
+    return mus, logvars

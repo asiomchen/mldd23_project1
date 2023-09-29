@@ -1,5 +1,6 @@
-import numpy as np
 import pickle
+
+import numpy as np
 
 
 class SKLearnScorer:
@@ -29,5 +30,5 @@ class SKLearnScorer:
 def gaussian_reward(vec: np.array, mu: float, sigma: float):
     x = np.linalg.norm(vec)
     c = np.sqrt(2 * np.pi)
-    score = np.exp(-0.5 * ((x - mu) / sigma)**2) / sigma / c
+    score = np.exp(-0.5 * ((x - mu) / sigma) ** 2) / sigma / c
     return score

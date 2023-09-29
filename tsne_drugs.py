@@ -1,52 +1,38 @@
-from src.gen.generator import EncoderDecoderV3
-from src.utils.finger import smiles2sparse
-from sklearn.manifold import TSNE
-from src.utils.vectorizer import SELFIESVectorizer
-from adjustText import adjust_text
-from src.gen.dataset import VAEDataset
-from tqdm import tqdm
-import torch
-import seaborn as sns
-import pandas as pd
 import argparse
 import configparser
+import random
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 import rdkit.Chem as Chem
 import rdkit.Chem.Draw as Draw
-import numpy as np
+import seaborn as sns
 import selfies as sf
-import random
-import matplotlib.pyplot as plt
-import torch.utils.data as Data
+import torch
+from adjustText import adjust_text
+from sklearn.manifold import TSNE
+
+from src.utils.finger import encode
+from src.utils.finger import smiles2sparse
+from src.utils.modelinit import initialize_model
+from src.utils.vectorizer import SELFIESVectorizer
 
 
 def main(model_path, data_path, seed):
-
     config = configparser.ConfigParser()
     random.seed(seed)
     templist = model_path.split('/')
     config_path = '/'.join(templist[:-1]) + '/hyperparameters.ini'
-    config.read(config_path)
     model_name = model_path.split('/')[1]
     epoch = model_path.split('_')[-1].split('.')[0]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
 
-    model = EncoderDecoderV3(fp_size=int(config['MODEL']['fp_len']),
-                             encoding_size=int(config['MODEL']['encoding_size']),
-                             hidden_size=int(config['MODEL']['hidden_size']),
-                             num_layers=int(config['MODEL']['num_layers']),
-                             output_size=31,
-                             dropout=0,
-                             teacher_ratio=0.0,
-                             fc1_size=int(config['MODEL']['fc1_size']),
-                             fc2_size=int(config['MODEL']['fc2_size']),
-                             fc3_size=int(config['MODEL']['fc3_size']),
-                             random_seed=seed,
-                             encoder_activation=str(config['MODEL']['encoder_activation'])
-                             ).to(device)
+    model = initialize_model(config_path, dropout=False, device=device)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
-    vectorizer = SELFIESVectorizer()
+    vectorizer = SELFIESVectorizer(pad_to_len=128)
 
     drugs = pd.read_csv('data/d2_drugs.csv')
     smiles = drugs['smiles'].to_list()
@@ -64,6 +50,7 @@ def main(model_path, data_path, seed):
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
     img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
+    print('Images saved')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -71,6 +58,8 @@ def main(model_path, data_path, seed):
 
     random_state = random.randint(0, 100000)
     cat = np.concatenate((fp_encoded_numpy, d2_encoded), axis=0)
+
+    print('Running t-SNE...')
     tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
 
     results = tsne.fit_transform(cat)
@@ -105,34 +94,10 @@ def main(model_path, data_path, seed):
     adjust_text(annotation_list)
 
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
+    print('Plot saved')
 
-def encode(df, model, device):
-    """
-    Encodes the fingerprints of the molecules in the dataframe using VAE encoder.
-    Args:
-        df (pd.DataFrame): dataframe containing 'fps' column with Klekota&Roth fingerprints
-            in the form of a list of integers (dense representation)
-        model (EncoderDecoderV3): model to be used for encoding
-        device (torch.device): device to be used for encoding
-    Returns:
-        mus (np.ndarray): array of means of the latent space
-        logvars (np.ndarray): array of logvars of the latent space
-    """
-    dataset = VAEDataset(df, fp_len=4860)
-    dataloader = Data.DataLoader(dataset, batch_size=1024, shuffle=False)
-    mus = []
-    logvars = []
-    model.eval()
-    with torch.no_grad():
-        for batch in tqdm(dataloader):
-            X = batch.to(device)
-            mu, logvar = model.encoder(X)
-            mus.append(mu.cpu().numpy())
-            logvars.append(logvar.cpu().numpy())
 
-        mus = np.concatenate(mus, axis=0)
-        logvars = np.concatenate(logvars, axis=0)
-    return mus, logvars
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -141,4 +106,3 @@ if __name__ == '__main__':
     parser.add_argument('--random_seed', '-r', type=int, default=42)
     args = parser.parse_args()
     main(args.model_path, args.data_path, args.random_seed)
-

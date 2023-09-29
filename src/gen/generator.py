@@ -1,6 +1,7 @@
+import random
+
 import torch
 import torch.nn as nn
-import random
 
 
 class VAEEncoder(nn.Module):
@@ -39,7 +40,6 @@ class VAEEncoder(nn.Module):
         else:
             raise ValueError('Activation must be one of: relu, leaky_relu, elu, gelu')
 
-
     def forward(self, x):
         """
         Args:
@@ -59,7 +59,6 @@ class VAEEncoder(nn.Module):
     def kld_loss(mu, logvar):
         kld = torch.mean(-0.5 * torch.sum(1 + logvar - mu ** 2 - logvar.exp(), dim=1), dim=0)
         return kld
-
 
 
 class GRUDecoder(nn.Module):
@@ -165,6 +164,7 @@ class EncoderDecoderV3(nn.Module):
                  teacher_ratio, random_seed=42, use_cuda=True, fc1_size=2048, fc2_size=1024, fc3_size=512,
                  encoder_activation='relu'):
         super(EncoderDecoderV3, self).__init__()
+        self.fp_size = fp_size
         self.encoder = VAEEncoder(fp_size,
                                   encoding_size,
                                   fc1_size,

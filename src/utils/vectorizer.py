@@ -1,5 +1,7 @@
-import numpy as np
 import re
+
+import numpy as np
+
 
 class SELFIESVectorizer:
     def __init__(self, pad_to_len=None):
@@ -12,7 +14,7 @@ class SELFIESVectorizer:
         self.char2idx = {s: i for i, s in enumerate(self.alphabet)}
         self.idx2char = {i: s for i, s in enumerate(self.alphabet)}
         self.pad_to_len = pad_to_len
-    
+
     def vectorize(self, selfie, no_special=False):
         """
         Vectorize a list of SELFIES strings to a numpy array of shape (len(selfies), len(charset))
@@ -33,7 +35,7 @@ class SELFIESVectorizer:
         for i in range(len(splited)):
             X[i, self.char2idx[splited[i]]] = 1
         return X
-    
+
     def devectorize(self, ohe, remove_special=False, reduction='max'):
         """
         Devectorize a numpy array of shape (len(selfies), len(charset)) to a SELFIES string
@@ -56,7 +58,7 @@ class SELFIESVectorizer:
                 continue
             selfie_str += self.idx2char[idx]
         return selfie_str
-    
+
     def idxize(self, selfie, no_special=False):
         if no_special:
             splited = self.split_selfi(selfie)
@@ -64,7 +66,7 @@ class SELFIESVectorizer:
             splited = ['[start]'] + self.split_selfi(selfie) + ['[end]'] \
                       + ['[nop]'] * (self.pad_to_len - len(self.split_selfi(selfie)) - 2)
         return np.array([self.char2idx[s] for s in splited])
-    
+
     def deidxize(self, idx, no_special=False):
         if no_special:
             selfie = []
@@ -73,14 +75,14 @@ class SELFIESVectorizer:
                 if char not in ['[end]', '[nop]', '[start]']:
                     selfie.append(char)
             return "".join(selfie)
-        else:    
+        else:
             return "".join([self.idx2char[i] for i in idx])
 
     @staticmethod
     def split_selfi(selfie):
         pattern = r'(\[[^\[\]]*\])'
         return re.findall(pattern, selfie)
-        
+
     # Read alphabet of permitted SELFIES tokens from file
 
     @staticmethod
