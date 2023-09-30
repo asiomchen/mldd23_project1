@@ -16,6 +16,7 @@ def main():
     df['mol'] = df['mol'].apply(optimize_conformation)
     df = dock_molecules(pd.DataFrame(df))
     df.sort_index(inplace=True)
+    os.makedirs('docking/outputs', exist_ok=True)
     df.to_csv(f'docking/outputs/chunk_{chunk_idx}.csv')
     os.remove(f'docking/input/chunk_{chunk_idx}.csv')
     return
