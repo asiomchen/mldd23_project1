@@ -27,12 +27,12 @@ def main():
             header = [
                 f'''#!/bin/bash''',
                 f'''#SBATCH --job-name=docking_{i}''',
-                '''# SBATCH -N 1''',
-                '''# SBATCH --cpus-per-task=48''',
-                '''# SBATCH --mem-per-cpu=500MB''',
-                '''# SBATCH --time=12:00:00''',
-                '''# SBATCH -A plgporphconj-cpu''',
-                '''# SBATCH -p plgrid''',
+                '''#SBATCH -N 1''',
+                '''#SBATCH --cpus-per-task=48''',
+                '''#SBATCH --mem-per-cpu=500MB''',
+                '''#SBATCH --time=12:00:00''',
+                '''#SBATCH -A plgporphconj-cpu''',
+                '''#SBATCH -p plgrid''',
                 '''cd $SLURM_SUBMIT_DIR''',
                 '''conda activate activate /net/pr2/projects/plgrid/plggjmdgroup/mldd\n'''
             ]
