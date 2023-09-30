@@ -18,7 +18,7 @@ def main():
     df.sort_index(inplace=True)
     os.makedirs('docking/outputs', exist_ok=True)
     df.to_csv(f'docking/outputs/chunk_{chunk_idx}.csv')
-    os.remove(f'docking/input/chunk_{chunk_idx}.csv')
+    os.remove(f'docking/inputs/chunk_{chunk_idx}.csv')
     return
 
 
