@@ -28,7 +28,7 @@ def main():
                 f'''#!/bin/bash''',
                 f'''#SBATCH --job-name=docking_{i}''',
                 '''#SBATCH -N 1''',
-                '''#SBATCH --cpus-per-task=48''',
+                '''#SBATCH --cpus-per-task=20''',
                 '''#SBATCH --mem-per-cpu=500MB''',
                 '''#SBATCH --time=12:00:00''',
                 '''#SBATCH -A plgporphconj-cpu''',
