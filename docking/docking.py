@@ -40,7 +40,7 @@ def dock_molecules(df: pd.DataFrame):
 
 def get_docking_score(mol: Chem.Mol, output_name: str = 'molecule_docked'):
     Chem.MolToMolFile(mol, f'docking/molecule.mol')
-    os.system('obabel - imol docking/molecule.mol - omol2 - O docking/molecule.mol2')
+    os.system('obabel -imol docking/molecule.mol -omol2 - O docking/molecule.mol2')
     os.remove(f'docking/molecule.mol')
     os.system(
         f'smina -r docking/6luq_preprocessed.pdb -l docking/molecule.mol2 --autobox_ligand docking/d2_ligand.pdb --autobox_add 8 --exhaustiveness 16 --out docking/outputs/{output_name}.mol2')
