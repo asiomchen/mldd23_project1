@@ -3,7 +3,7 @@ cd data
 mkdir train_data
 
 cd train_data
-wget -O big_dataset_std.parquet https://www.dropbox.com/scl/fi/mwohd2i25m7xcygaay3hr/big_dataset_std.parquet?rlkey=zaq8er9ez0ripvc4jm0u0vr1y&dl=1
+wget -O big_dataset_std.parquet wget -O big_dataset_std.parquet https://www.dropbox.com/scl/fi/pdwlyza3l7i56fejl34vq/big_dataset_std.parquet?rlkey=g13z4witdik65x9d4lfzlclpq&dl=1
 wget -O big_dataset_ECFP.paruet https://www.dropbox.com/scl/fi/l24c0qd2tfbjn2p9sukdy/big_dataset_ECFP.parquet?rlkey=vjxtauvbtxasiaxqvjhgzafzf&dl=1
 wget -O train_morgan_512bits.parquet https://www.dropbox.com/s/bj37jlql9j1lcrr/train_morgan_512bits.parquet?dl=1
 
