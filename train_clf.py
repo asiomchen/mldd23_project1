@@ -17,24 +17,28 @@ from src.gen.generator import EncoderDecoderV3
 from src.utils.modelinit import initialize_model
 
 
-def main(data_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
+def main(data_path, model_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
     """
     Trains an SVM classifier on the latent space of the model.
     """
     start_time = time.time()
+    receptor = data_path.split('/')[-1].split('_')[0]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    data = pd.read_parquet(data_path)
+    data = pd.read_parquet(data_path, columns=['smiles', 'activity', 'fps'])
+    data.reset_index(drop=True, inplace=True)
     print(f'Loaded data from {data_path}')
     activity = data['activity']
-    model = initialize_model('models/GRUv3_ECFP_tola/hyperparameters.ini',
+    config_path = '/'.join(model_path.split('/')[:-1]) + '/hyperparameters.ini'
+    model = initialize_model(config_path,
                              dropout=False,
                              device=device)
-    model.load_state_dict(torch.load('models/GRUv3_ECFP_tola/epoch_200.pt', map_location=device))
+    model.load_state_dict(torch.load(model_path, map_location=device))
 
     print('Encoding data...')
     mus, _ = encode(data, model, device)
     data = pd.DataFrame(mus)
     data['activity'] = activity
+    data.reset_index(drop=True, inplace=True)
     train, test = sklearn.model_selection.train_test_split(data, test_size=0.1, random_state=42)
 
     SV_params = {'C': c_param,
@@ -49,6 +53,7 @@ def main(data_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
 
     train_X = train.drop('activity', axis=1)
     train_y = train['activity']
+    print(train_X.shape, train_y.shape)
     test_X = test.drop('activity', axis=1)
     test_y = test['activity']
 
@@ -56,13 +61,16 @@ def main(data_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
     svc.fit(train_X, train_y)
 
     timestamp = time.strftime('%Y%m%d_%H%M%S')
-    name_extended = f'SVC_{timestamp}'
+    model_name = model_path.split('/')[-2].split('_')[-1]
+    epoch = model_path.split('/')[-1].split('.')[0].split('_')[-1]
+    name_extended = f'SVC_{model_name}_{epoch}'
+    #name_extended = f'SVC_{timestamp}'
     # save model
 
     if not os.path.exists(f'models/{name_extended}'):
         os.mkdir(f'models/{name_extended}')
-    with open(f'./models/{name_extended}/model.pkl', 'wb') as file:
-        pickle.dump(model, file)
+    with open(f'./models/{name_extended}/{receptor}.pkl', 'wb') as file:
+        pickle.dump(svc, file)
 
     # evaluate
     print('Evaluating...')
@@ -78,7 +86,7 @@ def main(data_path, c_param=50, kernel='rbf', degree=3, gamma='scale'):
     wandb.finish()
 
     metrics_df = pd.DataFrame(metrics, index=[0])
-    metrics_df.to_csv(f'models/{name_extended}/metrics.csv', index=False)
+    metrics_df.to_csv(f'models/{name_extended}/metrics_{receptor}.csv', index=False)
 
     time_elapsed = round((time.time() - start_time), 2)
     if time_elapsed < 60:
@@ -141,6 +149,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', '-d', type=str, required=True,
                         help='Path to data file')
+    parser.add_argument('--model_path', '-m', type=str, required=True,
+                        help='Path to saved model')
     parser.add_argument('--c_param', '-c', type=float, default=50,
                         help='C parameter for SVM. Commonly a float in range [0.01, 1000]')
     parser.add_argument('--kernel', '-k', type=str, default='rbf',
@@ -149,6 +159,6 @@ if __name__ == '__main__':
     parser.add_argument('--degree', '-deg', type=int, default=3,
                         help='Degree of polynomial kernel (ignored by other kernels)')
     parser.add_argument('--gamma', '-g', type=str, default='scale',
-                        help='Gamma parameter for SVM. Can be "scale" or "auto" or float.')
+                        help='Gamma parameter for SVM. Can be "scale" or "auto" or a float.')
     args = parser.parse_args()
-    main(args.data_path, args.c_param, args.kernel, args.degree, args.gamma)
+    main(args.data_path, args.model_path, args.c_param, args.kernel, args.degree, args.gamma)
