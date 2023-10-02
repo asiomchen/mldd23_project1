@@ -9746,3 +9746,4 @@ models/GRUv3_ECFP_lolek/metrics.csv
 models/GRUv3_ECFP_lolek/hyperparameters.ini
 models/GRUv3_ECFP_bolek/metrics.csv
 models/GRUv3_ECFP_bolek/hyperparameters.ini
+*.png
