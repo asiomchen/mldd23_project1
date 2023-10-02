@@ -12,7 +12,6 @@ from bayes_opt import BayesianOptimization, SequentialDomainReductionTransformer
 
 from src.clf.scorer import SKLearnScorer
 
-
 # suppress scikit-learn warnings
 def warn(*args, **kwargs):
     pass
@@ -28,7 +27,6 @@ def search(args, return_list):
         args: dictionary of arguments (argparse)
             contains:
                 model_path: path to the model
-                model_type: type of the model (mlp or sklearn)
                 n_samples: number of samples to generate
                 init_points: number of initial points to sample
                 n_iter: number of iterations to perform
@@ -169,7 +167,8 @@ if __name__ == '__main__':
 
     # save the results
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    model_name = 'SVC_' + timestamp
+    receptor = args.model_path.split('/')[-1].split('.')[-2]
+    model_name = receptor + '_SVC_' + timestamp
 
     # create results directory
     os.mkdir(f'results/{model_name}')
