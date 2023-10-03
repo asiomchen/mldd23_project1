@@ -141,7 +141,7 @@ data/train_data/big_dataset_ECFP_val_10.parquet
 data/train_data/big_dataset_std.parquet
 data/train_data/train_morgan_512bits.parquet
 data/train_morgan_512bits.parquet
-plots/drugs.png
+plots/d2_drugs.png
 plots/GRUv3_ECFP_bolek_epoch_150_drugs.png
 plots/GRUv3_ECFP_bolek_epoch_150_tsne.png
 plots/GRUv3_ECFP_bolek_epoch_200_drugs.png
@@ -9746,3 +9746,4 @@ models/GRUv3_ECFP_lolek/metrics.csv
 models/GRUv3_ECFP_lolek/hyperparameters.ini
 models/GRUv3_ECFP_bolek/metrics.csv
 models/GRUv3_ECFP_bolek/hyperparameters.ini
+*.png

@@ -1,5 +1,4 @@
 import argparse
-import configparser
 import random
 
 import matplotlib.pyplot as plt
@@ -19,12 +18,12 @@ from src.utils.modelinit import initialize_model
 from src.utils.vectorizer import SELFIESVectorizer
 
 
-def main(model_path, data_path, seed):
-    config = configparser.ConfigParser()
+def main(model_path, data_path, drugs_path, seed):
     random.seed(seed)
     templist = model_path.split('/')
     config_path = '/'.join(templist[:-1]) + '/hyperparameters.ini'
     model_name = model_path.split('/')[1]
+    receptor = drugs_path.split('/')[-1].split('_')[0]
     epoch = model_path.split('_')[-1].split('.')[0]
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f'Using device: {device}')
@@ -34,7 +33,7 @@ def main(model_path, data_path, seed):
 
     vectorizer = SELFIESVectorizer(pad_to_len=128)
 
-    drugs = pd.read_csv('data/d2_drugs.csv')
+    drugs = pd.read_csv(drugs_path)
     smiles = drugs['smiles'].to_list()
     molecule_names = drugs['name'].to_list()
 
@@ -49,7 +48,7 @@ def main(model_path, data_path, seed):
     preds = [sf.decoder(x) for x in preds]
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
-    img.save(f'plots/{model_name}_epoch_{epoch}_drugs.png')
+    img.save(f'plots/{model_name}_epoch_{epoch}_{receptor}_structures.png')
     print('Images saved')
 
     df = pd.read_parquet(data_path)
@@ -65,7 +64,7 @@ def main(model_path, data_path, seed):
     results = tsne.fit_transform(cat)
 
     all_df = pd.DataFrame((results[-len(d2_encoded):]), columns=['x', 'y'])
-    activity = ['D2 active' if x == 1 else 'D2 inactive' for x in df['activity']]
+    activity = [f'{receptor} active' if x == 1 else f'{receptor} inactive' for x in df['activity']]
     all_df['activity'] = activity
     drugs_df = pd.DataFrame((results[:-len(d2_encoded)]), columns=['x', 'y'])
     drugs_df['name'] = molecule_names
@@ -93,7 +92,7 @@ def main(model_path, data_path, seed):
         )
     adjust_text(annotation_list)
 
-    plt.savefig(f'plots/{model_name}_epoch_{epoch}_tsne.png')
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}.tsne.png')
     print('Plot saved')
 
 
@@ -103,6 +102,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_path', '-m', type=str, required=True)
     parser.add_argument('--data_path', '-d', type=str, required=True)
+    parser.add_argument('--drugs_path', '-dr', type=str, required=True)
     parser.add_argument('--random_seed', '-r', type=int, default=42)
     args = parser.parse_args()
-    main(args.model_path, args.data_path, args.random_seed)
+    main(args.model_path, args.data_path, args.drugs_path, args.random_seed)

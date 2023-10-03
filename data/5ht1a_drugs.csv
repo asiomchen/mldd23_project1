@@ -1,0 +1,11 @@
+smiles,name
+C1CC(=O)NC2=C1C=CC(=C2)OCCCCN3CCN(CC3)C4=C(C(=CC=C4)Cl)Cl,aripiprazole
+FC(F)(F)c4cc(N3CCN(CCN2c1ccccc1NC2=O)CC3)ccc4,flibanserin
+CN(C)C(=O)NC1CCC(CC1)CCN2CCN(CC2)C3=C(C(=CC=C3)Cl)Cl,cariprazine
+C1CCC2(C1)CC(=O)N(C(=O)C2)CCCCN3CCN(CC3)C4=NC=CC=N4,buspirone
+C1=CC2=C(C=C1O)C(=CN2)CCN,serotonin
+CN(C)CCC1=CNC2=CC=CC=C21,dimethyltryptamine
+CCCN(CCC)[C@H]1CC2=CNC3=C2C(=C(C=C3)C(=O)C)C1,LY-293284
+OC(CNC(C)C)COc1ccccc1n2cccc2,isamoltane
+CC(C=C(C)C=C1)=C1SC2=C(N3CCNCC3)C=CC=C2,vortioxetine
+C1CC2=CC=CC=C2O[C@H]1CNCCCCN3C(=O)C4=CC=CC=C4S3(=O)=O,repinotan
