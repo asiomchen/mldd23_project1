@@ -80,7 +80,7 @@ def main(model_path, data_path, drugs_path, seed):
         )
     sns.scatterplot(
         data=drugs_df,
-        x="x", y="y", c='black', s=20
+        x="x", y="y", c='black', marker='o', s=30
     )
     plt.xlabel('t-SNE dim 1')
     plt.ylabel('t-SNE dim 2')
@@ -88,11 +88,10 @@ def main(model_path, data_path, drugs_path, seed):
     annotation_list = []
     for line in range(0, drugs_df.shape[0]):
         annotation_list.append(
-            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line]), size=10,
-                         c='black', weight='bold')
+            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line]), size=12,
+                         c='black', ha='center', va='center', bbox=dict(boxstyle='round', fc='white', ec='black'))
         )
-    adjust_text(annotation_list)
-
+    adjust_text(annotation_list, drugs_df['x'], drugs_df['y'], arrowprops=dict(arrowstyle="-", color='black', lw=1))
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}.tsne.png')
     print('Plot saved to plots/')
 

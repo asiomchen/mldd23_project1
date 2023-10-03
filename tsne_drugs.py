@@ -87,10 +87,10 @@ def main(model_path, data_path, drugs_path, seed):
     annotation_list = []
     for line in range(0, drugs_df.shape[0]):
         annotation_list.append(
-            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line]), size=10,
-                         c='black', weight='bold')
+            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line],), size=10,
+                         c='black', weight='bold', bbox=dict(boxstyle='Square', fc='white', alpha=0.8, pad=0))
         )
-    adjust_text(annotation_list)
+    adjust_text(annotation_list, force_static=1, force_text=1, force_explode=1)
 
     plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}.tsne.png')
     print('Plot saved')
