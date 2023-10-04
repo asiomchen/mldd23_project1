@@ -51,7 +51,6 @@ def main(model_path, data_path, drugs_path, seed):
     preds = [Chem.MolFromSmiles(pred) for pred in preds]
     img = Draw.MolsToGridImage(preds, molsPerRow=3, subImgSize=(300, 300), legends=molecule_names)
     img.save(f'plots/{model_name}_epoch_{epoch}_{receptor}_structures.png')
-    print('Images saved')
 
     df = pd.read_parquet(data_path)
     d2_encoded, _ = encode(df, model, device)
@@ -67,16 +66,18 @@ def main(model_path, data_path, drugs_path, seed):
     all_df = pd.DataFrame((results[-len(d2_encoded):]), columns=['x', 'y'])
     activity = [f'{receptor} active' if x == 1 else f'{receptor} inactive' for x in df['activity']]
     all_df['activity'] = activity
+    all_df.sort_values(by=['activity'], inplace=True)
     drugs_df = pd.DataFrame((results[:-len(d2_encoded)]), columns=['x', 'y'])
     drugs_df['name'] = molecule_names
     drugs_df['n'] = range(1, len(drugs_df) + 1)
 
+    print('Plotting...')
     sns.set(rc={'figure.figsize': (10, 8)})
     sns.set_style("white")
     with sns.color_palette("Paired"):
         sns.scatterplot(
             data=all_df,
-            x="x", y="y", hue="activity", s=5
+            x="x", y="y", hue="activity", hue_order=[f"{receptor} inactive", f"{receptor} active"], s=5
         )
     sns.scatterplot(
         data=drugs_df,
@@ -92,9 +93,9 @@ def main(model_path, data_path, drugs_path, seed):
                          c='black', bbox=dict(boxstyle='round', fc='white', ec='black'))
         )
     adjust_text(annotation_list, drugs_df['x'], drugs_df['y'],
-                expand_objects=(1.2, 1.2), expand_points=(1.2, 1.2), expand_text=(1.2, 1.2),
+                expand_points=(1.5, 2.5), expand_text=(1.2, 2.5),
                 arrowprops=dict(arrowstyle="-", color='black', lw=1))
-    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}.tsne.png')
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}_tsne.png')
     print('Plot saved to plots/')
 
 if __name__ == '__main__':

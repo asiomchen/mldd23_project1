@@ -75,7 +75,7 @@ def main(model_path, data_path, drugs_path, seed):
     with sns.color_palette("Paired"):
         sns.scatterplot(
             data=all_df,
-            x="x", y="y", hue="activity", s=5
+            x="x", y="y", hue="activity", hue_order=[f"{receptor} inactive", f"{receptor} active"], s=5
         )
     sns.scatterplot(
         data=drugs_df,
@@ -87,16 +87,14 @@ def main(model_path, data_path, drugs_path, seed):
     annotation_list = []
     for line in range(0, drugs_df.shape[0]):
         annotation_list.append(
-            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line],), size=10,
-                         c='black', weight='bold', bbox=dict(boxstyle='Square', fc='white', alpha=0.8, pad=0))
+            plt.annotate(drugs_df['name'][line], xy=(drugs_df['x'][line], drugs_df['y'][line]), size=12,
+                         c='black', bbox=dict(boxstyle='round', fc='white', ec='black'))
         )
-    adjust_text(annotation_list, force_static=1, force_text=1, force_explode=1)
-
-    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}.tsne.png')
-    print('Plot saved')
-
-
-
+    adjust_text(annotation_list, drugs_df['x'], drugs_df['y'],
+                expand_points=(1.4, 1.8), force_points=2, expand_text=(1.5, 2), force_text=2,
+                arrowprops=dict(arrowstyle="-", color='black', lw=1))
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}_tsne.png')
+    print('Plot saved to plots/')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
