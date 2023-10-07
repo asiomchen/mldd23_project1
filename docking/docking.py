@@ -11,6 +11,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--data_path', type=str, required=True)
     args = parser.parse_args()
+    name = args.data_path.split('/')[-1]
     chunk_idx = args.data_path.split('_')[-1].split('.')[0]
     df = pd.read_csv(args.data_path)
     df['mol'] = df['smiles'].apply(Chem.MolFromSmiles)
@@ -18,7 +19,7 @@ def main():
     os.makedirs(f'docking/outputs/{chunk_idx}', exist_ok=True)
     df = dock_molecules(pd.DataFrame(df), chunk_idx)
     df.sort_index(inplace=True)
-    df.to_csv(f'docking/outputs/chunk_{chunk_idx}.csv')
+    df.to_csv(f'docking/outputs_{name}/chunk_{chunk_idx}.csv')
     os.remove(f'docking/inputs/chunk_{chunk_idx}.csv')
     return
 
