@@ -44,8 +44,8 @@ def main():
             f.write('\n'.join(header))
             f.write(f'''python docking/docking.py -d docking/inputs/chunk_{i}.csv\n''')
             f.write('''echo Done''')
-        # os.system(f'sbatch docking/docking_{i}.sh')
-        # os.remove(f'docking/docking_{i}.sh')
+        os.system(f'sbatch docking/docking_{i}.sh')
+        os.remove(f'docking/docking_{i}.sh')
     return
 
 if __name__ == '__main__':
