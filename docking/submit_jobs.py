@@ -11,6 +11,7 @@ def main():
     parser.add_argument('-nc', '--n_chunks', type=int, default=10)
     parser.add_argument('-d', '--data_path', type=str, required=True)
     parser.add_argument('-ns', '--n_samples', type=int, default=1000)
+    parser.add_argument('-n', '--name', type=str, required=True)
     parser.add_argument('--seed', type=int, default=42)
     args = parser.parse_args()
     n_chunks = args.n_chunks
@@ -42,7 +43,7 @@ def main():
                 '''conda activate activate /net/pr2/projects/plgrid/plggjmdgroup/mldd\n'''
             ]
             f.write('\n'.join(header))
-            f.write(f'''python docking/docking.py -d docking/inputs/chunk_{i}.csv\n''')
+            f.write(f'''python docking/docking.py -d docking/inputs/chunk_{i}.csv -n {args.name}\n''')
             f.write('''echo Done''')
         os.system(f'sbatch docking/docking_{i}.sh')
         os.remove(f'docking/docking_{i}.sh')
@@ -50,3 +51,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
