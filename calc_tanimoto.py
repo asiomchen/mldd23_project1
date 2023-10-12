@@ -2,13 +2,13 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import DataStructs
-from ..src.utils.finger import dense2sparse
+from src.utils.finger import dense2sparse
 
-df = pd.read_csv('d2_ligands_docked.csv')
+df = pd.read_csv('docking/d2_ligands_docked.csv')
 
 class SimilarityCalculator():
     def __init__(self):
-        train = pd.read_parquet('../data/train_data/train_morgan_512bits.parquet')
+        train = pd.read_parquet('data/train_data/train_morgan_512bits.parquet')
         train['fps'] = train['fps'].apply(eval).apply(lambda x: dense2sparse(x, 512))
         self.fps = train['fps'].values
     def get_max_train_similarity(self, smile):
@@ -29,4 +29,4 @@ class SimilarityCalculator():
 
 calculator = SimilarityCalculator()
 df['max_train_similarity'] = df['smiles'].apply(calculator.get_max_train_similarity)
-df.to_parquet('d2_ligands_w_tanimotos.parquet')
+df.to_parquet('docking/d2_ligands_w_tanimotos.parquet')
