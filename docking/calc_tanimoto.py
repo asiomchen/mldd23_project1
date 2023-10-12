@@ -2,7 +2,7 @@ import pandas as pd
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import DataStructs
-from src.utils.finger import dense2sparse
+from ..src.utils.finger import dense2sparse
 
 df = pd.read_csv('d2_ligands_docked.csv')
 
