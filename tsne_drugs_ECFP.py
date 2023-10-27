@@ -59,7 +59,7 @@ def main(model_path, data_path, drugs_path, seed):
     random_state = seed
     cat = np.concatenate((fp_encoded_numpy, d2_encoded), axis=0)
     print('Running t-SNE...')
-    tsne = TSNE(n_components=2, random_state=random_state, perplexity=40, n_jobs=-1)
+    tsne = TSNE(n_components=2, random_state=random_state, perplexity=50, n_jobs=-1)
 
     results = tsne.fit_transform(cat)
 
@@ -74,14 +74,15 @@ def main(model_path, data_path, drugs_path, seed):
     print('Plotting...')
     sns.set(rc={'figure.figsize': (10, 8)})
     sns.set_style("white")
+    sns.set_context("paper")
     with sns.color_palette("Paired"):
         sns.scatterplot(
             data=all_df,
-            x="x", y="y", hue="activity", hue_order=[f"{receptor} inactive", f"{receptor} active"], s=5
+            x="x", y="y", hue="activity", hue_order=[f"{receptor} inactive", f"{receptor} active"], s=10
         )
     sns.scatterplot(
         data=drugs_df,
-        x="x", y="y", c='black', marker='o', s=30
+        x="x", y="y", c='black', marker='o', s=30, linewidth=0
     )
     plt.xlabel('t-SNE dim 1')
     plt.ylabel('t-SNE dim 2')
@@ -93,9 +94,11 @@ def main(model_path, data_path, drugs_path, seed):
                          c='black', bbox=dict(boxstyle='round', fc='white', ec='black'))
         )
     adjust_text(annotation_list, drugs_df['x'], drugs_df['y'],
-                expand_points=(1.5, 2.5), expand_text=(1.2, 2.5),
-                arrowprops=dict(arrowstyle="-", color='black', lw=1))
-    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}_tsne.png')
+                expand_points=(1.5,3), expand_text=(1, 3),
+                arrowprops=dict(arrowstyle="-", color='black', lw=1), only_move={'points':'x', 'text':'xy'})
+    plt.xlim(-99, 99)
+    plt.ylim(-99, 99)
+    plt.savefig(f'plots/{model_name}_epoch_{epoch}_{receptor}_tsne.png', dpi=300, bbox_inches='tight')
     print('Plot saved to plots/')
 
 if __name__ == '__main__':

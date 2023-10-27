@@ -83,6 +83,7 @@ def encode(df, model, device):
     mus = []
     logvars = []
     model.eval()
+    model.to(device)
     with torch.no_grad():
         for batch in tqdm(dataloader):
             X = batch.to(device)
