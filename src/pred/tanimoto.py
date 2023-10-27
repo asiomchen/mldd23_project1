@@ -45,10 +45,10 @@ def unpack(ls: list):
     return vec
 
 
-class TanimotoSearch():
+class TanimotoSearch:
 
     def __init__(self, return_smiles=False, progress_bar=True):
-        data_path = 'data/train_data/train_morgan_512bits.parquet'
+        data_path = 'data/train_morgan_512bits.parquet'
         self.fps = pd.read_parquet(data_path).fps.apply(eval)
         self.fps = np.array(self.fps.apply(unpack).to_list()).reshape(-1, 512)
         self.fps = pd.DataFrame(self.fps, columns=[f'FP_{i + 1}' for i in range(512)])

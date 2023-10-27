@@ -134,8 +134,6 @@ Other parameters can be set using the command line arguments:
                   Path to model weights
 -v VERBOSITY, --verbosity VERBOSITY
                   Verbosity level (0 - silent, 1 - progress, 2 - verbose)
--w WORKERS, --workers WORKERS
-                  Number of workers. (default: -1 [all available CPU cores])
 -u USE_CUDA, --use_cuda USE_CUDA
                   Use CUDA if available (default: True)
 ```

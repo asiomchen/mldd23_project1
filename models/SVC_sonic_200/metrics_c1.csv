@@ -1,0 +1,2 @@
+accuracy,roc_auc,true_positive,true_negative,false_positive,false_negative
+0.8425,0.8328,0.3169,0.5256,0.0689,0.0886

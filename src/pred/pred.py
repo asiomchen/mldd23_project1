@@ -13,7 +13,7 @@ from src.utils.vectorizer import SELFIESVectorizer
 def predict_with_dropout(model,
                          latent_vectors: np.array,
                          n_samples: int = 10,
-                         device: str = 'cuda',
+                         device: torch.device = torch.device('cpu'),
                          fix_mols: bool = False):
     """
     Generate molecules from latent vectors with dropout.

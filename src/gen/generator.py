@@ -117,7 +117,9 @@ class GRUDecoder(nn.Module):
 
         # initializing hidden state
         hidden = torch.zeros(self.num_layers, batch_size, self.hidden_size).to(self.device)
-        hidden[0] = latent_transformed.unsqueeze(0)  # shape (num_layers, batch_size, hidden_size)
+        hidden[0] = latent_transformed.unsqueeze(0)
+        hidden[1] = latent_transformed.unsqueeze(0)
+        # shape (num_layers, batch_size, hidden_size)
 
         # initializing input (batched start token)
         x = self.start_ohe.repeat(batch_size, 1).unsqueeze(1).to(self.device)  # shape (batch_size, 1, 42)
