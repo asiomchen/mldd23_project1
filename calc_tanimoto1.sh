@@ -9,4 +9,4 @@ source ~/miniconda3/bin/activate
 conda init bash
 conda activate mldd
 
-python calc_tanimoto.py -d results/d2_SVC_sonic_3-29-20/preds_20230927-113519/predictions.csv
+python calc_tanimoto.py -d results/d2_SVC_lolek_150_18-28-52/preds_20230927-095252/predictions.csv
