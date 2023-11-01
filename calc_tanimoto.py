@@ -3,8 +3,12 @@ from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import DataStructs
 from src.utils.finger import dense2sparse
+import argparse
 
-df = pd.read_csv('docking/d2_ligands_docked.csv')
+parser = argparse.ArgumentParser()
+parser.add_argument('-d', '--data_path', type=str, required=True)
+path = parser.parse_args().data_path
+df = pd.read_csv(path)
 
 class SimilarityCalculator():
     def __init__(self):
@@ -29,4 +33,4 @@ class SimilarityCalculator():
 
 calculator = SimilarityCalculator()
 df['max_train_similarity'] = df['smiles'].apply(calculator.get_max_train_similarity)
-df.to_parquet('docking/d2_ligands_w_tanimotos.parquet')
+df.to_parquet('path')
